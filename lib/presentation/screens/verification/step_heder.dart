@@ -14,7 +14,6 @@ class StepHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          /// Title (dynamic)
           Text(
             _getTitle(currentStep),
             style: const TextStyle(
@@ -23,13 +22,12 @@ class StepHeader extends StatelessWidget {
             ),
           ),
 
-          /// Circular Progress
           Stack(
             alignment: Alignment.center,
             children: [
               SizedBox(
-                height: 40,
-                width: 40,
+                height:30,
+                width: 30,
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 4,

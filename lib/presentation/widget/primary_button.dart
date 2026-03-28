@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PrimaryButton extends StatelessWidget {
-
   final String text;
   final VoidCallback onTap;
 
@@ -18,9 +17,7 @@ class PrimaryButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30.r),
-          gradient: LinearGradient(
-            colors: [Colors.purple, Colors.deepPurple],
-          ),
+          gradient: LinearGradient(colors: [Colors.purple, Colors.deepPurple]),
         ),
         child: Text(
           text,

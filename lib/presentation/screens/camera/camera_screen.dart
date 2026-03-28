@@ -1,11 +1,11 @@
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CameraScreen extends StatefulWidget {
   final bool isFront;
 
-  const CameraScreen({required this.isFront});
+  const CameraScreen({super.key, required this.isFront});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -31,19 +31,16 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     if (controller == null || !controller!.value.isInitialized) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           CameraPreview(controller!),
-
-          // 🔥 DARK OVERLAY WITH CUTOUT
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.7),
@@ -52,42 +49,38 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Stack(
               children: [
                 Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.black,
                     backgroundBlendMode: BlendMode.dstOut,
                   ),
                 ),
                 Center(
                   child: Container(
-                    width: 300,
-                    height: 180,
+                    width: 300.w,
+                    height: 180.h,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // 🔲 BORDER
           Center(
             child: Container(
-              width: 300,
-              height: 180,
+              width: 300.w,
+              height: 180.h,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white, width: 1.5.w),
+                borderRadius: BorderRadius.circular(16.r),
               ),
             ),
           ),
-
-          // ✨ CORNER MARKERS
           Center(
             child: SizedBox(
-              width: 300,
-              height: 180,
+              width: 300.w,
+              height: 180.h,
               child: Stack(
                 children: [
                   buildCorner(top: 0, left: 0),
@@ -98,22 +91,18 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
           ),
-
-          // 📝 TITLE
           Positioned(
-            top: 60,
-            left: 20,
+            top: 60.h,
+            left: 20.w,
             child: Text(
               widget.isFront ? "ID Card (Front)" : "ID Card (Back)",
-              style: TextStyle(color: Colors.white, fontSize: 18),
+              style: TextStyle(color: Colors.white, fontSize: 18.sp),
             ),
           ),
-
-          // 📄 INSTRUCTIONS
           Positioned(
-            bottom: 160,
-            left: 20,
-            right: 20,
+            bottom: 160.h,
+            left: 20.w,
+            right: 20.w,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,26 +113,24 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
-
-          // 🔘 CAPTURE BUTTON
           Positioned(
-            bottom: 40,
+            bottom: 40.h,
             left: 0,
             right: 0,
             child: Center(
               child: GestureDetector(
                 onTap: captureImage,
                 child: Container(
-                  height: 75,
-                  width: 75,
+                  height: 75.h,
+                  width: 75.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
+                    border: Border.all(color: Colors.white, width: 4.w),
                   ),
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -151,10 +138,10 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Widget instruction(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.only(bottom: 6.h),
       child: Text(
         "• $text",
-        style: TextStyle(color: Colors.white70),
+        style: TextStyle(color: Colors.white70, fontSize: 13.sp),
       ),
     );
   }
@@ -171,21 +158,21 @@ class _CameraScreenState extends State<CameraScreen> {
       right: right,
       bottom: bottom,
       child: Container(
-        width: 30,
-        height: 30,
+        width: 30.w,
+        height: 30.h,
         decoration: BoxDecoration(
           border: Border(
             top: top != null
-                ? BorderSide(color: Colors.white, width: 3)
+                ? BorderSide(color: Colors.white, width: 3.w)
                 : BorderSide.none,
             left: left != null
-                ? BorderSide(color: Colors.white, width: 3)
+                ? BorderSide(color: Colors.white, width: 3.w)
                 : BorderSide.none,
             right: right != null
-                ? BorderSide(color: Colors.white, width: 3)
+                ? BorderSide(color: Colors.white, width: 3.w)
                 : BorderSide.none,
             bottom: bottom != null
-                ? BorderSide(color: Colors.white, width: 3)
+                ? BorderSide(color: Colors.white, width: 3.w)
                 : BorderSide.none,
           ),
         ),
@@ -195,7 +182,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> captureImage() async {
     final file = await controller!.takePicture();
-
     Navigator.pop(context, file.path);
   }
 }

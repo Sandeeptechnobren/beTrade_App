@@ -25,24 +25,13 @@ class AuthBottomSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.r),
             ),
           ),
-
           SizedBox(height: 20.h),
-          Text(
-            "Get started quickly",
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-          ),
-
+          Text("Get started quickly", style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),),
           SizedBox(height: 5.h),
-          Text(
-            "Choose an option to proceed",
-            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-          ),
-
+          Text("Choose an option to proceed", style: TextStyle(fontSize: 12.sp, color: Colors.grey),),
           SizedBox(height: 20.h),
           _buildGreyButton("Log in to continue", () {
-            Navigator.push(context, MaterialPageRoute(builder: (context)=> const LoginScreen()));
-          }),
-
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()),);}),
           SizedBox(height: 15.h),
           Row(
             children: [
@@ -54,17 +43,11 @@ class AuthBottomSheet extends StatelessWidget {
               Expanded(child: Divider(color: Colors.grey.shade300)),
             ],
           ),
-
           SizedBox(height: 15.h),
           GestureDetector(
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SignupScreen(),
-                ),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen()),);
             },
             child: Container(
               width: double.infinity,
@@ -86,14 +69,12 @@ class AuthBottomSheet extends StatelessWidget {
               ),
             ),
           ),
-
           SizedBox(height: 15.h),
           _buildSocialButton(
             "Continue with ",
             "assets/images/google.png",
             () {},
           ),
-
           SizedBox(height: 10.h),
           _buildSocialButton(
             "Continue with Apple",
@@ -105,11 +86,10 @@ class AuthBottomSheet extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildGreyButton(String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child:  Container(
+      child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 14.h),
         decoration: BoxDecoration(
@@ -121,7 +101,6 @@ class AuthBottomSheet extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildSocialButton(String text, String icon, VoidCallback onTap) {
     return Container(
       width: double.infinity,

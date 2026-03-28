@@ -1,3 +1,337 @@
+// import 'dart:convert';
+// import 'dart:io';
+// import 'package:betrade/core/theme/app_colors.dart';
+// import 'package:betrade/presentation/screens/verification/step_heder.dart';
+// import 'package:betrade/presentation/widget/purple_button.dart';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:image_picker/image_picker.dart';
+// import '../../../data/model/country_model.dart';
+// import '../camera/camera_screen.dart';
+// import '../camera/selfie_camera.dart';
+// import '../main_screen.dart';
+// import 'country_services_step_one.dart';
+//
+// class VerificationFlow extends StatefulWidget {
+//   @override
+//   State<VerificationFlow> createState() => _VerificationFlowState();
+// }
+//
+// class _VerificationFlowState extends State<VerificationFlow> {
+//   int currentStep = 0;
+//   File? selfieImage;
+//   bool isSelfieUploaded = false;
+//   File? frontImage;
+//   File? backImage;
+//   bool isLoading = true;
+//   bool isFrontUploaded = false;
+//   bool isBackUploaded = false;
+//   final ImagePicker picker = ImagePicker();
+//
+//   List<CountryModel> countries = [];
+//   CountryModel? selectedCountry;
+//   List<DropdownItem> currencies = [];
+//   List<DropdownItem> languages = [];
+//
+//   DropdownItem? currency;
+//   DropdownItem? language;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     loadData();
+//     loadLanguages();
+//   }
+//
+//   Future<void> loadData() async {
+//     try {
+//       countries = await CountryService.fetchCountries();
+//
+//       // Default selection
+//       if (countries.isNotEmpty) {
+//         selectedCountry = countries.first;
+//       }
+//       currencies = [
+//         DropdownItem(id: 1, name: "INR"),
+//         DropdownItem(id: 2, name: "USD"),
+//       ];
+//
+//       languages = [
+//         DropdownItem(id: 1, name: "English"),
+//         DropdownItem(id: 2, name: "Hindi"),
+//       ];
+//
+//       currency = currencies.first;
+//       language = languages.first;
+//
+//       setState(() => isLoading = false);
+//     } catch (e) {
+//       print("Error: $e");
+//       setState(() => isLoading = false);
+//     }
+//   }
+//
+//   Future<void> loadLanguages() async {
+//     try {
+//       final response = await http.get(
+//         Uri.parse(
+//           "https://api.easycoders.in/projects/betrade/public/api/languages",
+//         ),
+//       );
+//
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+//
+//         final List list = data['data'];
+//
+//         setState(() {
+//           languages = list.map((e) {
+//             return DropdownItem(id: e['id'], name: e['name']);
+//           }).toList();
+//
+//           language = languages.first; // default select
+//         });
+//       } else {
+//         print("Error: ${response.body}");
+//       }
+//     } catch (e) {
+//       print("Exception: $e");
+//     }
+//   }
+
+//
+//   bool isStepValid() {
+//     if (currentStep == 0) {
+//       return selectedCountry != null && currency != null && language != null;
+//     }
+//     return true;
+//   }
+//
+//   void nextStep() async {
+//     if (currentStep == 0) {
+//       await submitStep1();
+//
+//       // Optional: stop if API fails
+//       // return;
+//     }
+//
+//     if (currentStep < 2) {
+//       setState(() {
+//         currentStep++;
+//       });
+//     } else {
+//       Navigator.pop(context);
+//     }
+//   }
+//
+//   void previousStep() {
+//     if (currentStep > 0) {
+//       setState(() {
+//         currentStep--;
+//       });
+//     }
+//   }
+//
+//   Future<void> submitStep1() async {
+//     try {
+//       final url = Uri.parse(
+//         "https://api.easycoders.in/projects/betrade/public/api/profile/preferences",
+//       );
+//
+//       final response = await http.post(
+//         url,
+//         headers: {"Content-Type": "application/json"},
+//         body: jsonEncode({
+//           "country_id": selectedCountry?.id,
+//           "preferred_language_id": language?.id,
+//         }),
+//       );
+//
+//       if (response.statusCode == 200) {
+//         print("Step1 Success: ${response.body}");
+//       } else {
+//         print("Step1 Error: ${response.body}");
+//       }
+//     } catch (e) {
+//       print("API Error: $e");
+//     }
+//   }
+//
+//   Widget buildStepContent() {
+//     switch (currentStep) {
+//       case 0:
+//         return step1();
+//       case 1:
+//         return step2();
+//       case 2:
+//         return step3();
+//       default:
+//         return step1();
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Material(
+//       child: SafeArea(
+//         child: Column(
+//           children: [
+//             Container(
+//               margin: EdgeInsets.symmetric(vertical: 10),
+//               height: 5,
+//               width: 50,
+//               decoration: BoxDecoration(
+//                 color: Colors.grey,
+//                 borderRadius: BorderRadius.circular(10),
+//               ),
+//             ),
+//             StepHeader(currentStep: currentStep),
+//
+//             Expanded(
+//               child: isLoading
+//                   ? Center(child: CircularProgressIndicator())
+//                   : buildStepContent(),
+//             ),
+//             if (currentStep != 2)
+//               Padding(
+//                 padding: EdgeInsets.all(16),
+//                 child: Row(
+//                   children: [
+//                     if (currentStep > 0) SizedBox(width: 10),
+//
+//                     Expanded(
+//                       child: SizedBox(
+//                         height: 55,
+//                         child: Button(
+//                           title: "Next",
+//                           onPressed: isStepValid() ? nextStep : null,
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+//
+//   Widget step1() {
+//     return Padding(
+//       padding: EdgeInsets.only(left: 16, right: 16),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Divider(),
+//           SizedBox(height: 20),
+//           buildCountryDropdown(),
+//           buildDropdown(
+//             "Currency",
+//             currency,
+//             currencies,
+//             (val) => setState(() => currency = val),
+//           ),
+//
+//           buildDropdown(
+//             "Language",
+//             language,
+//             languages,
+//             (val) => setState(() => language = val),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+//
+
+
+//   Widget buildCountryDropdown() {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Text("Country"),
+//         SizedBox(height: 8),
+//
+//         Container(
+//           padding: EdgeInsets.symmetric(horizontal: 12),
+//           decoration: BoxDecoration(
+//             color: Colors.grey.shade200,
+//             borderRadius: BorderRadius.circular(12),
+//           ),
+//           child: DropdownButton<CountryModel>(
+//             value: selectedCountry,
+//             isExpanded: true,
+//             underline: SizedBox(),
+//
+//             items: countries.map((e) {
+//               return DropdownMenuItem(
+//                 value: e,
+//                 child: Row(
+//                   children: [
+//                     Text(e.flag), // 🇮🇳 flag
+//                     SizedBox(width: 8),
+//                     Text("${e.name}"),
+//                   ],
+//                 ),
+//               );
+//             }).toList(),
+//
+//             onChanged: (val) {
+//               setState(() {
+//                 selectedCountry = val;
+//               });
+//             },
+//           ),
+//         ),
+//
+//         SizedBox(height: 16),
+//       ],
+//     );
+//   }
+//
+//   Widget buildDropdown(
+//     String title,
+//     DropdownItem? value,
+//     List<DropdownItem> items,
+//     Function(DropdownItem?) onChanged,
+//   ) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Text(title),
+//         SizedBox(height: 8),
+//         Container(
+//           padding: EdgeInsets.symmetric(horizontal: 12),
+//           decoration: BoxDecoration(
+//             color: Colors.grey.shade200,
+//             borderRadius: BorderRadius.circular(12),
+//           ),
+//           child: DropdownButton<DropdownItem>(
+//             value: value,
+//             isExpanded: true,
+//             underline: SizedBox(),
+//             items: items.map((e) {
+//               return DropdownMenuItem(value: e, child: Text(e.name));
+//             }).toList(),
+//             onChanged: onChanged,
+//           ),
+//         ),
+//         SizedBox(height: 16),
+//       ],
+//     );
+//   }
+//
+
+
+//
+// class DropdownItem {
+//   final int id;
+//   final String name;
+//
+//   DropdownItem({required this.id, required this.name});
+// }
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
@@ -7,6 +341,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../../data/model/country_model.dart';
+import '../../../data/services/local_storage.dart';
 import '../camera/camera_screen.dart';
 import '../camera/selfie_camera.dart';
 import '../main_screen.dart';
@@ -26,154 +361,160 @@ class _VerificationFlowState extends State<VerificationFlow> {
   bool isLoading = true;
   bool isFrontUploaded = false;
   bool isBackUploaded = false;
-  final ImagePicker picker = ImagePicker();
 
+  final ImagePicker picker = ImagePicker();
   List<CountryModel> countries = [];
   CountryModel? selectedCountry;
-  List<DropdownItem> currencies = [];
   List<DropdownItem> languages = [];
-
-  DropdownItem? currency;
   DropdownItem? language;
-
+  String? selectedCurrency;
   @override
   void initState() {
     super.initState();
-    loadData();
-    loadLanguages();
+    loadAllData();
   }
 
-  Future<void> loadData() async {
+  Future<void> loadAllData() async {
     try {
-      countries = await CountryService.fetchCountries();
+      setState(() => isLoading = true);
+      final countryRes = await CountryService.fetchCountries();
+      countries = countryRes;
 
-      // Default selection
       if (countries.isNotEmpty) {
         selectedCountry = countries.first;
+        selectedCurrency = selectedCountry!.currency;
       }
 
-      // Keep your existing static data
-      currencies = [
-        DropdownItem(id: 1, name: "INR"),
-        DropdownItem(id: 2, name: "USD"),
-      ];
-
-      languages = [
-        DropdownItem(id: 1, name: "English"),
-        DropdownItem(id: 2, name: "Hindi"),
-      ];
-
-      currency = currencies.first;
-      language = languages.first;
-
-      setState(() => isLoading = false);
-    } catch (e) {
-      print("Error: $e");
-      setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> loadLanguages() async {
-    try {
+      final token = LocalStorage.getToken();
       final response = await http.get(
-        Uri.parse(
-          "https://api.easycoders.in/projects/betrade/public/api/languages",
-        ),
+        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/languages"),
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
       );
+
+      print("TOKEN: $token");
+      print("LANG RESPONSE: ${response.body}");
+
+      print("LANG RESPONSE: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         final List list = data['data'];
 
-        setState(() {
-          languages = list.map((e) {
-            return DropdownItem(id: e['id'], name: e['name']);
-          }).toList();
+        languages = list
+            .map((e) => DropdownItem(id: e['id'], name: e['name']))
+            .toList();
 
-          language = languages.first; // default select
-        });
-      } else {
-        print("Error: ${response.body}");
-      }
-    } catch (e) {
-      print("Exception: $e");
-    }
-  }
-
-  Future<void> openCamera(bool isFront) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CameraScreen(isFront: isFront)),
-    );
-
-    if (result != null) {
-      setState(() {
-        if (isFront) {
-          frontImage = File(result);
-          isFrontUploaded = true;
-        } else {
-          backImage = File(result);
-          isBackUploaded = true;
+        if (languages.isNotEmpty) {
+          language = languages.first;
         }
-      });
-    }
-  }
 
-  bool isStepValid() {
-    if (currentStep == 0) {
-      return selectedCountry != null && currency != null && language != null;
-    }
-    return true;
-  }
+      }
 
-  void nextStep() async {
-    if (currentStep == 0) {
-      await submitStep1();
-
-      // Optional: stop if API fails
-      // return;
-    }
-
-    if (currentStep < 2) {
       setState(() {
-        currentStep++;
+        isLoading = false;
       });
-    } else {
-      Navigator.pop(context);
+    } catch (e) {
+      print("ERROR: $e");
+      setState(() => isLoading = false);
     }
   }
 
-  void previousStep() {
-    if (currentStep > 0) {
-      setState(() {
-        currentStep--;
+  bool isStep2Valid() {
+    return frontImage != null && backImage != null;
+  }
+
+  Future<void> submitKyc() async {
+    try {
+      final token = LocalStorage.getToken();
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/kyc/submit"),
+      );
+
+      request.headers.addAll({
+        "Authorization": "Bearer $token",
+        "Accept": "application/json",
       });
+
+      // 🔥 Images attach
+      request.files.add(await http.MultipartFile.fromPath(
+        'id_front',
+        frontImage!.path,
+      ));
+
+      request.files.add(await http.MultipartFile.fromPath(
+        'id_back',
+        backImage!.path,
+      ));
+
+      request.files.add(await http.MultipartFile.fromPath(
+        'selfie',
+        selfieImage!.path,
+      ));
+
+      var response = await request.send();
+
+      var responseData = await response.stream.bytesToString();
+
+      print("KYC RESPONSE: $responseData");
+
+      if (response.statusCode == 200) {
+        print("✅ KYC SUCCESS");
+      } else {
+        print("❌ KYC FAILED");
+      }
+
+    } catch (e) {
+      print("KYC ERROR: $e");
     }
   }
 
   Future<void> submitStep1() async {
     try {
+      final token = LocalStorage.getToken();
+
       final url = Uri.parse(
         "https://api.easycoders.in/projects/betrade/public/api/profile/preferences",
       );
 
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Accept": "application/json", //
+          "Authorization": "Bearer $token", //
+          "Content-Type": "application/json",
+        },
         body: jsonEncode({
           "country_id": selectedCountry?.id,
           "preferred_language_id": language?.id,
         }),
       );
 
-      if (response.statusCode == 200) {
-        print("Step1 Success: ${response.body}");
-      } else {
-        print("Step1 Error: ${response.body}");
-      }
+      print("STEP1 RESPONSE: ${response.body}");
+
     } catch (e) {
       print("API Error: $e");
+    }
+  }
+
+  bool isStepValid() {
+    return selectedCountry != null && language != null;
+  }
+
+  void nextStep() async {
+    if (currentStep == 0) {
+      await submitStep1();
+    }
+
+    if (currentStep < 2) {
+      setState(() {
+        currentStep++;
+      });
     }
   }
 
@@ -205,32 +546,29 @@ class _VerificationFlowState extends State<VerificationFlow> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-
-            // 🔵 Step Indicator
             StepHeader(currentStep: currentStep),
-
             Expanded(
               child: isLoading
                   ? Center(child: CircularProgressIndicator())
                   : buildStepContent(),
             ),
+
             if (currentStep != 2)
               Padding(
                 padding: EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    if (currentStep > 0) SizedBox(width: 10),
-
-                    Expanded(
-                      child: SizedBox(
-                        height: 55,
-                        child: Button(
-                          title: "Next",
-                          onPressed: isStepValid() ? nextStep : null,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: SizedBox(
+                  height: 55,
+                  width: double.infinity,
+                  child: Button(
+                    title: "Next",
+                    onPressed: () {
+                      if (currentStep == 0 && isStepValid()) {
+                        nextStep();
+                      } else if (currentStep == 1 && isStep2Valid()) {
+                        nextStep();
+                      }
+                    },
+                  ),
                 ),
               ),
           ],
@@ -239,30 +577,139 @@ class _VerificationFlowState extends State<VerificationFlow> {
     );
   }
 
+
   Widget step1() {
     return Padding(
-      padding: EdgeInsets.only(left: 16, right: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Divider(),
           SizedBox(height: 20),
           buildCountryDropdown(),
-          buildDropdown(
-            "Currency",
-            currency,
-            currencies,
-            (val) => setState(() => currency = val),
-          ),
-
-          buildDropdown(
-            "Language",
-            language,
-            languages,
-            (val) => setState(() => language = val),
-          ),
+          buildCurrencyDropdown(),
+          buildLanguageDropdown(),
         ],
       ),
+    );
+  }
+
+  Widget buildCountryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Country"),
+        SizedBox(height: 8),
+
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButton<CountryModel>(
+            value: countries.contains(selectedCountry) ? selectedCountry : null,
+            isExpanded: true,
+            underline: SizedBox(),
+            items: countries.map((e) {
+              return DropdownMenuItem(
+                value: e,
+                child: Row(
+                  children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
+                ),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                selectedCountry = val;
+                selectedCurrency = val!.currency;
+              });
+            },
+          ),
+        ),
+
+        SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget buildCurrencyDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Currency"),
+        SizedBox(height: 8),
+
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButton<String>(
+            value: selectedCurrency,
+            isExpanded: true,
+            underline: SizedBox(),
+
+            items: selectedCurrency != null
+                ? [
+                    DropdownMenuItem(
+                      value: selectedCurrency,
+                      child: Text(selectedCurrency!),
+                    ),
+                  ]
+                : [],
+
+            onChanged: null,
+          ),
+        ),
+
+        SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget buildLanguageDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Language"),
+        SizedBox(height: 8),
+
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+
+          child: languages.isEmpty
+              ? Padding(
+            padding: EdgeInsets.all(12),
+            child: Text("No Language Found"),
+          )
+              : DropdownButton<DropdownItem>(
+            value: language,
+            isExpanded: true,
+            underline: SizedBox(),
+
+            items: languages.map((e) {
+              return DropdownMenuItem(
+                value: e,
+                child: Text(e.name),
+              );
+            }).toList(),
+
+            onChanged: (val) {
+              setState(() {
+                language = val;
+              });
+            },
+          ),
+        ),
+
+        SizedBox(height: 16),
+      ],
     );
   }
 
@@ -272,13 +719,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "ID Verification",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-
           SizedBox(height: 20),
-
           // FRONT
           buildUploadBox("ID Card (Front)", frontImage, () => openCamera(true)),
 
@@ -288,6 +729,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
       ),
     );
   }
+
 
   Widget step3() {
     return Padding(
@@ -312,13 +754,25 @@ class _VerificationFlowState extends State<VerificationFlow> {
                 ),
               ),
               onPressed: isSelfieUploaded
-                  ? () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => MainScreen()),
-                        (route) => false,
-                      );
-                    }
+                  ? () async {
+                if (frontImage == null || backImage == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Upload ID images first")),
+                  );
+                  return;
+                }
+
+                await submitKyc();
+
+                // ✅ IMPORTANT FIX
+                if (!mounted) return;
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => MainScreen()),
+                      (route) => false,
+                );
+              }
                   : null,
               child: Text(
                 "Verify my account",
@@ -328,81 +782,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
           ),
         ],
       ),
-    );
-  }
-  Widget buildCountryDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Country"),
-        SizedBox(height: 8),
-
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButton<CountryModel>(
-            value: selectedCountry,
-            isExpanded: true,
-            underline: SizedBox(),
-
-            items: countries.map((e) {
-              return DropdownMenuItem(
-                value: e,
-                child: Row(
-                  children: [
-                    Text(e.flag), // 🇮🇳 flag
-                    SizedBox(width: 8),
-                    Text("${e.name}"),
-                  ],
-                ),
-              );
-            }).toList(),
-
-            onChanged: (val) {
-              setState(() {
-                selectedCountry = val;
-              });
-            },
-          ),
-        ),
-
-        SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget buildDropdown(
-    String title,
-    DropdownItem? value,
-    List<DropdownItem> items,
-    Function(DropdownItem?) onChanged,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title),
-        SizedBox(height: 8),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButton<DropdownItem>(
-            value: value,
-            isExpanded: true,
-            underline: SizedBox(),
-            items: items.map((e) {
-              return DropdownMenuItem(value: e, child: Text(e.name));
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(height: 16),
-      ],
     );
   }
 
@@ -425,9 +804,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
             child: image != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(image, fit: BoxFit.cover),
-                  )
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(image, fit: BoxFit.cover),
+            )
                 : Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
           ),
         ),
@@ -435,6 +814,25 @@ class _VerificationFlowState extends State<VerificationFlow> {
         SizedBox(height: 16),
       ],
     );
+  }
+
+  Future<void> openCamera(bool isFront) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CameraScreen(isFront: isFront)),
+    );
+
+    if (result != null) {
+      setState(() {
+        if (isFront) {
+          frontImage = File(result);
+          isFrontUploaded = true;
+        } else {
+          backImage = File(result);
+          isBackUploaded = true;
+        }
+      });
+    }
   }
 
   Widget buildSelfieBox() {
@@ -449,9 +847,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
         ),
         child: selfieImage != null
             ? ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(selfieImage!, fit: BoxFit.cover),
-              )
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(selfieImage!, fit: BoxFit.cover),
+        )
             : Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
       ),
     );

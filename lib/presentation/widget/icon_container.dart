@@ -4,9 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class IconContainer extends StatelessWidget {
   final IconData icon;
-  final Color color,iconColor;
-  const IconContainer({super.key, required this.icon, required this.color, required this.iconColor});
-
+  final Color color, iconColor;
+  const IconContainer({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.iconColor,
+  });
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -15,16 +19,12 @@ class IconContainer extends StatelessWidget {
       child: Container(
         height: 40.h,
         width: 40.w,
-        decoration:  BoxDecoration(
+        decoration: BoxDecoration(
           color: color,
-          shape: BoxShape.circle, // ✅ perfect circle
+          shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 20.sp,
-          color: iconColor,
-        ),
+        child: Icon(icon, size: 20.sp, color: iconColor),
       ),
     );
   }

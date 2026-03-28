@@ -1,10 +1,13 @@
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/explore/explore_page.dart';
 import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
 import 'package:betrade/presentation/screens/profile/profile_page.dart';
+import 'package:betrade/presentation/screens/trade/trade_page.dart';
 import 'package:betrade/presentation/screens/verification/verify_account.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../bottom_navigation/bottom_nav.dart';
 
 class MainScreen extends StatefulWidget {
@@ -18,11 +21,10 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
-
   final screens = [
     HomeScreen(),
     ExplorerPage(),
-    Center(child: Text("Trade")),
+    TradePage(),
     PortfolioPage(),
     ProfilePage(),
   ];
@@ -30,13 +32,13 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-
     if (widget.showWelcomePopup) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showWelcomePopup();
       });
     }
   }
+
   void _showWelcomePopup() {
     showDialog(
       context: context,
@@ -44,65 +46,77 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.white,
-          insetPadding: EdgeInsets.all(10),
+          insetPadding: EdgeInsets.all(10.w),
           elevation: 4,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.r),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20.w),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   "Welcome aboard, Steph 🎉",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'SFProRounded',
-                  ),
+                 style: AppTextStyle.subHeading,
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 10.h),
                 Text(
                   "Your account is ready. Let’s quickly verify your details so you can start trading and withdraw your winnings.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
+                    fontSize: 13.sp,
                     color: Colors.grey,
                     fontFamily: 'SFProRounded',
                   ),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      backgroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(25),
-                        ),
-                      ),
+                      backgroundColor: Colors.transparent,
                       builder: (context) {
-                        return FractionallySizedBox(
-                          heightFactor: 0.9,
-                          child: VerificationFlow(),
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            left: 10.w,
+                            right: 10.w,
+                            top: 20.h,
+                            bottom: 20.h,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20.r),
+                              topRight: Radius.circular(20.r),
+                              bottomLeft: Radius.circular(15.r),
+                              bottomRight: Radius.circular(15.r),
+                            ),
+                            child: Container(
+                              color: Colors.white,
+                              child: FractionallySizedBox(
+                                heightFactor: 0.9,
+                                child: VerificationFlow(),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     );
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(30.r),
                       color: AppColors.primary,
                     ),
                     child: Center(
                       child: Text(
                         "Verify my account",
                         style: TextStyle(
+                          fontSize: 14.sp,
                           color: Colors.white,
                           fontFamily: 'SFProRounded',
                         ),
@@ -110,18 +124,21 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 10.h),
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(width: 2, color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(30.r),
+                      border: Border.all(
+                        width: 2.w,
+                        color: Colors.grey.shade200,
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -129,12 +146,16 @@ class _MainScreenState extends State<MainScreen> {
                         Text(
                           "Skip for now",
                           style: TextStyle(
+                            fontSize: 14.sp,
                             fontFamily: 'SFProRounded',
                             color: Colors.black,
                           ),
                         ),
-                        SizedBox(width: 5),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 18),
+                        SizedBox(width: 5.w),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16.sp,
+                        ),
                       ],
                     ),
                   ),
@@ -146,10 +167,14 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: currentIndex, children: screens),
+      body: IndexedStack(
+        index: currentIndex,
+        children: screens,
+      ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: currentIndex,
         onTap: (index) {

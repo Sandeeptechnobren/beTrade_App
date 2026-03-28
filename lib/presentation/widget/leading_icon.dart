@@ -14,14 +14,10 @@ class LeadingIcon extends StatelessWidget {
         width: 40.w,
         decoration: const BoxDecoration(
           color: Color(0xFFF4F4F5),
-          shape: BoxShape.circle, // ✅ perfect circle
+          shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
-        child: Icon(
-          Icons.arrow_back_ios_new,
-          size: 18.sp,
-          color: Colors.black,
-        ),
+        child: Icon(Icons.arrow_back_ios_new, size: 18.sp, color: Colors.black),
       ),
     );
   }

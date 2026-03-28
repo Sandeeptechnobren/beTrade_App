@@ -4,46 +4,35 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
-
-
 class CountryPickerSheet extends StatefulWidget {
   const CountryPickerSheet({super.key});
-
   @override
   State<CountryPickerSheet> createState() => _CountryPickerSheetState();
 }
 
 class _CountryPickerSheetState extends State<CountryPickerSheet> {
   TextEditingController searchController = TextEditingController();
-
   List<CountryModel> filteredCountries = [];
-
   @override
   void initState() {
     super.initState();
-
     Future.microtask(() async {
       final provider = context.read<CountryProvider>();
       await provider.fetchCountries();
-
       setState(() {
         filteredCountries = provider.countries.cast<CountryModel>();
       });
     });
   }
-
   void _filterCountries(String query) {
     final provider = context.read<CountryProvider>();
-
     if (query.isEmpty) {
       setState(() {
         filteredCountries = provider.countries.cast<CountryModel>();
       });
       return;
     }
-
     final lowerQuery = query.toLowerCase();
-
     setState(() {
       filteredCountries = provider.countries.where((country) {
         return country.name.toLowerCase().contains(lowerQuery) ||
@@ -51,7 +40,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
       }).cast<CountryModel>().toList();
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -63,8 +51,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
       ),
       child: Column(
         children: [
-
-          /// DRAG HANDLE
           Container(
             width: 40.w,
             height: 4.h,
@@ -73,10 +59,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
               borderRadius: BorderRadius.circular(10.r),
             ),
           ),
-
           SizedBox(height: 15.h),
-
-          /// TITLE
           Row(
             children: [
               LeadingIcon(),
@@ -90,10 +73,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
               ),
             ],
           ),
-
           SizedBox(height: 10.h),
-
-          /// SEARCH FIELD
           Container(
             decoration: BoxDecoration(
               color: Color(0xFFF4F4F5),
@@ -120,22 +100,16 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
               ),
             ),
           ),
-
           SizedBox(height: 10.h),
-
-          /// COUNTRY LIST
           Expanded(
             child: Consumer<CountryProvider>(
               builder: (context, provider, child) {
-
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
                 if (provider.countries.isEmpty) {
                   return const Center(child: Text("No countries found"));
                 }
-
                 return ListView.builder(
                   itemCount: filteredCountries.length,
                   itemBuilder: (context, index) {
@@ -155,7 +129,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
       ),
     );
   }
-
   Widget _countryTile(
       BuildContext context,
       CountryModel country, {

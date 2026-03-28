@@ -1,12 +1,13 @@
+import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF5F6FA),
       body: Column(
         children: [
           Container(
@@ -37,15 +38,26 @@ class ProfilePage extends StatelessWidget {
                 ),
                 Text(
                   "technobren@gmail.com",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13.sp,
+                  style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+                ),
+                SizedBox(height: 10.h),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WalletHistoryPage(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    "Wallet History",
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
           ),
-
           SizedBox(height: 20.h),
           Expanded(
             child: ListView(
@@ -59,7 +71,7 @@ class ProfilePage extends StatelessWidget {
                 buildTile(Icons.logout, "Logout"),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -80,13 +92,10 @@ class ProfilePage extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
             ),
           ),
-          const Icon(Icons.arrow_forward_ios, size: 16)
+          const Icon(Icons.arrow_forward_ios, size: 16),
         ],
       ),
     );

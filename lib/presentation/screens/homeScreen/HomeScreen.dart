@@ -2,7 +2,6 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 class PollModel {
   final String category;
   final String time;
@@ -46,7 +45,6 @@ final List<PollModel> polls = [
     time: "7m",
     question:
         "Will Iran retaliate with large-scale attacks on U.S. bases in the Middle East?",
-    // image: "assets/images/person4.png",
     yesPercent: 0,
     noPercent: 0,
     trades: 3975,
@@ -61,14 +59,11 @@ final List<PollModel> polls = [
     trades: 3975,
   ),
 ];
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
-
 class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   final PageController _pageController = PageController();
@@ -80,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
     "Crypto",
     "Entertainment",
   ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,17 +86,20 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               child: Row(
                 children: [
-                  Image.asset("assets/images/IconLogo.png", height: 32.h),
-                  SizedBox(width: 5.w),
                   RichText(
                     text: TextSpan(
                       children: [
-                        TextSpan(
-                          text: "BeTrade",
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                        WidgetSpan(
+                          child: Row(
+                            children: [
+                              Image.asset(
+                                "assets/logo/IconLogo.png",
+                                height: 28,
+                                width: 28,
+                              ),
+                              SizedBox(width: 5.w),
+                              Image.asset("assets/logo/logo_name.png"),
+                            ],
                           ),
                         ),
                         WidgetSpan(
@@ -127,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
             SizedBox(
               height: 50.h,
               child: ListView.builder(
@@ -185,7 +181,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFilteredPollList(String category) {
     final filteredPolls =
     polls.where((poll) => poll.category == category).toList();
-
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
       itemCount: filteredPolls.length,
@@ -195,13 +190,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
 class _TabItem extends StatelessWidget {
   final String title;
   final bool isSelected;
-
   const _TabItem({required this.title, this.isSelected = false});
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -232,12 +224,9 @@ class _TabItem extends StatelessWidget {
     );
   }
 }
-
 class PollCard extends StatelessWidget {
   final PollModel poll;
-
   const PollCard({super.key, required this.poll});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -310,7 +299,6 @@ class PollCard extends StatelessWidget {
       ),
     );
   }
-
   Widget _voteBar(String label, int percent, Color color) {
     return Stack(
       children: [

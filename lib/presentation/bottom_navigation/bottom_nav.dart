@@ -3,17 +3,14 @@ import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
-
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
-
   const CustomBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
@@ -25,26 +22,11 @@ class CustomBottomNav extends StatelessWidget {
       selectedLabelStyle:AppTextStyle.smallNav,
       unselectedLabelStyle:AppTextStyle.smallNav,
       items: [
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.home_15, size: 22.sp),
-          label: "Home",
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.search_normal_15, size: 22.sp),
-          label: "Explore",
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.trade5, size: 22.sp),
-          label: "Trade",
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.wallet, size: 22.sp),
-          label: "Portfolio",
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.profile_circle5, size: 22.sp),
-          label: "Profile",
-        ),
+        BottomNavigationBarItem(icon: Icon(Iconsax.home_15, size: 22.sp), label: "Home",),
+        BottomNavigationBarItem(icon: Icon(Icons.search, size: 22.sp), label: "Explore",),
+        BottomNavigationBarItem(icon: Icon(Iconsax.arrow_swap, size: 22.sp,fontWeight:FontWeight.bold,), label: "Trade",),
+        BottomNavigationBarItem(icon: Icon(Iconsax.wallet, size: 22.sp), label: "Portfolio",),
+        BottomNavigationBarItem(icon: Icon(Iconsax.profile_circle5, size: 22.sp), label: "Profile",),
       ],
     );
   }

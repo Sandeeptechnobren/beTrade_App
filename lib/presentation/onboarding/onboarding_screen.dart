@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/services/local_storage.dart';
@@ -42,17 +43,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     "emoji":"assets/images/IconLogo.png",
     },
   ];
-
   void nextPage() async {
     if (currentIndex == data.length - 1) {
       await LocalStorage.setOnboardingDone();
-
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         builder: (_) => const AuthScreen(),
       );
-
     } else {
       _controller.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -66,28 +64,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              "assets/images/backgroundthread.png",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/images/backgroundthread.png", fit: BoxFit.cover,),
           ),
-
           SafeArea(
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
-                    children: List.generate(
-                      data.length,
-                          (index) => Expanded(
+                    children: List.generate(data.length, (index) => Expanded(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           height: 4,
-                          decoration: BoxDecoration(
-                            color: currentIndex == index
-                                ? Colors.purple
-                                : Colors.grey,
+                          decoration: BoxDecoration(color: currentIndex == index ?AppColors.primary : Colors.grey,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -98,9 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,
-                    onPageChanged: (index) {
-                      setState(() => currentIndex = index);
-                    },
+                    onPageChanged: (index) {setState(() => currentIndex = index);},
                     itemCount: data.length,
                     itemBuilder: (_, index) {
                       return OnboardingPage(

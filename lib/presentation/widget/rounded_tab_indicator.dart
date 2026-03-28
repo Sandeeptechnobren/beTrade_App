@@ -16,7 +16,6 @@ class RoundedTabIndicator extends Decoration {
     return _RoundedPainter(this);
   }
 }
-
 class _RoundedPainter extends BoxPainter {
   final RoundedTabIndicator decoration;
 
@@ -38,7 +37,6 @@ class _RoundedPainter extends BoxPainter {
       rect,
       Radius.circular(decoration.radius),
     );
-
     canvas.drawRRect(rRect, paint);
   }
 }

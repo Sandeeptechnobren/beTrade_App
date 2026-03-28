@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../data/provider/country_provider.dart';
-
 void showCountryPicker(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -13,10 +12,8 @@ void showCountryPicker(BuildContext context) {
     },
   );
 }
-
 class _CountryPickerBody extends StatelessWidget {
   const _CountryPickerBody({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Consumer<CountryProvider>(
@@ -25,9 +22,7 @@ class _CountryPickerBody extends StatelessWidget {
           height: 650.h,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(28.r),
-            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -89,25 +84,16 @@ class _CountryPickerBody extends StatelessWidget {
                   child: Builder(
                     builder: (_) {
                       if (provider.isLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
-
                       if (provider.countries.isEmpty) {
-                        return const Center(
-                          child: Text("No countries found"),
-                        );
+                        return const Center(child: Text("No countries found"));
                       }
                       return ListView.builder(
                         itemCount: provider.countries.length,
                         itemBuilder: (_, index) {
                           final country = provider.countries[index];
-
-                          final isSelected =
-                              provider.selectedCountry?.phoneCode ==
-                                  country.phoneCode;
-
+                          final isSelected = provider.selectedCountry?.phoneCode == country.phoneCode;
                           return GestureDetector(
                             onTap: () {
                               provider.selectCountry(country);
@@ -132,7 +118,6 @@ class _CountryPickerBody extends StatelessWidget {
                                     style: TextStyle(fontSize: 20.sp),
                                   ),
                                   SizedBox(width: 12.w),
-
                                   Expanded(
                                     child: Text(
                                       country.name,
@@ -142,7 +127,6 @@ class _CountryPickerBody extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-
                                   Text(
                                     country.phoneCode,
                                     style: TextStyle(

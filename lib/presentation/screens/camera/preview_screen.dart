@@ -1,15 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-
 class PreviewScreen extends StatelessWidget {
   final String imagePath;
   final bool isFront;
-
-  const PreviewScreen({
-    required this.imagePath,
-    required this.isFront,
-  });
-
+  const PreviewScreen({required this.imagePath, required this.isFront});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,7 +11,6 @@ class PreviewScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // 🔝  Title
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -31,8 +24,6 @@ class PreviewScreen extends StatelessWidget {
                 ],
               ),
             ),
-
-            // 🖼️ Image Preview (Card Style)
             Expanded(
               child: Center(
                 child: Container(
@@ -43,21 +34,15 @@ class PreviewScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.file(
-                      File(imagePath),
-                      fit: BoxFit.cover,
-                    ),
+                    child: Image.file(File(imagePath), fit: BoxFit.cover),
                   ),
                 ),
               ),
             ),
-
-            // 🔘 Buttons
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  // Retake
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -68,7 +53,7 @@ class PreviewScreen extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () {
-                        Navigator.pop(context); // go back to camera
+                        Navigator.pop(context);
                       },
                       child: Text(
                         "Retake",
@@ -76,10 +61,7 @@ class PreviewScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   SizedBox(width: 12),
-
-                  // Use Photo
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -90,7 +72,7 @@ class PreviewScreen extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () {
-                        Navigator.pop(context, imagePath); // return image
+                        Navigator.pop(context, imagePath);
                       },
                       child: Text(
                         "Use Photo",

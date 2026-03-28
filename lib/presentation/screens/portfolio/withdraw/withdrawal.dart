@@ -2,7 +2,7 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
 
 class WithdrawPage extends StatefulWidget {
@@ -16,20 +16,17 @@ class WithdrawPage extends StatefulWidget {
 
 class _DepositPageState extends State<WithdrawPage> {
   int step = 1;
-
   final TextEditingController amountController = TextEditingController();
-
   int selectedAmount = 10;
-
   String paymentMethod = "card";
-
   final TextEditingController cardNumber = TextEditingController();
   final TextEditingController expiry = TextEditingController();
   final TextEditingController cvc = TextEditingController();
-
   final TextEditingController phone = TextEditingController();
+  final TextEditingController accountNumberController = TextEditingController();
+  final TextEditingController accountNameController = TextEditingController();
+  final TextEditingController bankNameController = TextEditingController();
   String provider = "";
-
   final List<int> amounts = [10, 20, 50, 100];
 
   @override
@@ -54,23 +51,7 @@ class _DepositPageState extends State<WithdrawPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          child: Container(
-                            height: 36.w,
-                            width: 36.w,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Text("New Withdrawal", style: AppTextStyle.heading),
-                      ],
-                    ),
+                    CommonHeader(title: "New Withdrawal"),
                     _stepIndicator(),
                   ],
                 ),
@@ -84,7 +65,6 @@ class _DepositPageState extends State<WithdrawPage> {
     );
   }
 
-  // ================= STEP INDICATOR =================
   Widget _stepIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -109,15 +89,12 @@ class _DepositPageState extends State<WithdrawPage> {
     );
   }
 
-  // ================= STEP 1 =================
   Widget step1() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Amount", style: AppTextStyle.body),
-
         SizedBox(height: 10.h),
-
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
@@ -130,7 +107,6 @@ class _DepositPageState extends State<WithdrawPage> {
             decoration: const InputDecoration(border: InputBorder.none),
           ),
         ),
-
         SizedBox(height: 15.h),
         const Spacer(),
         _button("Continue", () {
@@ -140,101 +116,99 @@ class _DepositPageState extends State<WithdrawPage> {
     );
   }
 
-  // ================= STEP 2 =================
   Widget step2() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Payment Method", style: AppTextStyle.body),
-
-        SizedBox(height: 10.h),
-
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          decoration: BoxDecoration(
-            color: AppColors.iconContainer,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: DropdownButton<String>(
-            value: paymentMethod,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: [
-              DropdownMenuItem(
-                value: "card",
-                child: Text("Bank Account", style: AppTextStyle.body),
-              ),
-              DropdownMenuItem(
-                value: "momo",
-                child: Text("Mobile Money", style: AppTextStyle.body),
-              ),
-            ],
-            onChanged: (val) {
-              setState(() {
-                paymentMethod = val!;
-              });
-            },
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Payment Method", style: AppTextStyle.body),
+                SizedBox(height: 10.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.iconContainer,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: DropdownButton<String>(
+                    value: paymentMethod,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    items: [
+                      DropdownMenuItem(
+                        value: "card",
+                        child: Text("Bank Account", style: AppTextStyle.body),
+                      ),
+                      DropdownMenuItem(
+                        value: "momo",
+                        child: Text("Mobile Money", style: AppTextStyle.body),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        paymentMethod = val!;
+                      });
+                    },
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                paymentMethod == "card" ? cardUI() : momoUI(),
+                SizedBox(height: 20.h),
+              ],
+            ),
           ),
         ),
-
-        SizedBox(height: 20.h),
-
-        paymentMethod == "card" ? cardUI() : momoUI(),
-
-        const Spacer(),
         _button("Confirm", () async {
+          final parentContext = context;
           Navigator.pop(context);
-
           await Future.delayed(const Duration(milliseconds: 200));
-
-          showSuccessDialog(context);
+          if (mounted) {
+            withdrawalSuccessDialog(parentContext);
+          }
         }),
       ],
     );
   }
 
-  // ================= CARD
   Widget cardUI() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Account Number", style: AppTextStyle.body),
-
         SizedBox(height: 10.h),
-        _input(cardNumber, "0000 0000 0000 0000"),
+        _input(accountNumberController, "0000 0000 0000 0000"),
 
         SizedBox(height: 20.h),
-
         Text("Account Name", style: AppTextStyle.body),
-
         SizedBox(height: 10.h),
-        _input(cardNumber, "Enter account name"),
+        _input(accountNameController, "Enter account name"),
 
         SizedBox(height: 20.h),
         Text("Bank Name", style: AppTextStyle.body),
-
         SizedBox(height: 10.h),
-        _input(cardNumber, "Select an option "),
+        _input(bankNameController, "Select an option"),
       ],
     );
   }
 
-  // ================= MOMO =================
   Widget momoUI() {
     return Column(
       children: [
         _dropdown("Select Provider", (val) {
           provider = val!;
         }),
-
         SizedBox(height: 10.h),
-
         _input(phone, "Phone Number"),
       ],
     );
   }
 
-  // ================= COMMON INPUT
   Widget _input(TextEditingController controller, String hint) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -269,7 +243,6 @@ class _DepositPageState extends State<WithdrawPage> {
     );
   }
 
-  // ================= BUTTON =================
   Widget _button(String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,

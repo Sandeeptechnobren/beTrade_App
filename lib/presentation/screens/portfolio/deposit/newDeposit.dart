@@ -1,43 +1,31 @@
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../../../core/theme/app_text_style.dart';
+import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
-
 class DepositPage extends StatefulWidget {
   final ScrollController scrollController;
-
   const DepositPage({super.key, required this.scrollController});
-
   @override
   State<DepositPage> createState() => _DepositPageState();
 }
-
 class _DepositPageState extends State<DepositPage> {
   int step = 1;
-
   final TextEditingController amountController = TextEditingController();
-
   int selectedAmount = 10;
-
   String paymentMethod = "card";
-
   final TextEditingController cardNumber = TextEditingController();
   final TextEditingController expiry = TextEditingController();
   final TextEditingController cvc = TextEditingController();
-
   final TextEditingController phone = TextEditingController();
   String provider = "";
-
   final List<int> amounts = [10, 20, 50, 100];
-
   @override
   void initState() {
     amountController.text = "10";
     super.initState();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,23 +42,7 @@ class _DepositPageState extends State<DepositPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          child: Container(
-                            height: 36.w,
-                            width: 36.w,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Text("New Deposit", style: AppTextStyle.heading),
-                      ],
-                    ),
+                    CommonHeader(title: "New Deposit"),
                     _stepIndicator(),
                   ],
                 ),
@@ -83,8 +55,6 @@ class _DepositPageState extends State<DepositPage> {
       ),
     );
   }
-
-  // ================= STEP INDICATOR =================
   Widget _stepIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -108,8 +78,6 @@ class _DepositPageState extends State<DepositPage> {
       ],
     );
   }
-
-  // ================= STEP 1 =================
   Widget step1() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,7 +87,7 @@ class _DepositPageState extends State<DepositPage> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
-            color:AppColors.iconContainer,
+            color: AppColors.iconContainer,
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: TextField(
@@ -133,7 +101,6 @@ class _DepositPageState extends State<DepositPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: amounts.map((e) {
             bool isSelected = selectedAmount == e;
-
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -163,17 +130,13 @@ class _DepositPageState extends State<DepositPage> {
             );
           }).toList(),
         ),
-
         const Spacer(),
-
         _button("Continue", () {
           setState(() => step = 2);
         }),
       ],
     );
   }
-
-  // ================= STEP 2 =================
   Widget step2() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,8 +154,14 @@ class _DepositPageState extends State<DepositPage> {
             isExpanded: true,
             underline: const SizedBox(),
             items: [
-              DropdownMenuItem(value: "card", child: Text("Debit/Credit Card", style: AppTextStyle.body)),
-              DropdownMenuItem(value: "momo", child: Text("Mobile Money", style: AppTextStyle.body)),
+              DropdownMenuItem(
+                value: "card",
+                child: Text("Debit/Credit Card", style: AppTextStyle.body),
+              ),
+              DropdownMenuItem(
+                value: "momo",
+                child: Text("Mobile Money", style: AppTextStyle.body),
+              ),
             ],
             onChanged: (val) {
               setState(() {
@@ -201,30 +170,22 @@ class _DepositPageState extends State<DepositPage> {
             },
           ),
         ),
-
         SizedBox(height: 20.h),
-
         paymentMethod == "card" ? cardUI() : momoUI(),
-
         const Spacer(),
         _button("Confirm", () async {
           Navigator.pop(context);
-
           await Future.delayed(const Duration(milliseconds: 200));
-
           showSuccessDialog(context);
         }),
       ],
     );
   }
-  // ================= CARD
   Widget cardUI() {
     return Column(
       children: [
         _input(cardNumber, "0000 0000 0000 0000"),
-
         SizedBox(height: 20.h),
-
         Row(
           children: [
             Expanded(child: _input(expiry, "MM/YY")),
@@ -241,12 +202,11 @@ class _DepositPageState extends State<DepositPage> {
         _dropdown("Select Provider", (val) {
           provider = val!;
         }),
-        SizedBox(height:20.h),
+        SizedBox(height: 20.h),
         _input(phone, "Phone Number"),
       ],
     );
   }
-  // ================= COMMON INPUT
   Widget _input(TextEditingController controller, String hint) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -258,7 +218,9 @@ class _DepositPageState extends State<DepositPage> {
         controller: controller,
         decoration: InputDecoration(
           hintStyle: AppTextStyle.body,
-            hintText: hint, border: InputBorder.none),
+          hintText: hint,
+          border: InputBorder.none,
+        ),
       ),
     );
   }
@@ -281,8 +243,6 @@ class _DepositPageState extends State<DepositPage> {
       ),
     );
   }
-
-  // ================= BUTTON
   Widget _button(String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,

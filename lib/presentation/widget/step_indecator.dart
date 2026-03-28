@@ -12,7 +12,6 @@ class StepIndicator extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(5, (index) {
         int step = index + 1;
-
         return Container(
           width: 30.w,
           height: 30.w,

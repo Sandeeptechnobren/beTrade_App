@@ -13,39 +13,32 @@ class AppTextStyle {
     fontWeight: FontWeight.w500,
     fontFamily: fontFamily,
   );
-
   static TextStyle body = TextStyle(
     fontSize: 16.sp,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w600,
     fontFamily: fontFamily,
   );
-
   static TextStyle bodyBig = TextStyle(
     fontSize: 16.sp,
     fontWeight: FontWeight.w400,
     fontFamily: fontFamily,
     color: Colors.grey
   );
-
   static TextStyle small = TextStyle(
     fontSize: 14.sp,
     fontWeight: FontWeight.w400,
     fontFamily: fontFamily,
   );
-
-
   static TextStyle smallNav = TextStyle(
     fontSize: 14.sp,
     fontWeight: FontWeight.bold,
     fontFamily: fontFamily,
   );
-
   static TextStyle button = TextStyle(
     fontSize: 16.sp,
     fontWeight: FontWeight.w600,
     fontFamily: fontFamily,
   );
-
   static TextStyle custom({
     double? size,
     FontWeight? weight,

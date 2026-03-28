@@ -3,13 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ExplorerPage extends StatefulWidget {
   const ExplorerPage({super.key});
-
   @override
   State<ExplorerPage> createState() => _ExplorerPageState();
 }
-
 class _ExplorerPageState extends State<ExplorerPage> {
-
   final List<String> categories = [
     "All",
     "Stocks",
@@ -17,26 +14,24 @@ class _ExplorerPageState extends State<ExplorerPage> {
     "Real Estate",
     "Gold",
   ];
-
   String selectedCategory = "All";
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       body: Column(
         children: [
           Container(
             width: double.infinity,
             padding: EdgeInsets.only(
-                top: 50.h, left: 16.w, right: 16.w, bottom: 20.h),
+              top: 50.h,
+              left: 16.w,
+              right: 16.w,
+              bottom: 20.h,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.deepPurple,
-                  Colors.deepPurple.shade400,
-                ],
+                colors: [Colors.deepPurple, Colors.deepPurple.shade400],
               ),
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(30),
@@ -45,7 +40,6 @@ class _ExplorerPageState extends State<ExplorerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   "Explore",
                   style: TextStyle(
@@ -54,7 +48,6 @@ class _ExplorerPageState extends State<ExplorerPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 SizedBox(height: 12.h),
                 Container(
                   decoration: BoxDecoration(
@@ -68,8 +61,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       hintStyle: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                       ),
-                      prefixIcon:
-                      const Icon(Icons.search, color: Colors.white),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white),
                       border: InputBorder.none,
                     ),
                   ),
@@ -77,7 +69,6 @@ class _ExplorerPageState extends State<ExplorerPage> {
               ],
             ),
           ),
-
           SizedBox(height: 15.h),
           SizedBox(
             height: 40.h,
@@ -86,7 +77,6 @@ class _ExplorerPageState extends State<ExplorerPage> {
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               itemCount: categories.length,
               itemBuilder: (context, index) {
-
                 final cat = categories[index];
                 final isSelected = selectedCategory == cat;
 
@@ -98,9 +88,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                     margin: EdgeInsets.only(right: 10.w),
                     padding: EdgeInsets.symmetric(horizontal: 18.w),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.deepPurple
-                          : Colors.white,
+                      color: isSelected ? Colors.deepPurple : Colors.white,
                       borderRadius: BorderRadius.circular(30.r),
                       border: Border.all(
                         color: Colors.deepPurple.withOpacity(0.2),
@@ -110,9 +98,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                     child: Text(
                       cat,
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : Colors.deepPurple,
+                        color: isSelected ? Colors.white : Colors.deepPurple,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -122,14 +108,12 @@ class _ExplorerPageState extends State<ExplorerPage> {
               },
             ),
           ),
-
           SizedBox(height: 10.h),
           Expanded(
             child: GridView.builder(
               padding: EdgeInsets.all(16.w),
               itemCount: 6,
-              gridDelegate:
-              SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 14.w,
                 mainAxisSpacing: 14.h,
@@ -145,14 +129,12 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       BoxShadow(
                         color: Colors.deepPurple.withOpacity(0.08),
                         blurRadius: 10,
-                      )
+                      ),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      /// ICON
                       Container(
                         height: 45.h,
                         width: 45.h,
@@ -165,9 +147,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                           color: Colors.deepPurple,
                         ),
                       ),
-
                       SizedBox(height: 10.h),
-
                       Text(
                         "Premium Plan",
                         style: TextStyle(
@@ -175,17 +155,11 @@ class _ExplorerPageState extends State<ExplorerPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       SizedBox(height: 4.h),
-
                       Text(
                         "Returns upto 18%",
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                       ),
-
                       const Spacer(),
                       Container(
                         height: 36.h,
@@ -202,13 +176,13 @@ class _ExplorerPageState extends State<ExplorerPage> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );

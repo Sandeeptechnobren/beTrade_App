@@ -6,7 +6,7 @@ import 'package:betrade/presentation/widget/rounded_tab_indicator.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
-
+import '../../widget/common_bottom_sheet.dart';
 import 'deposit/newDeposit.dart';
 
 class PortfolioPage extends StatefulWidget {
@@ -35,27 +35,46 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       children: [
                         SizedBox(height: 10.h),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Image.asset(
-                                  "assets/logo/IconLogo.png",
-                                  height: 28,
-                                  width: 28,
-                                ),
-                                SizedBox(width: 5.w),
-                                Image.asset("assets/logo/logo_name.png"),
-                              ],
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  WidgetSpan(
+                                    child: Row(
+                                      children: [
+                                        Image.asset(
+                                          "assets/logo/IconLogo.png",
+                                          height: 28,
+                                          width: 28,
+                                        ),
+                                        SizedBox(width: 5.w),
+                                        Image.asset(
+                                          "assets/logo/logo_name.png",
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.top,
+                                    child: Transform.translate(
+                                      offset: Offset(1.w, -6.h),
+                                      child: Text(
+                                        "TM",
+                                        style: TextStyle(
+                                          fontSize: 7.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            IconContainer(
-                              icon: Iconsax.notification,
-                              color: AppColors.iconContainer,
-                              iconColor: Colors.black,
-                            ),
+                            const Spacer(),
+                            Icon(Icons.notifications_none, size: 24.sp),
                           ],
                         ),
-
                         SizedBox(height: 20.h),
                         Container(
                           width: double.infinity,
@@ -79,6 +98,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                       Text(
                                         "Available to trade",
                                         style: TextStyle(
+                                          fontWeight: FontWeight.w500,
                                           color: Colors.white,
                                           fontSize: 16.sp,
                                         ),
@@ -97,9 +117,9 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 10.h),
+                              SizedBox(height: 5.h),
                               Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Text(
                                     "0.00",
@@ -112,11 +132,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                   SizedBox(width: 4.w),
                                   Text(
                                     "GHS",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style:TextStyle(fontFamily: "SFProRounded",fontSize: 14.sp,color: Colors.white,fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -127,56 +143,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(30.r),
                                       onTap: () {
-                                        showModalBottomSheet(
+                                        CommonBottomSheet.open(
                                           context: context,
-                                          isScrollControlled: true,
-                                          backgroundColor: Colors.transparent,
-                                          // important
-                                          builder: (context) {
-                                            return Padding(
-                                              padding: EdgeInsets.only(
-                                                left: 10.w,
-                                                right: 10.w,
-                                                top: 20.h,
-                                                bottom: 20.h,
-                                              ),
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft: Radius.circular(
-                                                    20.r,
-                                                  ),
-                                                  topRight: Radius.circular(
-                                                    20.r,
-                                                  ),
-                                                  bottomLeft: Radius.circular(
-                                                    15.r,
-                                                  ),
-                                                  bottomRight: Radius.circular(
-                                                    15.r,
-                                                  ),
-                                                ),
-                                                child: Container(
-                                                  color: Colors.white,
-                                                  child: DraggableScrollableSheet(
-                                                    initialChildSize: 0.9,
-                                                    minChildSize: 0.7,
-                                                    maxChildSize: 0.95,
-                                                    expand: false,
-                                                    builder:
-                                                        (
-                                                          context,
-                                                          scrollController,
-                                                        ) {
-                                                          return DepositPage(
-                                                            scrollController:
-                                                                scrollController,
-                                                          );
-                                                        },
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                          builder: (controller) => DepositPage(
+                                            scrollController: controller,
+                                          ),
                                         );
                                       },
                                       child: _gradientButton("Deposit"),
@@ -187,54 +158,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(30.r),
                                       onTap: () {
-                                        showModalBottomSheet(
+                                        CommonBottomSheet.open(
                                           context: context,
-                                          isScrollControlled: true,
-                                          builder: (context) {
-                                            return Padding(
-                                              padding: EdgeInsets.only(
-                                                left: 10.w,
-                                                right: 10.w,
-                                                top: 20.h,
-                                                bottom: 20.h,
-                                              ),
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft: Radius.circular(
-                                                    20.r,
-                                                  ),
-                                                  topRight: Radius.circular(
-                                                    20.r,
-                                                  ),
-                                                  bottomLeft: Radius.circular(
-                                                    15.r,
-                                                  ),
-                                                  bottomRight: Radius.circular(
-                                                    15.r,
-                                                  ),
-                                                ),
-                                                child: Container(
-                                                  color: Colors.white,
-                                                  child: DraggableScrollableSheet(
-                                                    initialChildSize: 0.9,
-                                                    minChildSize: 0.7,
-                                                    maxChildSize: 0.95,
-                                                    expand: false,
-                                                    builder:
-                                                        (
-                                                        context,
-                                                        scrollController,
-                                                        ) {
-                                                      return WithdrawPage(
-                                                        scrollController:
-                                                        scrollController,
-                                                      );
-                                                    },
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                          builder: (controller) => WithdrawPage(
+                                            scrollController: controller,
+                                          ),
                                         );
                                       },
                                       child: _outlineButton("Withdraw"),
@@ -245,7 +173,6 @@ class _PortfolioPageState extends State<PortfolioPage> {
                             ],
                           ),
                         ),
-
                         SizedBox(height: 20.h),
                         TabBar(
                           labelColor: Colors.black,
