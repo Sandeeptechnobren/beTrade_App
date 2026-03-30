@@ -2,6 +2,10 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../widget/common_bottom_sheet.dart';
+import '../trade/trade_page.dart';
+
 class PollModel {
   final String category;
   final String time;
@@ -59,11 +63,14 @@ final List<PollModel> polls = [
     trades: 3975,
   ),
 ];
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   final PageController _pageController = PageController();
@@ -75,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
     "Crypto",
     "Entertainment",
   ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   Widget _buildPollList() {
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
@@ -178,9 +187,11 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
   Widget _buildFilteredPollList(String category) {
-    final filteredPolls =
-    polls.where((poll) => poll.category == category).toList();
+    final filteredPolls = polls
+        .where((poll) => poll.category == category)
+        .toList();
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
       itemCount: filteredPolls.length,
@@ -190,10 +201,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 class _TabItem extends StatelessWidget {
   final String title;
   final bool isSelected;
+
   const _TabItem({required this.title, this.isSelected = false});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -224,81 +238,98 @@ class _TabItem extends StatelessWidget {
     );
   }
 }
+
 class PollCard extends StatelessWidget {
   final PollModel poll;
+
   const PollCard({super.key, required this.poll});
+
+  @override
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey, width: 1),
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "${poll.category} • ${poll.time}",
-                style: AppTextStyle.small,
-              ),
-              Icon(Icons.bookmark_border, size: 20.sp),
-            ],
+    return GestureDetector(
+      onTap: () {
+        CommonBottomSheet.open(
+          context: context,
+          builder: (controller) =>TradePage(
+            scrollController: controller,
           ),
-          SizedBox(height: 6.h),
-          Text(poll.question, style: AppTextStyle.body),
-          SizedBox(height: 10.h),
-          Container(
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey, width: 1),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Column(
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 16.h),
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey, width: 1),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (poll.image != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: Image.asset(
-                      poll.image!,
-                      height: 161.h,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                SizedBox(height: 10.h),
-                _voteBar("Yes", poll.yesPercent, Colors.green.shade200),
-                SizedBox(height: 8.h),
-                _voteBar("No", poll.noPercent, Colors.red.shade200),
+                Text(
+                  "${poll.category} • ${poll.time}",
+                  style: AppTextStyle.small,
+                ),
+                Icon(Icons.bookmark_border, size: 20.sp),
               ],
             ),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Text(
-                "${poll.trades} trades",
-                style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+            SizedBox(height: 6.h),
+            Text(poll.question, style: AppTextStyle.body),
+            SizedBox(height: 10.h),
+
+            Container(
+              padding: EdgeInsets.all(14.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey, width: 1),
+                borderRadius: BorderRadius.circular(16.r),
               ),
-              const Spacer(),
-              Icon(Icons.share, size: 18.sp),
-              SizedBox(width: 5.w),
-              Text(
-                "Share",
-                style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+              child: Column(
+                children: [
+                  if (poll.image != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: Image.asset(
+                        poll.image!,
+                        height: 161.h,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  SizedBox(height: 10.h),
+                  _voteBar("Yes", poll.yesPercent, Colors.green.shade200),
+                  SizedBox(height: 8.h),
+                  _voteBar("No", poll.noPercent, Colors.red.shade200),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Text(
+                  "${poll.trades} trades",
+                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                ),
+                const Spacer(),
+                Icon(Icons.share, size: 18.sp),
+                SizedBox(width: 5.w),
+                Text(
+                  "Share",
+                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
   Widget _voteBar(String label, int percent, Color color) {
     return Stack(
       children: [

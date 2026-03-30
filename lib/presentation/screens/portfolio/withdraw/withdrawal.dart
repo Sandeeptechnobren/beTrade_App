@@ -38,29 +38,37 @@ class _DepositPageState extends State<WithdrawPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Container(
-            margin: EdgeInsets.all(12.w),
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30.r),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CommonHeader(title: "New Withdrawal"),
-                    _stepIndicator(),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                Expanded(child: step == 1 ? step1() : step2()),
-              ],
+      body: Column(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30.r),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(16.w),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CommonHeader(title: "New Withdrawal"),
+                        _stepIndicator(),
+                      ],
+                    ),
+                  ),
+                  Divider(thickness: 1),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: step == 1 ? step1() : step2(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

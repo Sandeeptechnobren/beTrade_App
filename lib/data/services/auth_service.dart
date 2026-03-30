@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../core/config/api_endpoint..dart';
+import '../model/graph_model.dart';
 class AuthService {
   Future<bool> sendOtp(String phone) async {
     try {
@@ -62,5 +63,40 @@ class AuthService {
     );
     var response = await request.send();
     return response.statusCode == 200;
+  }
+
+  Future<List<ChartData>> fetchChartData() async {
+    final response = await http.get(Uri.parse("https://your-api.com/chart"));
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+
+      return data.map((e) => ChartData.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load data");
+    }
+  }
+
+  static Future<bool> logout(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/logout"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Accept": "application/json",
+        },
+      );
+
+      print("Logout Response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print("Logout Error: $e");
+      return false;
+    }
   }
 }

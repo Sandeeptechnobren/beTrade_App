@@ -1,9 +1,77 @@
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../data/services/auth_service.dart';
+import '../../../data/services/local_storage.dart';
+import '../../auth/auth_screen.dart';
+import 'info_chart_screen.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool isLoading = false;
+  void logoutUser() async {
+    String? token = LocalStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Token not found")));
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    bool success = await AuthService.logout(token);
+
+    setState(() {
+      isLoading = false;
+    });
+
+    if (success) {
+      await LocalStorage.clearToken();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthScreen()),
+            (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Logout Failed")));
+    }
+  }
+
+  void showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title:Text("Logout",style: AppTextStyle.heading,),
+          content:Text("Are you sure you want to logout?",style: AppTextStyle.bodyBig,),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("No"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                logoutUser();
+              },
+              child: const Text("Yes"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +118,18 @@ class ProfilePage extends StatelessWidget {
                       ),
                     );
                   },
-                  child: Text(
-                    "Wallet History",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text("Wallet History"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InfoChartScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text("Trading Graph"),
                 ),
               ],
             ),
@@ -68,7 +144,7 @@ class ProfilePage extends StatelessWidget {
                 buildTile(Icons.history, "Transaction History"),
                 buildTile(Icons.lock, "Change Password"),
                 buildTile(Icons.help, "Help & Support"),
-                buildTile(Icons.logout, "Logout"),
+                buildTile(Icons.logout, "Logout", onTap: showLogoutDialog),
               ],
             ),
           ),
@@ -76,27 +152,29 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
-  Widget buildTile(IconData icon, String title) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15.r),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.deepPurple),
-          SizedBox(width: 15.w),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+  Widget buildTile(IconData icon, String title, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15.r),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.deepPurple),
+            SizedBox(width: 15.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+              ),
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 16),
-        ],
+            const Icon(Icons.arrow_forward_ios, size: 16),
+          ],
+        ),
       ),
     );
   }

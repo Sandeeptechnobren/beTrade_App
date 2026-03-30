@@ -24,7 +24,7 @@ class _MainScreenState extends State<MainScreen> {
   final screens = [
     HomeScreen(),
     ExplorerPage(),
-    TradePage(),
+    TradePage(scrollController: ScrollController(),),
     PortfolioPage(),
     ProfilePage(),
   ];
