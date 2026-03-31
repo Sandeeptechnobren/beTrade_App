@@ -67,10 +67,8 @@ class AuthService {
 
   Future<List<ChartData>> fetchChartData() async {
     final response = await http.get(Uri.parse("https://your-api.com/chart"));
-
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
-
       return data.map((e) => ChartData.fromJson(e)).toList();
     } else {
       throw Exception("Failed to load data");
@@ -86,9 +84,7 @@ class AuthService {
           "Accept": "application/json",
         },
       );
-
       print("Logout Response: ${response.body}");
-
       if (response.statusCode == 200) {
         return true;
       } else {

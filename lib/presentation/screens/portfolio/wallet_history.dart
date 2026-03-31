@@ -1,5 +1,6 @@
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 class WalletHistoryPage extends StatefulWidget {
@@ -20,23 +21,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        child: Container(
-                          height: 36.w,
-                          width: 36.w,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Text("Wallet History", style: AppTextStyle.heading),
-                    ],
-                  ),
+               CommonHeader(title: "Wallet History"),
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       setState(() {

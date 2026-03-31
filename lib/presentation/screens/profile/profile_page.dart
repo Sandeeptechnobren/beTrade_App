@@ -1,50 +1,56 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
+import 'package:betrade/presentation/screens/profile/profile_Detail_Screen.dart';
+import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../data/provider/profile_provider.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
-import 'info_chart_screen.dart';
-
+import '../../widget/common_bottom_sheet.dart';
+import 'edit_profile.dart';
+import 'help_support_page.dart';
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      Provider.of<ProfileProvider>(context, listen: false).fetchProfile();
+    });
+  }
+
   void logoutUser() async {
     String? token = LocalStorage.getToken();
-
     if (token == null || token.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Token not found")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Token not found")));
       return;
     }
-
-    setState(() {
-      isLoading = true;
-    });
-
+    setState(() => isLoading = true);
     bool success = await AuthService.logout(token);
-
-    setState(() {
-      isLoading = false;
-    });
-
+    setState(() => isLoading = false);
     if (success) {
       await LocalStorage.clearToken();
-
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const AuthScreen()),
-            (route) => false,
+        (route) => false,
       );
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Logout Failed")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Logout Failed")));
     }
   }
 
@@ -53,8 +59,11 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title:Text("Logout",style: AppTextStyle.heading,),
-          content:Text("Are you sure you want to logout?",style: AppTextStyle.bodyBig,),
+          title: Text("Logout", style: AppTextStyle.heading),
+          content: Text(
+            "Are you sure you want to logout?",
+            style: AppTextStyle.bodyBig,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -76,82 +85,107 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(top: 60.h, bottom: 20.h),
-            decoration: BoxDecoration(
-              color: Colors.deepPurple,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30.r),
-                bottomRight: Radius.circular(30.r),
-              ),
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 40.r,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 40.sp),
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  "User",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+      body: Consumer<ProfileProvider>(
+        builder: (context, provider, child) {
+          final profile = provider.profile;
+          return Column(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  CommonBottomSheet.open(
+                    context: context,
+                    builder: (controller) => ProfileDetailsScreen(
+                      scrollController: controller,
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.only(top: 60.h, bottom: 20.h),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(30.r),
+                      bottomRight: Radius.circular(30.r),
+                    ),
+                    image: DecorationImage(
+                      image: AssetImage("assets/images/splash.png"),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40.r,
+                        backgroundColor: Colors.white,
+                        backgroundImage: profile?.avatar.isNotEmpty == true
+                            ? NetworkImage(profile!.avatar)
+                            : null,
+                        child: profile == null || profile.avatar.isEmpty
+                            ? Icon(Icons.person, size: 40.sp)
+                            : null,
+                      ),
+                      SizedBox(height: 10.h),
+                      Text(
+                        provider.isLoading
+                            ? "Loading..."
+                            : profile != null
+                            ? "${profile.firstName} ${profile.lastName}"
+                            : "No Name",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text("Welcome back 👋", style: AppTextStyle.bodyBig),
+                    ],
                   ),
                 ),
-                Text(
-                  "technobren@gmail.com",
-                  style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+              ),
+
+              SizedBox(height: 20.h),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  children: [
+                    buildTile(
+                      Icons.person,
+                      "Edit Profile",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfile(),
+                          ),
+                        );
+                      },
+                    ),
+                    buildTile(Icons.account_balance_wallet, "Wallet"),
+                    // buildTile(Icons.history, "Transaction History"),
+                    // buildTile(Icons.lock, "Change Password"),
+                    buildTile(
+                      Icons.help,
+                      "Help & Support",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpSupportPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    buildTile(Icons.logout, "Logout", onTap: showLogoutDialog),
+                  ],
                 ),
-                SizedBox(height: 10.h),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => WalletHistoryPage(),
-                      ),
-                    );
-                  },
-                  child: const Text("Wallet History"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => InfoChartScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text("Trading Graph"),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20.h),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              children: [
-                buildTile(Icons.person, "Edit Profile"),
-                buildTile(Icons.account_balance_wallet, "Wallet"),
-                buildTile(Icons.history, "Transaction History"),
-                buildTile(Icons.lock, "Change Password"),
-                buildTile(Icons.help, "Help & Support"),
-                buildTile(Icons.logout, "Logout", onTap: showLogoutDialog),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
   Widget buildTile(IconData icon, String title, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -164,14 +198,9 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.deepPurple),
+            Icon(icon, color: AppColors.primary),
             SizedBox(width: 15.w),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-              ),
-            ),
+            Expanded(child: Text(title, style: AppTextStyle.body)),
             const Icon(Icons.arrow_forward_ios, size: 16),
           ],
         ),

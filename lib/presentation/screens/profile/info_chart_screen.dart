@@ -1,8 +1,11 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/widget/common_share_button.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/cupertino.dart';
+import '../../widget/common_header.dart';
 
 class InfoChartScreen extends StatefulWidget {
   @override
@@ -44,7 +47,11 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
-                children: [Icon(Icons.arrow_back), Spacer(), Icon(Icons.share)],
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CommonHeader(title: ""),
+                  CommonShareButton(onTap: () {}),
+                ],
               ),
             ),
             Row(children: [tabItem("Info", 0), tabItem("Chart", 1)]),
@@ -101,7 +108,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? Colors.purple : Colors.transparent,
+              color: isSelected ? AppColors.primary: Colors.transparent,
               width: 3,
             ),
           ),
@@ -116,7 +123,6 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
       ),
     );
   }
-
   Widget infoUI() {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -132,12 +138,8 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
             "Will the price of Bitcoin (BTC) exceed \$200,000 USD on any major exchange at any point before December 31, 2025 at 11:59 PM ET?",
           ),
           SizedBox(height: 16),
-          Text(
-            "Market Activity",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
+          Text("Market Activity", style: AppTextStyle.body),
           SizedBox(height: 10),
-
           Container(
             padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -158,9 +160,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               ],
             ),
           ),
-
           SizedBox(height: 16),
-
           resolutionCard(
             title: "Resolution Source",
             points: [
@@ -172,8 +172,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               "If multiple sources are available, the platform will prioritize official company disclosures and regulatory filings.",
             ],
           ),
-
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           resolutionCard(
             title: "Resolution Source",
             points: [
@@ -190,24 +189,13 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
       ),
     );
   }
-
   Widget activityRow(String title, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Text(
-            title,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          ),
-          Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? Colors.black,
-            ),
-          ),
+          Text(title, style: AppTextStyle.bodyBig),
+          Text(value, style: AppTextStyle.bodyBig),
         ],
       ),
     );
@@ -216,47 +204,39 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
   Widget divider() {
     return Divider(height: 1, color: Colors.grey.shade200);
   }
-
   Widget resolutionCard({required String title, required List<String> points}) {
-    return Container(
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTextStyle.body),
+        SizedBox(height: 10),
+        Container(
+          padding: EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
           ),
-          SizedBox(height: 8),
-
-          ...points.map((e) {
-            bool isHeading = e.contains(":");
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isHeading) Text("• ", style: TextStyle(fontSize: 14)),
-                  Expanded(
-                    child: Text(
-                      e,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...points.map((e) {
+                bool isHeading = e.contains(":");
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isHeading)
+                        Text("• ", style: TextStyle(fontSize: 14)),
+                      Expanded(child: Text(e, style: AppTextStyle.bodyBig)),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
+                );
+              }).toList(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -360,7 +340,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color: Colors.purple,
+                    color:AppColors.primary,
                     barWidth: 3,
                     belowBarData: BarAreaData(
                       show: true,

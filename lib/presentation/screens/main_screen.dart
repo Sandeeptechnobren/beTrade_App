@@ -2,6 +2,7 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/explore/explore_page.dart';
 import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
+import 'package:betrade/presentation/screens/profile/info_chart_screen.dart';
 import 'package:betrade/presentation/screens/profile/profile_page.dart';
 import 'package:betrade/presentation/screens/trade/trade_page.dart';
 import 'package:betrade/presentation/screens/verification/verify_account.dart';
@@ -24,7 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   final screens = [
     HomeScreen(),
     ExplorerPage(),
-    TradePage(scrollController: ScrollController(),),
+    InfoChartScreen(),
     PortfolioPage(),
     ProfilePage(),
   ];

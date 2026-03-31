@@ -1,3 +1,4 @@
+import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
 import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart'
     hide DepositPage;
 import 'package:flutter/material.dart';
@@ -110,11 +111,32 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                       ),
                                     ],
                                   ),
-                                  IconContainer(
-                                    icon: Icons.more_horiz,
+                                  Material(
                                     color: AppColors.iconContainer1,
-                                    iconColor: Colors.white,
-                                  ),
+                                    borderRadius: BorderRadius.circular(50.r),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(50.r),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const WalletHistoryPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: SizedBox(
+                                        height: 40.w,
+                                        width: 40.w,
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.more_horiz,
+                                            color: Colors.white,
+                                            size: 22.sp,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
                                 ],
                               ),
                               SizedBox(height: 5.h),

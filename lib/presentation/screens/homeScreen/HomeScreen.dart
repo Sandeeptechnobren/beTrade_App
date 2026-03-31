@@ -2,8 +2,8 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../widget/common_bottom_sheet.dart';
+import '../../widget/common_share_button.dart';
 import '../trade/trade_page.dart';
 
 class PollModel {
@@ -251,9 +251,7 @@ class PollCard extends StatelessWidget {
       onTap: () {
         CommonBottomSheet.open(
           context: context,
-          builder: (controller) =>TradePage(
-            scrollController: controller,
-          ),
+          builder: (controller) => TradePage(scrollController: controller),
         );
       },
       child: Container(
@@ -307,7 +305,6 @@ class PollCard extends StatelessWidget {
                 ],
               ),
             ),
-
             SizedBox(height: 10.h),
             Row(
               children: [
@@ -316,7 +313,7 @@ class PollCard extends StatelessWidget {
                   style: TextStyle(color: Colors.grey, fontSize: 12.sp),
                 ),
                 const Spacer(),
-                Icon(Icons.share, size: 18.sp),
+                CommonShareButton(onTap: () {}, showBackground: false),
                 SizedBox(width: 5.w),
                 Text(
                   "Share",
