@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 
 import '../data/services/local_storage.dart';
 
-
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
 

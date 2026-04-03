@@ -69,16 +69,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                     ? NetworkImage(profile.avatar)
                                     : null,
                                 child: profile.avatar.isEmpty
-                                    ? Icon(
-                                        Icons.person,
-                                        size: 30.sp,
-                                        color: Colors.grey,
-                                      )
+                                    ? Icon(Icons.person, size: 30.sp, color: Colors.grey,)
                                     : null,
                               ),
-
                               SizedBox(width: 15.w),
-
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +97,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => EditProfile()
+                                      builder: (context) => EditProfile(scrollController: ScrollController(),),
                                     ),
                                   );
                                 },
@@ -124,7 +118,6 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             ],
                           ),
                         ),
-
                         SizedBox(height: 25.h),
                         _sectionTitle("Personal Info"),
                         _buildTile(
@@ -147,11 +140,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           "Gender",
                           profile.gender ?? "N/A",
                         ),
-
                         SizedBox(height: 15.h),
-
                         _sectionTitle("Preferences"),
-
                         _buildTile(
                           Icons.flag,
                           "Country",
@@ -167,7 +157,6 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           "Language",
                           profile.language ?? "N/A",
                         ),
-
                         SizedBox(height: 20.h),
                       ],
                     ),
@@ -211,16 +200,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             child: Icon(icon, color: Colors.deepPurple, size: 18.sp),
           ),
           SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              title,
-              style: AppTextStyle.bodyBig,
-            ),
-          ),
-          Text(
-            value,
-            style:AppTextStyle.body
-          ),
+          Expanded(child: Text(title, style: AppTextStyle.bodyBig)),
+          Text(value, style: AppTextStyle.body),
         ],
       ),
     );

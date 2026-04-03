@@ -1,264 +1,75 @@
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class HelpSupportPage extends StatefulWidget {
-  const HelpSupportPage({super.key});
-
-  @override
-  State<HelpSupportPage> createState() => _HelpSupportPageState();
-}
-
-class _HelpSupportPageState extends State<HelpSupportPage> {
-  int selectedIndex = -1;
-
-  final List<Map<String, dynamic>> faqs = [
-    {
-      "question": "How to create an account?",
-      "answer": "Click on signup and enter your details to create account."
-    },
-    {
-      "question": "How to withdraw money?",
-      "answer": "Go to wallet section and click on withdraw."
-    },
-    {
-      "question": "How to contact support?",
-      "answer": "You can contact via chat or email support."
-    },
-  ];
+class PrivacyPolicyPage extends StatelessWidget {
+  const PrivacyPolicyPage({super.key, required ScrollController scrollController});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CommonHeader(title: "Help & Support"),
-
-              SizedBox(height: 20.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
-                height: 50.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(15.r),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Colors.black54),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: TextField(
-                        style: const TextStyle(color: Colors.black),
-                        decoration: const InputDecoration(
-                          hintText: "Search help...",
-                          hintStyle: TextStyle(color: Colors.grey),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              SizedBox(height: 25.h),
-              Text(
-                "Categories",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: 15.h),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _category(Icons.person, "Account"),
-                  _category(Icons.account_balance_wallet, "Wallet"),
-                  _category(Icons.security, "Security"),
-                  _category(Icons.support_agent, "Support"),
-                ],
-              ),
-              SizedBox(height: 30.h),
-              Text(
-                "FAQs",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: 10.h),
-
-              ...List.generate(faqs.length, (index) {
-                final faq = faqs[index];
-                return _faqTile(faq, index);
-              }),
-
-              SizedBox(height: 30.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: _contactCard(
-                      Icons.chat,
-                      "Live Chat",
-                      "Instant support",
-                      Colors.blue,
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: _contactCard(
-                      Icons.email,
-                      "Email",
-                      "support@betrade.com",
-                      Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 40.h),
-              Container(
-                height: 55.h,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.blue, Colors.purple],
-                  ),
-                  borderRadius: BorderRadius.circular(15.r),
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                  ),
-                  onPressed: () {},
-                  child: Text(
-                    "Raise Support Ticket",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  Widget _category(IconData icon, String text) {
-    return Column(
-      children: [
-        Container(
-          height: 60.h,
-          width: 60.w,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Icon(icon, color: Colors.black),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          text,
-          style: TextStyle(color: Colors.black54, fontSize: 12.sp),
-        )
-      ],
-    );
-  }
-  Widget _faqTile(Map<String, dynamic> faq, int index) {
-    final isOpen = selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedIndex = isOpen ? -1 : index;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(15.r),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    faq['question'],
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                ),
-                Icon(
-                  isOpen ? Icons.remove : Icons.add,
-                  color: Colors.black,
-                )
-              ],
-            ),
-            if (isOpen) ...[
-              SizedBox(height: 10.h),
-              Text(
-                faq['answer'],
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12.sp,
-                ),
-              )
-            ]
+            CommonHeader(title: "Privacy Policy"),
+        Padding(padding: EdgeInsets.fromLTRB(16.w,0,16.w,16.w),child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            sectionTitle("Introduction"),
+            sectionText(
+                "We value your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use our app."),
+
+            sectionTitle("Information We Collect"),
+            sectionText(
+                "We may collect personal information such as your name, email address, phone number, and usage data when you use our app."),
+
+            sectionTitle("How We Use Your Information"),
+            sectionText(
+                "We use your data to provide and improve our services, personalize your experience, process transactions, and communicate with you."),
+
+            sectionTitle("Data Sharing"),
+            sectionText(
+                "We do not sell your personal data. We may share your information with trusted third-party services for app functionality and analytics."),
+
+            sectionTitle("Data Security"),
+            sectionText(
+                "We implement appropriate security measures to protect your data from unauthorized access or disclosure."),
+
+            sectionTitle("Your Rights"),
+            sectionText(
+                "You have the right to access, update, or delete your personal data. You can contact us for any privacy-related requests."),
+
+            sectionTitle("Changes to This Policy"),
+            sectionText(
+                "We may update this Privacy Policy from time to time. Changes will be reflected on this page."),
+
+            sectionTitle("Contact Us"),
+            sectionText(
+                "If you have any questions about this Privacy Policy, please contact us at support@yourapp.com."),
+          ],
+        ),)
           ],
         ),
       ),
     );
   }
-  Widget _contactCard(
-      IconData icon, String title, String subtitle, Color color) {
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: color.withOpacity(0.2)),
+
+  Widget sectionTitle(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 16.h, bottom: 6.h),
+      child: Text(
+        text,
+        style: AppTextStyle.subHeadingBold
       ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          SizedBox(height: 8.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54, fontSize: 12.sp),
-          ),
-        ],
-      ),
+    );
+  }
+
+  Widget sectionText(String text) {
+    return Text(
+      text,
+      style:AppTextStyle.bodyBig
     );
   }
 }

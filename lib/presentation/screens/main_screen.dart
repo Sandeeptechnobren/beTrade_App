@@ -4,11 +4,10 @@ import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
 import 'package:betrade/presentation/screens/profile/info_chart_screen.dart';
 import 'package:betrade/presentation/screens/profile/profile_page.dart';
-import 'package:betrade/presentation/screens/trade/trade_page.dart';
 import 'package:betrade/presentation/screens/verification/verify_account.dart';
-import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../core/theme/app_colors.dart';
 import '../bottom_navigation/bottom_nav.dart';
 
 class MainScreen extends StatefulWidget {
@@ -24,7 +23,7 @@ class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
   final screens = [
     HomeScreen(),
-    ExplorerPage(),
+    ExplorePage(),
     InfoChartScreen(),
     PortfolioPage(),
     ProfilePage(),

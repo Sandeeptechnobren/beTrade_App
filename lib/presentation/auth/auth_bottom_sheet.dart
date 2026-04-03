@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/signin/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -25,20 +26,30 @@ class AuthBottomSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.r),
             ),
           ),
-          SizedBox(height: 20.h),
-          Text("Get started quickly", style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),),
+          SizedBox(height: 30.h),
+          Text("Get started quickly", style: AppTextStyle.heading),
           SizedBox(height: 5.h),
-          Text("Choose an option to proceed", style: TextStyle(fontSize: 12.sp, color: Colors.grey),),
+          Text(
+            "Choose an option to proceed",
+            style: TextStyle(fontSize: 10, color: Colors.grey),
+          ),
           SizedBox(height: 20.h),
           _buildGreyButton("Log in to continue", () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()),);}),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }),
           SizedBox(height: 15.h),
           Row(
             children: [
               Expanded(child: Divider(color: Colors.grey.shade300)),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10.w),
-                child: Text("OR", style: TextStyle(color: Colors.grey)),
+                child: Text(
+                  "OR",
+                  style: TextStyle(color: Colors.grey, fontSize: 10),
+                ),
               ),
               Expanded(child: Divider(color: Colors.grey.shade300)),
             ],
@@ -47,7 +58,10 @@ class AuthBottomSheet extends StatelessWidget {
           GestureDetector(
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen()),);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SignupScreen()),
+              );
             },
             child: Container(
               width: double.infinity,
@@ -71,21 +85,18 @@ class AuthBottomSheet extends StatelessWidget {
           ),
           SizedBox(height: 15.h),
           _buildSocialButton(
-            "Continue with ",
+            "Continue with",
             "assets/images/google.png",
             () {},
           ),
           SizedBox(height: 10.h),
-          _buildSocialButton(
-            "Continue with Apple",
-            "assets/images/apple.png",
-            () {},
-          ),
+          _buildSocialButton("Continue with", "assets/images/apple.png", () {}),
           SizedBox(height: 10.h),
         ],
       ),
     );
   }
+
   Widget _buildGreyButton(String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -97,10 +108,11 @@ class AuthBottomSheet extends StatelessWidget {
           borderRadius: BorderRadius.circular(25.r),
         ),
         alignment: Alignment.center,
-        child: Text(text, style: TextStyle(fontSize: 14.sp)),
+        child: Text(text, style: AppTextStyle.smallNav),
       ),
     );
   }
+
   Widget _buildSocialButton(String text, String icon, VoidCallback onTap) {
     return Container(
       width: double.infinity,
@@ -112,7 +124,7 @@ class AuthBottomSheet extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(text, style: TextStyle(fontSize: 14.sp)),
+          Text(text, style: AppTextStyle.smallNav),
           SizedBox(width: 10.w),
           Image.asset(icon, height: 18.h),
         ],

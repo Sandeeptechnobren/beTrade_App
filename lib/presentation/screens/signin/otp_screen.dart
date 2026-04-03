@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
 import 'package:betrade/provider/auth_provider.dart';
-import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_colors.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phone;
@@ -169,7 +169,7 @@ class _OTPScreenState extends State<OTPScreen> {
                         },
                         child: Text("Resend",
                           style: TextStyle(
-                            color: Colors.purple,
+                            color:AppColors.primary,
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -178,7 +178,7 @@ class _OTPScreenState extends State<OTPScreen> {
                     : Text(
                         "0:${secondsRemaining.toString().padLeft(2, '0')}",
                         style: TextStyle(
-                          color: Colors.purple,
+                          color:AppColors.primary,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),

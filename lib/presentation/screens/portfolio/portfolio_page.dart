@@ -4,9 +4,9 @@ import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart'
 import 'package:flutter/material.dart';
 import 'package:betrade/presentation/widget/icon_container.dart';
 import 'package:betrade/presentation/widget/rounded_tab_indicator.dart';
-import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'deposit/newDeposit.dart';
 

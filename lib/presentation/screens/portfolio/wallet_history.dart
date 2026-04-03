@@ -17,11 +17,11 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(0,0,16.w,0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-               CommonHeader(title: "Wallet History"),
+               CommonHeader(title: "Wallet History",showDivider: false,),
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       setState(() {

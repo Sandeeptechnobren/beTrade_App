@@ -15,7 +15,7 @@ class CommonShareButton extends StatelessWidget {
     this.size = 20,
     this.iconColor = Colors.black,
     this.backgroundColor = const Color(0xFFE0E0E0),
-    this.showBackground = true, // 👈 default ON
+    this.showBackground = true,
   });
 
   @override
@@ -38,7 +38,7 @@ class CommonShareButton extends StatelessWidget {
         ),
         child: Center(child: icon),
       )
-          : icon, // 👈 without background
+          : icon,
     );
   }
 }

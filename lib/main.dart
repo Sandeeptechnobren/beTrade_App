@@ -1,3 +1,6 @@
+import 'package:betrade/data/provider/category_provider.dart';
+import 'package:betrade/data/provider/explorer_provider.dart';
+import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 import 'package:betrade/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +31,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CountryProvider()),
         ChangeNotifierProvider(create: (_) => SignupProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => TradeProvider()),
+        ChangeNotifierProvider(create: (_) => ExploreProvider()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),

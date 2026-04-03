@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/provider/signUp_provider.dart';
-import '../../../../utils/app_colors.dart' hide AppColors;
 
 class StepOtp extends StatefulWidget {
   final Function(String) onChanged;

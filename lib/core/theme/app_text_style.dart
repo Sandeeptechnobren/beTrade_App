@@ -5,12 +5,23 @@ class AppTextStyle {
   static const String fontFamily = 'SFProRounded';
   static TextStyle heading = TextStyle(
     fontSize: 20.sp,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     fontFamily: fontFamily,
+  );
+  static TextStyle headingWhite = TextStyle(
+    fontSize: 20.sp,
+    fontWeight: FontWeight.w700,
+    fontFamily: fontFamily,
+    color: Colors.white
   );
   static TextStyle subHeading = TextStyle(
     fontSize: 18.sp,
     fontWeight: FontWeight.w500,
+    fontFamily: fontFamily,
+  );
+  static TextStyle subHeadingBold = TextStyle(
+    fontSize: 18.sp,
+    fontWeight: FontWeight.w900,
     fontFamily: fontFamily,
   );
   static TextStyle body = TextStyle(
@@ -28,6 +39,12 @@ class AppTextStyle {
     fontSize: 14.sp,
     fontWeight: FontWeight.w400,
     fontFamily: fontFamily,
+  );
+  static TextStyle smallGrey = TextStyle(
+    fontSize: 14.sp,
+    fontWeight: FontWeight.w400,
+    fontFamily: fontFamily,
+    color:Colors.grey
   );
   static TextStyle smallNav = TextStyle(
     fontSize: 14.sp,

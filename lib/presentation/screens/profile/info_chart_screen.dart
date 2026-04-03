@@ -1,10 +1,10 @@
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_share_button.dart';
-import 'package:betrade/utils/app_colors.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/cupertino.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../widget/common_header.dart';
 
 class InfoChartScreen extends StatefulWidget {
@@ -63,7 +63,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor:AppColors.btnGreen,
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14.w),
                       ),
@@ -78,7 +78,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor:AppColors.btnRed,
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -108,8 +108,8 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? AppColors.primary: Colors.transparent,
-              width: 3,
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              width: 3.w,
             ),
           ),
         ),
@@ -123,6 +123,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
       ),
     );
   }
+
   Widget infoUI() {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -133,24 +134,24 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
             "Will bitcoin exceed \$200k before the end of \n 2026?",
             style: AppTextStyle.body,
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 10.h),
           card(
             "Will the price of Bitcoin (BTC) exceed \$200,000 USD on any major exchange at any point before December 31, 2025 at 11:59 PM ET?",
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Text("Market Activity", style: AppTextStyle.body),
-          SizedBox(height: 10),
+          SizedBox(height: 10.h),
           Container(
-            padding: EdgeInsets.all(14),
+            padding: EdgeInsets.all(14.w),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Column(
               children: [
                 activityRow("Current Price", "12.40 GHS per share"),
                 divider(),
-                activityRow("Market Status", "Open", valueColor: Colors.green),
+                activityRow("Market Status", "Open", valueColor:AppColors.btnGreen),
                 divider(),
                 activityRow("Total Volume", "410,250 GHS"),
                 divider(),
@@ -160,7 +161,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               ],
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 16.h),
           resolutionCard(
             title: "Resolution Source",
             points: [
@@ -172,7 +173,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               "If multiple sources are available, the platform will prioritize official company disclosures and regulatory filings.",
             ],
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 8.h),
           resolutionCard(
             title: "Resolution Source",
             points: [
@@ -189,9 +190,10 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
       ),
     );
   }
+
   Widget activityRow(String title, String value, {Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding:EdgeInsets.symmetric(vertical: 10.h),
       child: Row(
         children: [
           Text(title, style: AppTextStyle.bodyBig),
@@ -202,18 +204,19 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
   }
 
   Widget divider() {
-    return Divider(height: 1, color: Colors.grey.shade200);
+    return Divider(height: 1.h, color: Colors.grey.shade200);
   }
+
   Widget resolutionCard({required String title, required List<String> points}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: AppTextStyle.body),
-        SizedBox(height: 10),
+        SizedBox(height: 10.h),
         Container(
-          padding: EdgeInsets.all(14),
+          padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Column(
@@ -222,12 +225,12 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               ...points.map((e) {
                 bool isHeading = e.contains(":");
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  padding:EdgeInsets.symmetric(vertical: 3.h),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!isHeading)
-                        Text("• ", style: TextStyle(fontSize: 14)),
+                        Text("• ", style: TextStyle(fontSize: 14.sp)),
                       Expanded(child: Text(e, style: AppTextStyle.bodyBig)),
                     ],
                   ),
@@ -244,16 +247,16 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding:EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
           child: Row(
             children: [
               Text(
                 "28% Chance",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
               ),
               Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: Colors.red.shade100,
                   borderRadius: BorderRadius.circular(20),
@@ -266,7 +269,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: AppColors.iconContainer,
+            color: AppColors.inputFieldBg,
             borderRadius: BorderRadius.circular(25.r),
           ),
           child: Row(
@@ -300,14 +303,14 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
             }).toList(),
           ),
         ),
-        SizedBox(height: 10),
+        SizedBox(height: 10.h),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding:EdgeInsets.symmetric(horizontal: 5.w),
             child: LineChart(
               LineChartData(
                 minY: 0,
-                maxY: 100,
+                maxY: 70,
                 gridData: FlGridData(show: true),
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
@@ -340,7 +343,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color:AppColors.primary,
+                    color: AppColors.primary,
                     barWidth: 3,
                     belowBarData: BarAreaData(
                       show: true,
@@ -359,10 +362,10 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
 
   Widget card(String text) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(width: 1, color: Colors.grey),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(width: 1.w, color: Colors.grey),
       ),
       child: Text(text, style: AppTextStyle.bodyBig),
     );
@@ -370,7 +373,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
 
   Widget infoRow(String title, String value, {Color? color}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding:EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         children: [
           Text(title),

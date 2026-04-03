@@ -1,68 +1,16 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/utils/app_colors.dart';
+import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../data/model/trade_model.dart';
+import '../../../data/provider/category_provider.dart';
+import '../../../data/provider/trade_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
 import '../trade/trade_page.dart';
-
-class PollModel {
-  final String category;
-  final String time;
-  final String question;
-  final String? image;
-  final int yesPercent;
-  final int noPercent;
-  final int trades;
-
-  PollModel({
-    required this.category,
-    required this.time,
-    required this.question,
-    this.image,
-    required this.yesPercent,
-    required this.noPercent,
-    required this.trades,
-  });
-}
-
-final List<PollModel> polls = [
-  PollModel(
-    category: "Crypto",
-    time: "7m",
-    question: "Will bitcoin exceed \$200k before the end of 2026?",
-    yesPercent: 33,
-    noPercent: 67,
-    trades: 3975,
-  ),
-  PollModel(
-    category: "Entertainment",
-    time: "2d",
-    question: "Will Black Sherif win artiste of the year 2026?",
-    image: "assets/images/person4.png",
-    yesPercent: 33,
-    noPercent: 67,
-    trades: 3975,
-  ),
-  PollModel(
-    category: "Politics",
-    time: "7m",
-    question:
-        "Will Iran retaliate with large-scale attacks on U.S. bases in the Middle East?",
-    yesPercent: 0,
-    noPercent: 0,
-    trades: 3975,
-  ),
-  PollModel(
-    category: "Sports",
-    time: "7m",
-    question: "Will Arsenal top the premiere league table this season?",
-    image: "assets/images/post4.jpg",
-    yesPercent: 0,
-    noPercent: 0,
-    trades: 3975,
-  ),
-];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,130 +21,216 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
-  final PageController _pageController = PageController();
-  final List<String> tabs = [
-    "All",
-    "Trending",
-    "Politics",
-    "Sports",
-    "Crypto",
-    "Entertainment",
-  ];
+  int hintStep = 0;
+  bool showHint = false;
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   Future.microtask(() {
+  //     context.read<CategoryProvider>().fetchCategories();
+  //     context.read<TradeProvider>().fetchTrades();
+  //   });
+  // }
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() async {
+      context.read<CategoryProvider>().fetchCategories();
+      context.read<TradeProvider>().fetchTrades();
+
+      final prefs = await SharedPreferences.getInstance();
+      bool isFirstTime = prefs.getBool("isFirstTime") ?? true;
+
+      if (isFirstTime) {
+        setState(() {
+          showHint = true;
+        });
+      }
+    });
+  }
+
+  void _openFilterBottomSheet(BuildContext context) {
+    CommonBottomSheet.open(
+      context: context,
+      builder: (controller) => FilterBottomSheet(scrollController: controller),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<CategoryProvider>();
     return Scaffold(
       backgroundColor: const Color(0xffF6F6F6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              child: Row(
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        WidgetSpan(
-                          child: Row(
-                            children: [
-                              Image.asset(
-                                "assets/logo/IconLogo.png",
-                                height: 28,
-                                width: 28,
-                              ),
-                              SizedBox(width: 5.w),
-                              Image.asset("assets/logo/logo_name.png"),
-                            ],
-                          ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 10.h,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Image.asset("assets/images/IconLogo.png", height: 35.h),
+                      GestureDetector(
+                        onTap: () {
+                          _openFilterBottomSheet(context);
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              context.watch<TradeProvider>().selectedCategory,
+                              style: AppTextStyle.body,
+                            ),
+                            Icon(Icons.keyboard_arrow_down),
+                          ],
                         ),
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.top,
-                          child: Transform.translate(
-                            offset: Offset(1.w, -6.h),
-                            child: Text(
-                              "TM",
-                              style: TextStyle(
-                                fontSize: 7.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
+                      ),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE0E0E0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(Icons.notifications_none, size: 21.sp),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: provider.categories.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildPollList(
+                          categoryName: context
+                              .watch<TradeProvider>()
+                              .selectedCategory,
+                        ),
+                ),
+              ],
+            ),
+          ),
+          if (showHint)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  if (hintStep == 2) {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool("isFirstTime", false);
+                    setState(() {
+                      showHint = false;
+                    });
+                  }
+                },
+                onHorizontalDragUpdate: (details) {
+                  if (!showHint) return;
+                  if (details.delta.dx < -8 && hintStep == 0) {
+                    setState(() {
+                      hintStep = 1;
+                    });
+                  } else if (details.delta.dx > 8 && hintStep == 1) {
+                    setState(() {
+                      hintStep = 2;
+                    });
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.black.withOpacity(0.7),
+
+                  child: SafeArea(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+
+                      child: Column(
+                        key: ValueKey(hintStep),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            hintStep == 0
+                                ? Icons.swipe_left
+                                : hintStep == 1
+                                ? Icons.swipe_right
+                                : Icons.touch_app,
+                            color: Colors.white,
+                            size: 60,
+                          ),
+
+                          SizedBox(height: 20.h),
+
+                          Text(
+                            hintStep == 0
+                                ? "SWIPE LEFT FOR NO"
+                                : hintStep == 1
+                                ? "SWIPE RIGHT FOR YES"
+                                : "TAP TO VIEW DETAILS",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
+
+                          SizedBox(height: 10.h),
+
+                          Text(
+                            hintStep == 0
+                                ? "You're not convinced."
+                                : hintStep == 1
+                                ? "You think it will happen."
+                                : "Get the full picture.",
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  Icon(Icons.notifications_none, size: 24.sp),
-                ],
+                ),
               ),
             ),
-            SizedBox(
-              height: 50.h,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                itemCount: tabs.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => selectedIndex = index);
-                      _pageController.animateToPage(
-                        index,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                    child: _TabItem(
-                      title: tabs[index],
-                      isSelected: selectedIndex == index,
-                    ),
-                  );
-                },
-              ),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() => selectedIndex = index);
-                },
-                children: [
-                  _buildPollList(),
-                  _buildFilteredPollList("Trending"),
-                  _buildFilteredPollList("Politics"),
-                  _buildFilteredPollList("Sports"),
-                  _buildFilteredPollList("Crypto"),
-                  _buildFilteredPollList("Entertainment"),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildPollList() {
-    return ListView.builder(
-      padding: EdgeInsets.all(16.w),
-      itemCount: polls.length,
-      itemBuilder: (context, index) {
-        return PollCard(poll: polls[index]);
-      },
-    );
-  }
+  Widget _buildPollList({String? categoryName}) {
+    final tradeProvider = context.watch<TradeProvider>();
+    if (tradeProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (tradeProvider.error.isNotEmpty) {
+      return Center(child: Text(tradeProvider.error));
+    }
+    if (tradeProvider.trades.isEmpty) {
+      return const Center(child: Text("No Data"));
+    }
+    List<TradeModel> filteredTrades;
+    if (categoryName == null || categoryName == "All") {
+      filteredTrades = tradeProvider.trades;
+    } else {
+      filteredTrades = tradeProvider.trades
+          .where((trade) => trade.categoryName == categoryName)
+          .toList();
+    }
+    if (filteredTrades.isEmpty) {
+      return const Center(child: Text("No Data in this category"));
+    }
 
-  Widget _buildFilteredPollList(String category) {
-    final filteredPolls = polls
-        .where((poll) => poll.category == category)
-        .toList();
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
-      itemCount: filteredPolls.length,
+      itemCount: filteredTrades.length,
       itemBuilder: (context, index) {
-        return PollCard(poll: filteredPolls[index]);
+        final trade = filteredTrades[index];
+        return PollCard(trade: trade);
       },
     );
   }
@@ -240,86 +274,102 @@ class _TabItem extends StatelessWidget {
 }
 
 class PollCard extends StatelessWidget {
-  final PollModel poll;
+  final TradeModel trade;
 
-  const PollCard({super.key, required this.poll});
+  const PollCard({super.key, required this.trade});
 
-  @override
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        print("CLICK UUID: ${trade.uuid}");
         CommonBottomSheet.open(
           context: context,
-          builder: (controller) => TradePage(scrollController: controller),
+          builder: (controller) =>
+              TradePage(scrollController: controller, tradeUuid: trade.uuid),
         );
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 16.h),
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey, width: 1),
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        height: 605.h,
+        margin: EdgeInsets.only(bottom: 10.h),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r)),
+        child: Stack(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${poll.category} • ${poll.time}",
-                  style: AppTextStyle.small,
+            if (trade.image != null && trade.image!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20.r),
+                child: Image.network(
+                  trade.image!,
+                  height: double.infinity,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const SizedBox();
+                  },
                 ),
-                Icon(Icons.bookmark_border, size: 20.sp),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            Text(poll.question, style: AppTextStyle.body),
-            SizedBox(height: 10.h),
-
-            Container(
-              padding: EdgeInsets.all(14.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey, width: 1),
-                borderRadius: BorderRadius.circular(16.r),
               ),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20.r),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12.h,
+              left: 12.w,
+              child: Container(
+                height: 36.h,
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Center(
+                  child: Text(
+                    trade.categoryName ?? "",
+                    style: AppTextStyle.small,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12.h,
+              right: 12.w,
+              child: CommonShareButton(onTap: () {}),
+            ),
+            Positioned(
+              bottom: 12.h,
+              left: 12.w,
+              right: 12.w,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (poll.image != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12.r),
-                      child: Image.asset(
-                        poll.image!,
-                        height: 161.h,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                  Row(
+                    children: [
+                      CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
+                      SizedBox(width: 4.w),
+                      Text(
+                        "3975 trades",
+                        style: TextStyle(color: Colors.white, fontSize: 12.sp),
                       ),
-                    ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(trade.description, style: AppTextStyle.headingWhite),
                   SizedBox(height: 10.h),
-                  _voteBar("Yes", poll.yesPercent, Colors.green.shade200),
-                  SizedBox(height: 8.h),
-                  _voteBar("No", poll.noPercent, Colors.red.shade200),
+                  Row(
+                    children: [
+                      Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+                      SizedBox(width: 10.w),
+                      Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+                    ],
+                  ),
                 ],
               ),
-            ),
-            SizedBox(height: 10.h),
-            Row(
-              children: [
-                Text(
-                  "${poll.trades} trades",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-                ),
-                const Spacer(),
-                CommonShareButton(onTap: () {}, showBackground: false),
-                SizedBox(width: 5.w),
-                Text(
-                  "Share",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-                ),
-              ],
             ),
           ],
         ),
@@ -327,39 +377,67 @@ class PollCard extends StatelessWidget {
     );
   }
 
-  Widget _voteBar(String label, int percent, Color color) {
-    return Stack(
-      children: [
-        Container(
-          height: 36.h,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(10.r),
-          ),
+  Widget _modernVoteBar(String label, int percent, Color color) {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        gradient: LinearGradient(
+          colors: [const Color(0xff2A2A2A), const Color(0xff3A3A3A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        FractionallySizedBox(
-          widthFactor: percent / 100,
-          child: Container(
-            height: 36.h,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(10.r),
-            ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                "$percent%",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ),
-        Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            child: Row(
+
+          SizedBox(height: 10.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20.r),
+            child: Stack(
               children: [
-                Text(label, style: TextStyle(fontSize: 12.sp)),
-                const Spacer(),
-                Text("$percent%", style: TextStyle(fontSize: 12.sp)),
+                Container(
+                  height: 10.h,
+                  width: double.infinity,
+                  color: Colors.white,
+                ),
+                FractionallySizedBox(
+                  widthFactor: percent / 100,
+                  child: Container(
+                    height: 10.h,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

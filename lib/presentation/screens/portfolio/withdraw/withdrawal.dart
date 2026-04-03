@@ -1,7 +1,7 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
 
@@ -48,11 +48,11 @@ class _DepositPageState extends State<WithdrawPage> {
               child: Column(
                 children: [
                   Padding(
-                    padding: EdgeInsets.all(16.w),
+                    padding: EdgeInsets.fromLTRB(0,0,16.w,0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        CommonHeader(title: "New Withdrawal"),
+                        CommonHeader(title: "New Withdrawal",showDivider: false,),
                         _stepIndicator(),
                       ],
                     ),
