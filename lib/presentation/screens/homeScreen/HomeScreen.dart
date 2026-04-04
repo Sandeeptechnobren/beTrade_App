@@ -62,7 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<CategoryProvider>();
     return Scaffold(
-      backgroundColor: const Color(0xffF6F6F6),
       body: Stack(
         children: [
           SafeArea(
@@ -92,10 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 40.w,
+                        height: 40.h,
                         decoration: BoxDecoration(
-                          color: Color(0xFFE0E0E0),
+                          color: AppColors.whiteDynamic(context),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -146,11 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   height: double.infinity,
                   color: Colors.black.withOpacity(0.7),
-
                   child: SafeArea(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 400),
-
                       child: Column(
                         key: ValueKey(hintStep),
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -164,9 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white,
                             size: 60,
                           ),
-
                           SizedBox(height: 20.h),
-
                           Text(
                             hintStep == 0
                                 ? "SWIPE LEFT FOR NO"
@@ -179,9 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
                           SizedBox(height: 10.h),
-
                           Text(
                             hintStep == 0
                                 ? "You're not convinced."
@@ -201,7 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
   Widget _buildPollList({String? categoryName}) {
     final tradeProvider = context.watch<TradeProvider>();
     if (tradeProvider.isLoading) {
@@ -224,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (filteredTrades.isEmpty) {
       return const Center(child: Text("No Data in this category"));
     }
-
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
       itemCount: filteredTrades.length,
@@ -235,13 +226,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
 class _TabItem extends StatelessWidget {
   final String title;
   final bool isSelected;
-
   const _TabItem({required this.title, this.isSelected = false});
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -275,7 +263,6 @@ class _TabItem extends StatelessWidget {
 
 class PollCard extends StatelessWidget {
   final TradeModel trade;
-
   const PollCard({super.key, required this.trade});
 
   @override
@@ -325,7 +312,7 @@ class PollCard extends StatelessWidget {
                 height: 36.h,
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
+                  color: AppColors.whiteDynamic(context),
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Center(

@@ -1,9 +1,8 @@
-import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import '../../../core/theme/app_colors.dart';
 import '../../widget/purple_button.dart';
 
 class AllPaymentMethodsPage extends StatelessWidget {
@@ -39,7 +38,7 @@ class AllPaymentMethodsPage extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: AppColors.inputFieldBgDynamic(context),
                   borderRadius: BorderRadius.circular(16.r),
                 ),
                 child: Column(
@@ -87,12 +86,12 @@ class AllPaymentMethodsPage extends StatelessWidget {
             ],
           ),
         ),
-        InkWell(
-          onTap: () {
-            showDeletePopup(context);
-          },
-          child: Image.asset("assets/logo/tras.png", height: 20.h),
-        ),
+        // InkWell(
+        //   onTap: () {
+        //     showDeletePopup(context);
+        //   },
+        //   child: Image.asset("assets/logo/tras.png", height: 20.h),
+        // ),
       ],
     );
   }
@@ -141,7 +140,6 @@ class AllPaymentMethodsPage extends StatelessWidget {
       height: 44.h,
       width: 64.w,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: Colors.grey, width: 0.5),
       ),
@@ -160,7 +158,7 @@ class AllPaymentMethodsPage extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.all(20.w),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.inputFieldBgDynamic(context),
               borderRadius: BorderRadius.circular(24.r),
             ),
             child: Column(

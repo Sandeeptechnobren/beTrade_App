@@ -1,4 +1,5 @@
 import 'package:betrade/core/theme/app_colors.dart';
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ class StepPhone extends StatefulWidget {
   final Function(String) onChanged;
 
   const StepPhone({super.key, required this.onChanged});
+
   @override
   State<StepPhone> createState() => _StepPhoneState();
 }
@@ -19,13 +21,12 @@ class StepPhone extends StatefulWidget {
 class _StepPhoneState extends State<StepPhone> {
   final _formKey = GlobalKey<FormState>();
   String? phoneError;
+
   @override
   void initState() {
     super.initState();
-
     Future.microtask(() {
       final provider = context.read<CountryProvider>();
-
       if (!provider.isLoading && provider.countries.isEmpty) {
         provider.fetchCountries();
       }
@@ -35,21 +36,13 @@ class _StepPhoneState extends State<StepPhone> {
   @override
   Widget build(BuildContext context) {
     final country = context.select<CountryProvider, CountryModel?>(
-          (p) => p.selectedCountry,
+      (p) => p.selectedCountry,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "What’s Your Phone Number?",
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'SFProRounded',
-          ),
-        ),
+        Text("What’s Your Phone Number?", style: AppTextStyle.heading),
         SizedBox(height: 20.h),
-
         Row(
           children: [
             GestureDetector(
@@ -60,14 +53,14 @@ class _StepPhoneState extends State<StepPhone> {
                 padding: EdgeInsets.symmetric(horizontal: 10.w),
                 height: 50.h,
                 decoration: BoxDecoration(
-                  color:AppColors.inputFieldBg,
+                  color: AppColors.inputFieldBg,
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Row(
                   children: [
                     Text(country?.flag ?? "🇮🇳"),
                     SizedBox(width: 5.w),
-                    const Icon(Icons.keyboard_arrow_down,color: Colors.grey,),
+                    const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
                   ],
                 ),
               ),
@@ -78,7 +71,6 @@ class _StepPhoneState extends State<StepPhone> {
                 key: _formKey,
                 child: Container(
                   height: 50.h,
-                  padding: EdgeInsets.symmetric(horizontal: 15.w),
                   decoration: BoxDecoration(
                     color: AppColors.inputFieldBg,
                     borderRadius: BorderRadius.circular(12.r),
@@ -86,7 +78,6 @@ class _StepPhoneState extends State<StepPhone> {
                   child: TextFormField(
                     keyboardType: TextInputType.phone,
                     style: TextStyle(color: Colors.black),
-
                     onChanged: (value) {
                       final code = country?.phoneCode ?? "+91";
                       final cleanValue = value.replaceAll(" ", "");
@@ -105,15 +96,28 @@ class _StepPhoneState extends State<StepPhone> {
                       });
                     },
                     decoration: InputDecoration(
-                      border: InputBorder.none,
+                      filled: true,
+                      fillColor: AppColors.inputFieldBg,
                       hintText: phoneError ?? "000 000 0000",
                       hintStyle: TextStyle(
                         color: phoneError != null ? Colors.red : Colors.grey,
-                        fontSize: 14.sp,
+                        fontSize: 16.sp,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: const BorderSide(color: AppColors.primary),
                       ),
                     ),
                   ),
-                )
+                ),
               ),
             ),
           ],

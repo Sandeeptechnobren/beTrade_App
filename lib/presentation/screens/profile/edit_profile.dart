@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
-
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
@@ -40,8 +40,10 @@ class _EditProfileState extends State<EditProfile> {
   void initState() {
     super.initState();
 
-    final profile =
-        Provider.of<ProfileProvider>(context, listen: false).profile;
+    final profile = Provider.of<ProfileProvider>(
+      context,
+      listen: false,
+    ).profile;
 
     if (profile != null) {
       firstNameController.text = profile.firstName;
@@ -68,7 +70,8 @@ class _EditProfileState extends State<EditProfile> {
       final token = LocalStorage.getToken();
       final response = await http.get(
         Uri.parse(
-            "https://api.easycoders.in/projects/betrade/public/api/languages"),
+          "https://api.easycoders.in/projects/betrade/public/api/languages",
+        ),
         headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",
@@ -98,8 +101,7 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> pickImage() async {
-    final pickedFile =
-    await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         selectedImage = File(pickedFile.path);
@@ -116,87 +118,86 @@ class _EditProfileState extends State<EditProfile> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-          child: Column(
-            children: [
-              const CommonHeader(title: "Personal Info"),
-
-              Padding(
-                padding:
-                EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.w),
                 child: Column(
                   children: [
-                    SizedBox(height: 20.h),
-                    Center(
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50.r,
-                            backgroundColor: Colors.grey.shade200,
-                            backgroundImage: selectedImage != null
-                                ? FileImage(selectedImage!)
-                                : (provider.profile?.avatar
-                                .isNotEmpty ==
-                                true)
-                                ? NetworkImage(
-                                provider.profile!.avatar)
-                                : null,
-                            child: selectedImage == null &&
-                                (provider.profile?.avatar
-                                    .isEmpty ??
-                                    true)
-                                ? Icon(Icons.person,
-                                size: 40.sp,
-                                color: Colors.grey)
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: pickImage,
-                              child: Container(
-                                padding: EdgeInsets.all(6.w),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 18.sp),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 25.h),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 16.w, vertical: 20.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24.r),
-                      ),
+                    const CommonHeader(title: "Personal Info"),
+
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.w),
                       child: Column(
                         children: [
-                          _buildField(
-                              "First Name", firstNameController),
-                          _buildField(
-                              "Last Name", lastNameController),
-                          buildCountryDropdown(),
-                          buildCurrencyDropdown(),
-                          buildLanguageDropdown(),
+                          SizedBox(height: 20.h),
+                          Center(
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 50.r,
+                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundImage: selectedImage != null
+                                      ? FileImage(selectedImage!)
+                                      : (provider.profile?.avatar.isNotEmpty ==
+                                            true)
+                                      ? NetworkImage(provider.profile!.avatar)
+                                      : null,
+                                  child:
+                                      selectedImage == null &&
+                                          (provider.profile?.avatar.isEmpty ??
+                                              true)
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 40.sp,
+                                          color: Colors.grey,
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: pickImage,
+                                    child: Container(
+                                      padding: EdgeInsets.all(6.w),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 18.sp,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 20.h,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24.r),
+                            ),
+                            child: Column(
+                              children: [
+                                _buildField("First Name", firstNameController),
+                                _buildField("Last Name", lastNameController),
+                                buildCountryDropdown(),
+                                buildCurrencyDropdown(),
+                                buildLanguageDropdown(),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: 100.h),
                         ],
                       ),
                     ),
-
-                    SizedBox(height: 100.h),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
       ),
 
       bottomNavigationBar: SafeArea(
@@ -234,11 +235,11 @@ class _EditProfileState extends State<EditProfile> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title),
+          Text(title, style: AppTextStyle.body),
           SizedBox(height: 6.h),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xffF2F2F2),
+              color: AppColors.inputFieldBgDynamic(context),
               borderRadius: BorderRadius.circular(14.r),
             ),
             child: TextField(
@@ -258,12 +259,12 @@ class _EditProfileState extends State<EditProfile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Country"),
+        Text("Country of residence", style: AppTextStyle.body),
         SizedBox(height: 8),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<CountryModel>(
@@ -274,11 +275,7 @@ class _EditProfileState extends State<EditProfile> {
               return DropdownMenuItem(
                 value: e,
                 child: Row(
-                  children: [
-                    Text(e.flag),
-                    SizedBox(width: 8),
-                    Text(e.name)
-                  ],
+                  children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
                 ),
               );
             }).toList(),
@@ -294,16 +291,17 @@ class _EditProfileState extends State<EditProfile> {
       ],
     );
   }
+
   Widget buildCurrencyDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Currency"),
+        Text("Preferred Currency", style: AppTextStyle.body),
         SizedBox(height: 8),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<String>(
@@ -312,11 +310,11 @@ class _EditProfileState extends State<EditProfile> {
             underline: SizedBox(),
             items: selectedCurrency != null
                 ? [
-              DropdownMenuItem(
-                value: selectedCurrency,
-                child: Text(selectedCurrency!),
-              )
-            ]
+                    DropdownMenuItem(
+                      value: selectedCurrency,
+                      child: Text(selectedCurrency!),
+                    ),
+                  ]
                 : [],
             onChanged: null,
           ),
@@ -325,16 +323,17 @@ class _EditProfileState extends State<EditProfile> {
       ],
     );
   }
+
   Widget buildLanguageDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Language"),
+        Text("Language", style: AppTextStyle.body),
         SizedBox(height: 8),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<DropdownItem>(
@@ -342,10 +341,7 @@ class _EditProfileState extends State<EditProfile> {
             isExpanded: true,
             underline: SizedBox(),
             items: languages.map((e) {
-              return DropdownMenuItem(
-                value: e,
-                child: Text(e.name),
-              );
+              return DropdownMenuItem(value: e, child: Text(e.name));
             }).toList(),
             onChanged: (val) {
               setState(() {
@@ -360,7 +356,6 @@ class _EditProfileState extends State<EditProfile> {
   }
 }
 
-// 🔥 MODEL
 class DropdownItem {
   final int id;
   final String name;

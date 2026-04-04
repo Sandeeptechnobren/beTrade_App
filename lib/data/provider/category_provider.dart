@@ -5,7 +5,7 @@ import '../services/category_service.dart';
 class CategoryProvider extends ChangeNotifier {
   List<CategoryModel> categories = [];
   bool isLoading = false;
-  String error = ""; // 🔥 NEW
+  String error = "";
 
   Future<void> fetchCategories() async {
     isLoading = true;
@@ -16,10 +16,10 @@ class CategoryProvider extends ChangeNotifier {
       categories = await CategoryService.getCategories();
 
       if (categories.isEmpty) {
-        error = "No data found"; // 🔥 handle empty
+        error = "No data found";
       }
     } catch (e) {
-      error = "Something went wrong"; // 🔥 handle error
+      error = "Something went wrong";
     }
 
     isLoading = false;

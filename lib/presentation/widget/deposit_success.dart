@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_style.dart';
 import '../widget/purple_button.dart';
 
@@ -17,7 +18,7 @@ void showSuccessDialog(BuildContext context) {
             vertical: 25.h,
           ),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(25.r),
           ),
           child: Column(
@@ -67,7 +68,7 @@ void withdrawalSuccessDialog(BuildContext context) {
             vertical: 25.h,
           ),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(25.r),
           ),
           child: Column(

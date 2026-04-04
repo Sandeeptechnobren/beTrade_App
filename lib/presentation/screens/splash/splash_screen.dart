@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:betrade/presentation/auth/auth_screen.dart';
 import 'package:betrade/presentation/bottom_navigation/bottom_nav.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,8 @@ class _SplashScreenState extends State<SplashScreen> {
     else if (token == null || token.isEmpty) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        // MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
       );
     }
     else {

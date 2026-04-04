@@ -4,6 +4,7 @@ import 'package:betrade/presentation/widget/common_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../widget/common_header.dart';
 import '../../widget/purple_button.dart';
 
@@ -41,7 +42,7 @@ class PaymentMethodsPage extends StatelessWidget {
                             height: 70.w,
                             width: 70.w,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: AppColors.inputFieldBgDynamic(context),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

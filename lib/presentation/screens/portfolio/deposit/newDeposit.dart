@@ -95,7 +95,7 @@ class _DepositPageState extends State<DepositPage> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
-            color: AppColors.iconContainer,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: TextField(
@@ -116,7 +116,7 @@ class _DepositPageState extends State<DepositPage> {
                   amountController.text = e.toString();
                 });
               },
-              child: Container(
+              child:Container(
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12.r),
@@ -125,16 +125,20 @@ class _DepositPageState extends State<DepositPage> {
                   ),
                   color: isSelected
                       ? Colors.purple.withOpacity(0.1)
-                      : Colors.transparent,
+                      : AppColors.inputFieldBgDynamic(context),
                 ),
                 child: Text(
                   "$e GHS",
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: isSelected ? Colors.purple : Colors.black,
+                    color: isSelected
+                        ? Colors.purple
+                        : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black), // ✅ FIX
                   ),
                 ),
-              ),
+              )
             );
           }).toList(),
         ),
@@ -154,7 +158,7 @@ class _DepositPageState extends State<DepositPage> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
-            color: AppColors.iconContainer,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: DropdownButton<String>(
@@ -219,7 +223,7 @@ class _DepositPageState extends State<DepositPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        color: AppColors.iconContainer,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: TextField(
@@ -236,7 +240,7 @@ class _DepositPageState extends State<DepositPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade300,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: DropdownButton<String>(

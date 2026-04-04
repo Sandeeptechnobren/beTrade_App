@@ -5,36 +5,79 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationTap;
   final bool showNotification;
   final Widget? leading;
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   const GlobalAppBar({
     super.key,
     this.onNotificationTap,
     this.showNotification = true,
     this.leading,
-    this.backgroundColor = Colors.white,
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AppBar(
       elevation: 0,
-      backgroundColor: backgroundColor,
+      backgroundColor:
+          backgroundColor ?? (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+
       automaticallyImplyLeading: false,
-
       leading: leading,
-
       titleSpacing: 0,
-      title: Row(
-        children: [
-          SizedBox(width: 8.w),
-          Image.asset(
-            "assets/logo/betrade_logo.png",
-            height: 33.h,
-          ),
-        ],
+      title: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset("assets/logo/IconLogo.png", height: 35.h),
+                SizedBox(width: 5.w),
+                Builder(
+                  builder: (context) {
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    final textColor = isDark
+                        ? Colors.white
+                        : const Color(0xFF1A0D2B);
+                    return RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "BeTrade",
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                            ),
+                          ),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.top,
+                            child: Transform.translate(
+                              offset: const Offset(1, -5),
+                              child: Text(
+                                "™",
+                                style: TextStyle(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-
       actions: [
         if (showNotification)
           Padding(
@@ -42,15 +85,17 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: GestureDetector(
               onTap: onNotificationTap,
               child: Container(
-                width: 36.w,
-                height: 36.w,
+                width: 40.w,
+                height: 40.w,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: isDark
+                      ? const Color(0xFF3A3A3A)
+                      : Colors.grey.shade200,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.notifications_none,
-                  color: Colors.black,
+                  color: isDark ? Colors.white : Colors.black,
                   size: 20,
                 ),
               ),

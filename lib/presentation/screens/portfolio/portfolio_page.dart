@@ -7,6 +7,7 @@ import 'package:betrade/presentation/widget/rounded_tab_indicator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'deposit/newDeposit.dart';
 
@@ -23,7 +24,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        appBar: GlobalAppBar(),
         body: SafeArea(
           child: Column(
             children: [
@@ -35,47 +36,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  WidgetSpan(
-                                    child: Row(
-                                      children: [
-                                        Image.asset(
-                                          "assets/logo/IconLogo.png",
-                                          height: 28,
-                                          width: 28,
-                                        ),
-                                        SizedBox(width: 5.w),
-                                        Image.asset(
-                                          "assets/logo/logo_name.png",
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  WidgetSpan(
-                                    alignment: PlaceholderAlignment.top,
-                                    child: Transform.translate(
-                                      offset: Offset(1.w, -6.h),
-                                      child: Text(
-                                        "TM",
-                                        style: TextStyle(
-                                          fontSize: 7.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(Icons.notifications_none, size: 24.sp),
-                          ],
-                        ),
+
                         SizedBox(height: 20.h),
                         Container(
                           width: double.infinity,

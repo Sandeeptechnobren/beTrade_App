@@ -1,6 +1,7 @@
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/theme/app_colors.dart';
 
 class AchievementsSheet extends StatefulWidget {
   final ScrollController scrollController;
@@ -27,8 +28,8 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30.r)),
+        color: AppColors.inputFieldBgDynamic(context),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: SingleChildScrollView(
         controller: widget.scrollController,
@@ -50,7 +51,6 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                 ),
                 itemBuilder: (context, index) {
                   final item = achievements[index];
-
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -58,7 +58,6 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                         padding: EdgeInsets.all(6.w),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.grey.shade100,
                         ),
                         child: CircleAvatar(
                           radius: 30.r,
@@ -81,7 +80,6 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                 },
               ),
             ),
-
             SizedBox(height: 12.h),
           ],
         ),

@@ -1,8 +1,10 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/signin/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../screens/splash/signup_screen.dart';
+import '../widget/purple_button.dart';
 
 class AuthBottomSheet extends StatelessWidget {
   const AuthBottomSheet({super.key});
@@ -12,7 +14,7 @@ class AuthBottomSheet extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:AppColors.iconContainerDynamic(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(30.r)),
       ),
       child: Column(
@@ -37,7 +39,7 @@ class AuthBottomSheet extends StatelessWidget {
           _buildGreyButton("Log in to continue", () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
+              MaterialPageRoute(builder: (context) => LoginScreen()),
             );
           }),
           SizedBox(height: 15.h),
@@ -55,33 +57,45 @@ class AuthBottomSheet extends StatelessWidget {
             ],
           ),
           SizedBox(height: 15.h),
-          GestureDetector(
-            onTap: () {
+          // GestureDetector(
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (_) => const SignupScreen()),
+          //     );
+          //   },
+          //   child:
+          //   Container(
+          //     width: double.infinity,
+          //     padding: EdgeInsets.symmetric(vertical: 14.h),
+          //     decoration: BoxDecoration(
+          //       borderRadius: BorderRadius.circular(25.r),
+          //       gradient: const LinearGradient(
+          //         colors: [Color(0xff8A2BE2), Color(0xffDA70D6)],
+          //       ),
+          //     ),
+          //     alignment: Alignment.center,
+          //     child: Text(
+          //       "Create an account",
+          //       style: TextStyle(
+          //         color: Colors.white,
+          //         fontSize: 14.sp,
+          //         fontWeight: FontWeight.w600,
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          Button(
+            title: "Create an Account",
+            isPrimary: true,
+            onPressed: () async {
               Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SignupScreen()),
               );
             },
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 14.h),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25.r),
-                gradient: const LinearGradient(
-                  colors: [Color(0xff8A2BE2), Color(0xffDA70D6)],
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                "Create an account",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
           ),
           SizedBox(height: 15.h),
           _buildSocialButton(
@@ -104,7 +118,7 @@ class AuthBottomSheet extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 14.h),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: AppColors.inputFieldBg,
           borderRadius: BorderRadius.circular(25.r),
         ),
         alignment: Alignment.center,
@@ -118,7 +132,7 @@ class AuthBottomSheet extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 12.h),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: AppColors.inputFieldBg,
         borderRadius: BorderRadius.circular(25.r),
       ),
       child: Row(

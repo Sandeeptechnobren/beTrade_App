@@ -40,16 +40,15 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(0, 0, 16.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CommonHeader(title: ""),
+                  CommonHeader(title: "", showDivider: false),
                   CommonShareButton(onTap: () {}),
                 ],
               ),
@@ -63,7 +62,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:AppColors.btnGreen,
+                        backgroundColor: AppColors.btnGreen,
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14.w),
                       ),
@@ -78,7 +77,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:AppColors.btnRed,
+                        backgroundColor: AppColors.btnRed,
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -151,7 +150,11 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               children: [
                 activityRow("Current Price", "12.40 GHS per share"),
                 divider(),
-                activityRow("Market Status", "Open", valueColor:AppColors.btnGreen),
+                activityRow(
+                  "Market Status",
+                  "Open",
+                  valueColor: AppColors.btnGreen,
+                ),
                 divider(),
                 activityRow("Total Volume", "410,250 GHS"),
                 divider(),
@@ -193,7 +196,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
 
   Widget activityRow(String title, String value, {Color? valueColor}) {
     return Padding(
-      padding:EdgeInsets.symmetric(vertical: 10.h),
+      padding: EdgeInsets.symmetric(vertical: 10.h),
       child: Row(
         children: [
           Text(title, style: AppTextStyle.bodyBig),
@@ -225,7 +228,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               ...points.map((e) {
                 bool isHeading = e.contains(":");
                 return Padding(
-                  padding:EdgeInsets.symmetric(vertical: 3.h),
+                  padding: EdgeInsets.symmetric(vertical: 3.h),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -247,7 +250,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     return Column(
       children: [
         Padding(
-          padding:EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
           child: Row(
             children: [
               Text(
@@ -258,7 +261,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade100,
+                  color: AppColors.inputFieldBgDynamic(context),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text("20%", style: TextStyle(color: Colors.red)),
@@ -269,7 +272,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: AppColors.inputFieldBg,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(25.r),
           ),
           child: Row(
@@ -306,7 +309,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         SizedBox(height: 10.h),
         Expanded(
           child: Padding(
-            padding:EdgeInsets.symmetric(horizontal: 5.w),
+            padding: EdgeInsets.symmetric(horizontal: 5.w),
             child: LineChart(
               LineChartData(
                 minY: 0,
@@ -373,7 +376,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
 
   Widget infoRow(String title, String value, {Color? color}) {
     return Padding(
-      padding:EdgeInsets.symmetric(vertical: 6.h),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
         children: [
           Text(title),

@@ -1,6 +1,5 @@
 import 'package:betrade/presentation/screens/profile/achivement_Sheet.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
-import 'package:betrade/presentation/screens/profile/profile_Detail_Screen.dart';
 import 'package:betrade/presentation/screens/profile/term_of_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/provider/theam_provider.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
@@ -38,7 +38,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void logoutUser() async {
     String? token = LocalStorage.getToken();
-
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -47,14 +46,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     setState(() => isLoading = true);
-
     bool success = await AuthService.logout(token);
-
     setState(() => isLoading = false);
-
     if (success) {
       await LocalStorage.clearToken();
-
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const AuthScreen()),
@@ -74,7 +69,6 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           final profile = provider.profile;
-
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(
@@ -84,11 +78,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   margin: EdgeInsets.symmetric(horizontal: 16.w),
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color:Colors.grey,
-                      width: 0.5
-                    ),
-                    color: AppColors.inputFieldBg,
+                    border: Border.all(color: Colors.grey, width: 0.5),
+                    color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Column(
@@ -125,7 +116,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-
                 SizedBox(height: 20.h),
                 GestureDetector(
                   onTap: () {
@@ -139,11 +129,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     margin: EdgeInsets.symmetric(horizontal: 16.w),
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                          color:Colors.grey,
-                          width: 0.5
-                      ),
-                      color: AppColors.inputFieldBg,
+                      border: Border.all(color: Colors.grey, width: 0.5),
+                      color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Column(
@@ -169,17 +156,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-
                 SizedBox(height: 20.h),
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 16.w),
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    border: Border.all(
-                        color:Colors.grey,
-                        width: 0.5
-                    ),
-                    color: AppColors.inputFieldBg,
+                    border: Border.all(color: Colors.grey, width: 0.5),
+                    color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Column(
@@ -269,13 +252,12 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
   Widget buildStat(String value, String label) {
     return Container(
       width: 90.w,
       padding: EdgeInsets.symmetric(vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.whiteDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -287,7 +269,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
   Widget buildBadge(String imagePath) {
     return CircleAvatar(
       radius: 34.r,
@@ -295,8 +276,8 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundImage: AssetImage(imagePath),
     );
   }
-
   Widget buildSwitchTile() {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -308,24 +289,27 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 40.h,
                 width: 40.w,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.whiteDynamic(context),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Icon(
                   Icons.dark_mode_outlined,
                   size: 24.sp,
-                  color: Colors.grey,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
               ),
               SizedBox(width: 12.w),
-              Text("Dark Mode", style: AppTextStyle.bodyBig),
+              Text("Dark Mode", style: AppTextStyle.bodyBigDynamic(context)),
             ],
           ),
-          Switch(
-            value: isDark,
-            onChanged: (v) {
-              setState(() => isDark = v);
-            },
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: themeProvider.isDark,
+              onChanged: (v) {
+                themeProvider.toggleTheme(v);
+              },
+            ),
           ),
         ],
       ),
@@ -344,10 +328,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 40.h,
                 width: 40.w,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.whiteDynamic(context),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
-                child: Icon(icon, size: 24.sp, color: Colors.black54),
+                child: Icon(
+                  icon,
+                  size: 24.sp,
+                  color: AppColors.textSecondaryDynamic(context),
+                ),
               ),
               SizedBox(width: 12.w),
               Text(title, style: AppTextStyle.bodyBig),

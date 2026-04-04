@@ -11,6 +11,7 @@ import 'data/provider/bottom_nav_provider.dart';
 import 'data/provider/country_provider.dart';
 import 'data/provider/profile_provider.dart';
 import 'data/provider/signUp_provider.dart';
+import 'data/provider/theam_provider.dart';
 import 'data/services/local_storage.dart';
 
 Future<void> main() async {
@@ -34,19 +35,42 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => TradeProvider()),
         ChangeNotifierProvider(create: (_) => ExploreProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
         minTextAdapt: true,
         splitScreenMode: true,
+        // builder: (context, child) {
+        //   return MaterialApp(
+        //     title: 'BeTrade',
+        //     debugShowCheckedModeBanner: false,
+        //     theme: ThemeData(
+        //       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        //     ),
+        //     home: const SplashScreen(),
+        //   );
+        // },
         builder: (context, child) {
-          return MaterialApp(
-            title: 'BeTrade',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            ),
-            home: const SplashScreen(),
+          return Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return MaterialApp(
+                title: 'BeTrade',
+                debugShowCheckedModeBanner: false,
+                themeMode: themeProvider.themeMode,
+                theme: ThemeData(
+                  brightness: Brightness.light,
+                  scaffoldBackgroundColor: Colors.white,
+                ),
+
+                darkTheme: ThemeData(
+                  brightness: Brightness.dark,
+                  scaffoldBackgroundColor: const Color(0xFF121212),
+                ),
+
+                home: const SplashScreen(),
+              );
+            },
           );
         },
       ),

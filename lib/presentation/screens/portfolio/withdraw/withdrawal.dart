@@ -106,7 +106,7 @@ class _DepositPageState extends State<WithdrawPage> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
-            color: AppColors.iconContainer,
+            color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: TextField(
@@ -141,7 +141,7 @@ class _DepositPageState extends State<WithdrawPage> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12.w),
                   decoration: BoxDecoration(
-                    color: AppColors.iconContainer,
+                    color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: DropdownButton<String>(
@@ -221,7 +221,7 @@ class _DepositPageState extends State<WithdrawPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        color: AppColors.iconContainer,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: TextField(
@@ -235,7 +235,7 @@ class _DepositPageState extends State<WithdrawPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade300,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: DropdownButton<String>(

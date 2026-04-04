@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
@@ -60,32 +61,25 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(height: 10.h),
             Text(
               "Enter Your Phone Number to Login",
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500),
+              style:AppTextStyle.heading
             ),
-            SizedBox(height: 25.h),
+            SizedBox(height: 20.h),
             Row(
               children: [
                 GestureDetector(
                   onTap: () => openCountryPicker(context),
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 14.h,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    height: 50.h,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(12.r),
+                      color:AppColors.inputFieldBg,
                     ),
                     child: Row(
                       children: [
                         Text(
                           selectedCountry.flag,
                           style: TextStyle(fontSize: 16.sp),
-                        ),
-                        SizedBox(width: 5.w),
-                        Text(
-                          selectedCountry.phoneCode,
-                          style: TextStyle(fontSize: 14.sp),
                         ),
                         SizedBox(width: 5.w),
                         Icon(
@@ -99,30 +93,35 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: TextField(
-                    controller: phoneController,
-                    cursorColor: AppColors.primary,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                      counterText: "",
-                      hintText: "000 000 0000",
-                      hintStyle: TextStyle(color: Colors.grey),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 15.w,
-                        vertical: 14.h,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: const BorderSide(color: AppColors.primary),
+                  child:
+                  SizedBox(height: 50.h,
+                    child: TextField(
+                      controller: phoneController,
+                      cursorColor: AppColors.primary,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppColors.inputFieldBg,
+                        counterText: "",
+                        hintText: "000 000 0000",
+                        hintStyle: TextStyle(color: Colors.grey),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 15.w,
+                          vertical: 14.h,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: const BorderSide(color: AppColors.primary),
+                        ),
                       ),
                     ),
                   ),

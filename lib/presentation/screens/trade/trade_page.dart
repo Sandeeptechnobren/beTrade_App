@@ -110,16 +110,16 @@ class _TradePageState extends State<TradePage> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              padding: EdgeInsets.symmetric(horizontal:0.w, vertical:0.h),
               child: Row(
                 children: [
-                  CommonHeader(title: "New Trade"),
+                  CommonHeader(title: "New Trade",showDivider: false,),
                   const Spacer(),
                   Container(
                     height: 36.h,
                     padding: EdgeInsets.all(4.w),
                     decoration: BoxDecoration(
-                      color: const Color(0xffF1F2F6),
+                        color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(25.r),
                     ),
                     child: Row(
@@ -212,7 +212,7 @@ class _TradePageState extends State<TradePage> {
                       decoration: InputDecoration(
                         hintText: "0.00",
                         filled: true,
-                        fillColor: Colors.grey.shade200,
+                        fillColor:AppColors.inputFieldBgDynamic(context),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 16.w,
                           vertical: 14.h,
@@ -255,7 +255,7 @@ class _TradePageState extends State<TradePage> {
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.inputFieldBgDynamic(context),
                         borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: Column(

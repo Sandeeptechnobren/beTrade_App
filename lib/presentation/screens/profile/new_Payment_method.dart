@@ -54,7 +54,7 @@ class _NewPaymentMethodPageState extends State<NewPaymentMethodPage> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12.w),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: AppColors.inputFieldBgDynamic(context),
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: DropdownButton<String>(
@@ -110,7 +110,7 @@ class _NewPaymentMethodPageState extends State<NewPaymentMethodPage> {
         hintText: hint,
         hintStyle: AppTextStyle.body,
         filled: true,
-        fillColor: Colors.grey.shade300,
+        fillColor:AppColors.inputFieldBgDynamic(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(50.r),
           borderSide: BorderSide.none,
@@ -128,7 +128,7 @@ class _NewPaymentMethodPageState extends State<NewPaymentMethodPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade300,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: DropdownButton<String>(

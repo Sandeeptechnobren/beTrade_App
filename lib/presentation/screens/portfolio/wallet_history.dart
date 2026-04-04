@@ -114,7 +114,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(14.r),
       ),
       child: Row(

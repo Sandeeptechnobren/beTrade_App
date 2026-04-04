@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -10,10 +11,10 @@ class LeadingIcon extends StatelessWidget {
       borderRadius: BorderRadius.circular(50.r),
       onTap: () => Navigator.pop(context),
       child: Container(
-        height: 40.h,
-        width: 40.w,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF4F4F5),
+        height:36.h,
+        width: 36.w,
+        decoration:BoxDecoration(
+         color: AppColors.inputFieldBg,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,

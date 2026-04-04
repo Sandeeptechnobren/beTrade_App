@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -18,7 +19,6 @@ class AuthLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       bottomNavigationBar: AnimatedContainer(
         duration: const Duration(milliseconds: 50),
         curve: Curves.easeOut,
@@ -65,13 +65,13 @@ class AuthLayout extends StatelessWidget {
                 GestureDetector(
                   onTap: onBack,
                   child: Container(
-                    height: 36.w,
+                    height:36.w,
                     width: 36.w,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppColors.inputFieldBg,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
+                    child: Icon(Icons.arrow_back_ios_new, size: 18.sp),
                   ),
                 ),
                 Stack(
