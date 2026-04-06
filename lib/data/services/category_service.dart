@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_endpoint..dart';
 import '../model/category_model.dart';
 import 'local_storage.dart';
 
@@ -7,9 +8,16 @@ class CategoryService {
   static Future<List<CategoryModel>> getCategories() async {
     try {
       String? token = LocalStorage.getToken();
-
+      //
+      // final response = await http.get(
+      //   Uri.parse("https://api.easycoders.in/projects/betrade/public/api/trade/categories-list"),
+      //   headers: {
+      //     "Accept": "application/json",
+      //     "Authorization": "Bearer $token",
+      //   },
+      // );
       final response = await http.get(
-        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/trade/categories-list"),
+        Uri.parse(ApiEndpoints.categories),
         headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",

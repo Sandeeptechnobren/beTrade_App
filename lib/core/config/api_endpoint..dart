@@ -1,8 +1,3 @@
-// import 'env_config.dart';
-//
-// class ApiEndpoints {
-//   static String get register => '${EnvConfig.baseUrl}/register';
-// }
 
 import 'env_config.dart';
 
@@ -27,4 +22,13 @@ class ApiEndpoints {
 
   static String get editProfile =>
       '${EnvConfig.baseUrl}/edit-profile';
+
+  static String get categories =>
+      '${EnvConfig.baseUrl}/trade/categories-list';
+
+  static String searchTrades(String query) =>
+      '${EnvConfig.baseUrl}/trade/explore?search=$query';
+
+  static String tradeList(int page) =>
+      '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_share_button.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,6 +17,10 @@ class InfoChartScreen extends StatefulWidget {
 class _InfoChartScreenState extends State<InfoChartScreen> {
   int selectedIndex = 1;
   String selectedTab = "1D";
+
+  late Timer timer;
+  double xValue = 19;
+
   List<FlSpot> spots = [
     FlSpot(0, 45),
     FlSpot(1, 35),
@@ -36,6 +42,31 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     FlSpot(17, 50),
     FlSpot(18, 30),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    startLiveGraph();
+  }
+
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
+
+  void startLiveGraph() {
+    timer = Timer.periodic(Duration(milliseconds: 700), (timer) {
+      setState(() {
+        xValue += 1;
+
+        double newY = 30 + Random().nextInt(25).toDouble();
+
+        spots.removeAt(0);
+        spots.add(FlSpot(xValue, newY));
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +154,62 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     );
   }
 
+  Widget chartUI() {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          child: Row(
+            children: [
+              Text(
+                "28% Chance",
+                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+              ),
+              Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.inputFieldBgDynamic(context),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text("20%", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 10.h),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5.w),
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: 70,
+                gridData: FlGridData(show: true),
+                titlesData: FlTitlesData(show: false),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.4,
+                    color: AppColors.primary,
+                    barWidth: 3,
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Colors.purple.withOpacity(0.2),
+                    ),
+                    dotData: FlDotData(show: false),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget infoUI() {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -194,22 +281,6 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     );
   }
 
-  Widget activityRow(String title, String value, {Color? valueColor}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Row(
-        children: [
-          Text(title, style: AppTextStyle.bodyBig),
-          Text(value, style: AppTextStyle.bodyBig),
-        ],
-      ),
-    );
-  }
-
-  Widget divider() {
-    return Divider(height: 1.h, color: Colors.grey.shade200);
-  }
-
   Widget resolutionCard({required String title, required List<String> points}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,121 +317,20 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     );
   }
 
-  Widget chartUI() {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-          child: Row(
-            children: [
-              Text(
-                "28% Chance",
-                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
-              ),
-              Spacer(),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.inputFieldBgDynamic(context),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text("20%", style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
-          decoration: BoxDecoration(
-            color: AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(25.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: ["1D", "1W", "1M", "1Y", "MAX"].map((e) {
-              final isSelected = selectedTab == e;
-              return GestureDetector(
-                onTap: () => setState(() => selectedTab = e),
-                child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 4.w),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    e,
-                    style: AppTextStyle.body.copyWith(
-                      fontSize: 16.sp,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        SizedBox(height: 10.h),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5.w),
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: 70,
-                gridData: FlGridData(show: true),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 10,
-                      getTitlesWidget: (value, meta) {
-                        return FittedBox(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "${value.toInt()}%",
-                            style: TextStyle(fontSize: 16.sp),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: AppColors.primary,
-                    barWidth: 3,
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.purple.withOpacity(0.2),
-                    ),
-                    dotData: FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+  Widget activityRow(String title, String value, {Color? valueColor}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 10.h),
+      child: Row(
+        children: [
+          Text(title, style: AppTextStyle.bodyBig),
+          Text(value, style: AppTextStyle.bodyBig),
+        ],
+      ),
     );
+  }
+
+  Widget divider() {
+    return Divider(height: 1.h, color: Colors.grey.shade200);
   }
 
   Widget card(String text) {
@@ -371,19 +341,6 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
         border: Border.all(width: 1.w, color: Colors.grey),
       ),
       child: Text(text, style: AppTextStyle.bodyBig),
-    );
-  }
-
-  Widget infoRow(String title, String value, {Color? color}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h),
-      child: Row(
-        children: [
-          Text(title),
-          Spacer(),
-          Text(value, style: TextStyle(color: color ?? Colors.black)),
-        ],
-      ),
     );
   }
 }
