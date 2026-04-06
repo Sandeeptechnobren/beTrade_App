@@ -200,15 +200,11 @@
 // }
 
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../model/trade_model.dart';
 import 'local_storage.dart';
 
 class TradeService {
-
-  /// 🔴 HOME PAGE (filtered logic use karega)
   static Future<List<TradeModel>> getTrades() async {
     try {
       String? token = LocalStorage.getToken();
@@ -239,8 +235,6 @@ class TradeService {
       return [];
     }
   }
-
-  /// ✅ EXPLORE PAGE (SEPARATE CALL 🔥)
   static Future<List<TradeModel>> getAllTrades() async {
     try {
       String? token = LocalStorage.getToken();
@@ -261,8 +255,6 @@ class TradeService {
 
         if (decoded['status'] == true) {
           final List list = decoded['data']['items'];
-
-          /// ✅ ALWAYS RETURN FULL DATA
           return list.map((e) => TradeModel.fromJson(e)).toList();
         } else {
           throw Exception("API status false");

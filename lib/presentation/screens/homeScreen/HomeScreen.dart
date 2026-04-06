@@ -194,6 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   Widget _buildPollList({String? categoryName}) {
     final tradeProvider = context.watch<TradeProvider>();
     if (tradeProvider.isLoading) {
@@ -226,10 +227,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 class _TabItem extends StatelessWidget {
   final String title;
   final bool isSelected;
+
   const _TabItem({required this.title, this.isSelected = false});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -263,6 +267,7 @@ class _TabItem extends StatelessWidget {
 
 class PollCard extends StatelessWidget {
   final TradeModel trade;
+
   const PollCard({super.key, required this.trade});
 
   @override

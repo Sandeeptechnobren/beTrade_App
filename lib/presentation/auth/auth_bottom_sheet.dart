@@ -14,7 +14,7 @@ class AuthBottomSheet extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       decoration: BoxDecoration(
-        color:AppColors.iconContainerDynamic(context),
+        color:Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30.r)),
       ),
       child: Column(
