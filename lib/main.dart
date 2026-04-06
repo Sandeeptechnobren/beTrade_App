@@ -62,12 +62,10 @@ class MyApp extends StatelessWidget {
                   brightness: Brightness.light,
                   scaffoldBackgroundColor: Colors.white,
                 ),
-
                 darkTheme: ThemeData(
                   brightness: Brightness.dark,
                   scaffoldBackgroundColor: const Color(0xFF121212),
                 ),
-
                 home: const SplashScreen(),
               );
             },
