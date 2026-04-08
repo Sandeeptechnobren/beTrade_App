@@ -1,4 +1,3 @@
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EnvConfig {
@@ -8,7 +7,6 @@ class EnvConfig {
     if (url == null || url.isEmpty) {
       throw Exception("BASE_URL not found in .env");
     }
-
     return url;
   }
 }

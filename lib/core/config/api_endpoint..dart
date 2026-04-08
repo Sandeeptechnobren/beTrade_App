@@ -31,4 +31,13 @@ class ApiEndpoints {
 
   static String tradeList(int page) =>
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
+
+  static String get languages =>
+      '${EnvConfig.baseUrl}/languages';
+
+  static String get kycSubmit =>
+      '${EnvConfig.baseUrl}/kyc/submit';
+
+  static String get preferences =>
+      '${EnvConfig.baseUrl}/profile/preferences';
 }

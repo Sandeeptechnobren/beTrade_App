@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../data/provider/country_provider.dart';
+
 void showCountryPicker(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -12,8 +13,10 @@ void showCountryPicker(BuildContext context) {
     },
   );
 }
+
 class _CountryPickerBody extends StatelessWidget {
   const _CountryPickerBody({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CountryProvider>(
@@ -93,7 +96,9 @@ class _CountryPickerBody extends StatelessWidget {
                         itemCount: provider.countries.length,
                         itemBuilder: (_, index) {
                           final country = provider.countries[index];
-                          final isSelected = provider.selectedCountry?.phoneCode == country.phoneCode;
+                          final isSelected =
+                              provider.selectedCountry?.phoneCode ==
+                              country.phoneCode;
                           return GestureDetector(
                             onTap: () {
                               provider.selectCountry(country);

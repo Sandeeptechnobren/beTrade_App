@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/config/api_endpoint..dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
@@ -52,36 +53,40 @@ class _EditProfileState extends State<EditProfile> {
       gender = profile.gender ?? "male";
     }
 
-    loadAllData();
+    Future.microtask(() {
+      loadAllData();
+    });
   }
 
   Future<void> loadAllData() async {
     try {
+      if (!mounted) return;
+
       setState(() => isLoading = true);
 
       final countryRes = await CountryService.fetchCountries();
+
+      if (!mounted) return;
+
       countries = countryRes;
 
       if (countries.isNotEmpty) {
         selectedCountry = countries.first;
-        selectedCurrency = selectedCountry!.currency;
+        selectedCurrency = selectedCountry?.currency;
       }
 
       final token = LocalStorage.getToken();
       final response = await http.get(
-        Uri.parse(
-          "https://api.easycoders.in/projects/betrade/public/api/languages",
-        ),
+        Uri.parse(ApiEndpoints.languages),
         headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",
         },
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        print("TOKEN: $token");
-        print("STATUS CODE: ${response.statusCode}");
-        print("BODY: ${response.body}");
         final data = jsonDecode(response.body);
         final List list = data['data'];
 
@@ -94,14 +99,18 @@ class _EditProfileState extends State<EditProfile> {
         }
       }
 
+      if (!mounted) return;
+
       setState(() => isLoading = false);
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
 
   Future<void> pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (!mounted) return;
     if (pickedFile != null) {
       setState(() {
         selectedImage = File(pickedFile.path);
@@ -121,7 +130,6 @@ class _EditProfileState extends State<EditProfile> {
                 child: Column(
                   children: [
                     const CommonHeader(title: "Personal Info"),
-
                     Padding(
                       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.w),
                       child: Column(
@@ -135,14 +143,17 @@ class _EditProfileState extends State<EditProfile> {
                                   backgroundColor: Colors.grey.shade200,
                                   backgroundImage: selectedImage != null
                                       ? FileImage(selectedImage!)
-                                      : (provider.profile?.avatar.isNotEmpty ==
-                                            true)
-                                      ? NetworkImage(provider.profile!.avatar)
-                                      : null,
-                                  child:
-                                      selectedImage == null &&
-                                          (provider.profile?.avatar.isEmpty ??
-                                              true)
+                                          as ImageProvider
+                                      : (provider.profile?.avatar != null &&
+                                              provider
+                                                  .profile!.avatar.isNotEmpty)
+                                          ? NetworkImage(
+                                                  provider.profile!.avatar)
+                                              as ImageProvider
+                                          : null,
+                                  child: selectedImage == null &&
+                                          (provider.profile?.avatar == null ||
+                                              provider.profile!.avatar.isEmpty)
                                       ? Icon(
                                           Icons.person,
                                           size: 40.sp,
@@ -190,7 +201,6 @@ class _EditProfileState extends State<EditProfile> {
                               ],
                             ),
                           ),
-
                           SizedBox(height: 100.h),
                         ],
                       ),
@@ -199,32 +209,33 @@ class _EditProfileState extends State<EditProfile> {
                 ),
               ),
       ),
-
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16.w),
-          child: Button(
-            title: "Save Changes",
-            isLoading: provider.isLoading,
-            onPressed: () async {
-              bool success = await provider.updateProfile(
-                firstName: firstNameController.text,
-                lastName: lastNameController.text,
-                phone: phoneController.text,
-                gender: gender,
-                country: selectedCountry!.name,
-                image: selectedImage,
-              );
+            padding: EdgeInsets.all(16.w),
+            child: Button(
+              title: "Save Changes",
+              isLoading: provider.isLoading,
+              onPressed: selectedCountry == null
+                  ? null
+                  : () async {
+                      bool success = await provider.updateProfile(
+                        firstName: firstNameController.text,
+                        lastName: lastNameController.text,
+                        phone: phoneController.text,
+                        gender: gender,
+                        country: selectedCountry?.name ?? "",
+                        image: selectedImage,
+                      );
+                      if (!mounted) return;
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Profile Updated")),
+                        );
 
-              if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Profile Updated")),
-                );
-                Navigator.pop(context);
-              }
-            },
-          ),
-        ),
+                        Navigator.pop(context);
+                      }
+                    },
+            )),
       ),
     );
   }
@@ -268,24 +279,24 @@ class _EditProfileState extends State<EditProfile> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<CountryModel>(
-            value: selectedCountry,
-            isExpanded: true,
-            underline: SizedBox(),
-            items: countries.map((e) {
-              return DropdownMenuItem(
-                value: e,
-                child: Row(
-                  children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
-                ),
-              );
-            }).toList(),
-            onChanged: (val) {
-              setState(() {
-                selectedCountry = val;
-                selectedCurrency = val!.currency;
-              });
-            },
-          ),
+              value: selectedCountry,
+              isExpanded: true,
+              underline: SizedBox(),
+              items: countries.map((e) {
+                return DropdownMenuItem(
+                  value: e,
+                  child: Row(
+                    children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  selectedCountry = val;
+                  selectedCurrency = val.currency;
+                });
+              }),
         ),
         SizedBox(height: 16),
       ],
@@ -337,18 +348,18 @@ class _EditProfileState extends State<EditProfile> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<DropdownItem>(
-            value: language,
-            isExpanded: true,
-            underline: SizedBox(),
-            items: languages.map((e) {
-              return DropdownMenuItem(value: e, child: Text(e.name));
-            }).toList(),
-            onChanged: (val) {
-              setState(() {
-                language = val;
-              });
-            },
-          ),
+              value: language,
+              isExpanded: true,
+              underline: SizedBox(),
+              items: languages.map((e) {
+                return DropdownMenuItem(value: e, child: Text(e.name));
+              }).toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  language = val;
+                });
+              }),
         ),
         SizedBox(height: 16),
       ],

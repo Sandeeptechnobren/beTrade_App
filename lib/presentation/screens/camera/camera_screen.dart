@@ -1,7 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 class CameraScreen extends StatefulWidget {
   final bool isFront;
 
@@ -13,7 +13,9 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   CameraController? controller;
-  List<CameraDescription>? cameras;
+  List<CameraDescription> cameras = [];
+  bool isLoading = true;
+  String? error;
 
   @override
   void initState() {
@@ -22,25 +24,107 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> initCamera() async {
-    cameras = await availableCameras();
-    controller = CameraController(cameras![0], ResolutionPreset.high);
-    await controller!.initialize();
-    setState(() {});
+    try {
+      final status = await Permission.camera.request();
+
+      if (!status.isGranted) {
+        setState(() {
+          error = "Camera permission denied";
+          isLoading = false;
+        });
+        return;
+      }
+
+      // ✅ Get cameras
+      cameras = await availableCameras();
+
+      if (cameras.isEmpty) {
+        setState(() {
+          error = "No camera found";
+          isLoading = false;
+        });
+        return;
+      }
+
+      // ✅ Select front/back camera
+      CameraDescription selectedCamera;
+
+      if (widget.isFront) {
+        selectedCamera = cameras.firstWhere(
+              (cam) => cam.lensDirection == CameraLensDirection.front,
+          orElse: () => cameras.first,
+        );
+      } else {
+        selectedCamera = cameras.firstWhere(
+              (cam) => cam.lensDirection == CameraLensDirection.back,
+          orElse: () => cameras.first,
+        );
+      }
+
+      controller = CameraController(
+        selectedCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await controller!.initialize();
+
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Camera error: $e");
+      if (!mounted) return;
+      setState(() {
+        error = "Camera failed to load";
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (controller == null || !controller!.value.isInitialized) {
+    if (isLoading) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    if (error != null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text(
+            error!,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    if (controller == null || !controller!.value.isInitialized) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: Text("Camera not ready")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           CameraPreview(controller!),
+
+          /// 🔳 Overlay
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.7),
@@ -67,6 +151,8 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
+
+          /// Border
           Center(
             child: Container(
               width: 300.w,
@@ -77,6 +163,8 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
           ),
+
+          /// Corners
           Center(
             child: SizedBox(
               width: 300.w,
@@ -91,6 +179,8 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
           ),
+
+          /// Title
           Positioned(
             top: 60.h,
             left: 20.w,
@@ -99,6 +189,8 @@ class _CameraScreenState extends State<CameraScreen> {
               style: TextStyle(color: Colors.white, fontSize: 18.sp),
             ),
           ),
+
+          /// Instructions
           Positioned(
             bottom: 160.h,
             left: 20.w,
@@ -113,6 +205,8 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
+
+          /// Capture button
           Positioned(
             bottom: 40.h,
             left: 0,
@@ -181,7 +275,16 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> captureImage() async {
-    final file = await controller!.takePicture();
-    Navigator.pop(context, file.path);
+    try {
+      if (controller == null || !controller!.value.isInitialized) return;
+
+      final file = await controller!.takePicture();
+
+      if (!mounted) return;
+
+      Navigator.pop(context, file.path);
+    } catch (e) {
+      debugPrint("Capture error: $e");
+    }
   }
 }

@@ -59,9 +59,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
     timer = Timer.periodic(Duration(milliseconds: 700), (timer) {
       setState(() {
         xValue += 1;
-
         double newY = 30 + Random().nextInt(25).toDouble();
-
         spots.removeAt(0);
         spots.add(FlSpot(xValue, newY));
       });

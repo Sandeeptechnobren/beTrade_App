@@ -6,6 +6,7 @@ import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import '../../../core/config/api_endpoint..dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
 import '../camera/camera_screen.dart';
@@ -34,40 +35,46 @@ class _VerificationFlowState extends State<VerificationFlow> {
   List<DropdownItem> languages = [];
   DropdownItem? language;
   String? selectedCurrency;
+
   @override
   void initState() {
     super.initState();
-    loadAllData();
+
+    Future.microtask(() {
+      loadAllData();
+    });
   }
 
   Future<void> loadAllData() async {
     try {
+      if (!mounted) return;
       setState(() => isLoading = true);
+
       final countryRes = await CountryService.fetchCountries();
+
+      if (!mounted) return;
+
       countries = countryRes;
 
       if (countries.isNotEmpty) {
         selectedCountry = countries.first;
-        selectedCurrency = selectedCountry!.currency;
+        selectedCurrency = selectedCountry?.currency; // ✅ fixed
       }
 
       final token = LocalStorage.getToken();
+
       final response = await http.get(
-        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/languages"),
+        Uri.parse(ApiEndpoints.languages),
         headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",
         },
       );
 
-      print("TOKEN: $token");
-      print("LANG RESPONSE: ${response.body}");
-
-      print("LANG RESPONSE: ${response.body}");
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final List list = data['data'];
 
         languages = list
@@ -77,14 +84,13 @@ class _VerificationFlowState extends State<VerificationFlow> {
         if (languages.isNotEmpty) {
           language = languages.first;
         }
-
       }
 
-      setState(() {
-        isLoading = false;
-      });
+      if (!mounted) return;
+
+      setState(() => isLoading = false);
     } catch (e) {
-      print("ERROR: $e");
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
@@ -95,11 +101,18 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
   Future<void> submitKyc() async {
     try {
+      if (frontImage == null || backImage == null || selfieImage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please upload all images")),
+        );
+        return;
+      }
+
       final token = LocalStorage.getToken();
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse("https://api.easycoders.in/projects/betrade/public/api/kyc/submit"),
+        Uri.parse(ApiEndpoints.kycSubmit),
       );
 
       request.headers.addAll({
@@ -107,7 +120,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
         "Accept": "application/json",
       });
 
-      // 🔥 Images attach
       request.files.add(await http.MultipartFile.fromPath(
         'id_front',
         frontImage!.path,
@@ -130,11 +142,10 @@ class _VerificationFlowState extends State<VerificationFlow> {
       print("KYC RESPONSE: $responseData");
 
       if (response.statusCode == 200) {
-        print("✅ KYC SUCCESS");
+        print(" KYC SUCCESS");
       } else {
-        print("❌ KYC FAILED");
+        print(" KYC FAILED");
       }
-
     } catch (e) {
       print("KYC ERROR: $e");
     }
@@ -143,16 +154,12 @@ class _VerificationFlowState extends State<VerificationFlow> {
   Future<void> submitStep1() async {
     try {
       final token = LocalStorage.getToken();
-
-      final url = Uri.parse(
-        "https://api.easycoders.in/projects/betrade/public/api/profile/preferences",
-      );
-
+      final url = Uri.parse(ApiEndpoints.preferences);
       final response = await http.post(
         url,
         headers: {
-          "Accept": "application/json", //
-          "Authorization": "Bearer $token", //
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({
@@ -162,7 +169,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       );
 
       print("STEP1 RESPONSE: ${response.body}");
-
     } catch (e) {
       print("API Error: $e");
     }
@@ -218,7 +224,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
                   ? Center(child: CircularProgressIndicator())
                   : buildStepContent(),
             ),
-
             if (currentStep != 2)
               Padding(
                 padding: EdgeInsets.all(16),
@@ -243,7 +248,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
     );
   }
 
-
   Widget step1() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
@@ -266,7 +270,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       children: [
         Text("Country"),
         SizedBox(height: 8),
-
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
@@ -274,26 +277,27 @@ class _VerificationFlowState extends State<VerificationFlow> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButton<CountryModel>(
-            value: countries.contains(selectedCountry) ? selectedCountry : null,
-            isExpanded: true,
-            underline: SizedBox(),
-            items: countries.map((e) {
-              return DropdownMenuItem(
-                value: e,
-                child: Row(
-                  children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
-                ),
-              );
-            }).toList(),
-            onChanged: (val) {
-              setState(() {
-                selectedCountry = val;
-                selectedCurrency = val!.currency;
-              });
-            },
-          ),
-        ),
+              value:
+                  countries.contains(selectedCountry) ? selectedCountry : null,
+              isExpanded: true,
+              underline: SizedBox(),
+              items: countries.map((e) {
+                return DropdownMenuItem(
+                  value: e,
+                  child: Row(
+                    children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val == null) return;
 
+                setState(() {
+                  selectedCountry = val;
+                  selectedCurrency = val.currency;
+                });
+              }),
+        ),
         SizedBox(height: 16),
       ],
     );
@@ -305,7 +309,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       children: [
         Text("Currency"),
         SizedBox(height: 8),
-
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
@@ -316,7 +319,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
             value: selectedCurrency,
             isExpanded: true,
             underline: SizedBox(),
-
             items: selectedCurrency != null
                 ? [
                     DropdownMenuItem(
@@ -325,11 +327,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
                     ),
                   ]
                 : [],
-
             onChanged: null,
           ),
         ),
-
         SizedBox(height: 16),
       ],
     );
@@ -341,39 +341,34 @@ class _VerificationFlowState extends State<VerificationFlow> {
       children: [
         Text("Language"),
         SizedBox(height: 8),
-
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.grey.shade200,
             borderRadius: BorderRadius.circular(12),
           ),
-
           child: languages.isEmpty
               ? Padding(
-            padding: EdgeInsets.all(12),
-            child: Text("No Language Found"),
-          )
+                  padding: EdgeInsets.all(12),
+                  child: Text("No Language Found"),
+                )
               : DropdownButton<DropdownItem>(
-            value: language,
-            isExpanded: true,
-            underline: SizedBox(),
-
-            items: languages.map((e) {
-              return DropdownMenuItem(
-                value: e,
-                child: Text(e.name),
-              );
-            }).toList(),
-
-            onChanged: (val) {
-              setState(() {
-                language = val;
-              });
-            },
-          ),
+                  value: language,
+                  isExpanded: true,
+                  underline: SizedBox(),
+                  items: languages.map((e) {
+                    return DropdownMenuItem(
+                      value: e,
+                      child: Text(e.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() {
+                      language = val;
+                    });
+                  }),
         ),
-
         SizedBox(height: 16),
       ],
     );
@@ -395,7 +390,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       ),
     );
   }
-
 
   Widget step3() {
     return Padding(
@@ -421,24 +415,24 @@ class _VerificationFlowState extends State<VerificationFlow> {
               ),
               onPressed: isSelfieUploaded
                   ? () async {
-                if (frontImage == null || backImage == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Upload ID images first")),
-                  );
-                  return;
-                }
+                      if (frontImage == null || backImage == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Upload ID images first")),
+                        );
+                        return;
+                      }
 
-                await submitKyc();
+                      await submitKyc();
 
-                // ✅ IMPORTANT FIX
-                if (!mounted) return;
+                      // ✅ IMPORTANT FIX
+                      if (!mounted) return;
 
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => MainScreen()),
-                      (route) => false,
-                );
-              }
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => MainScreen()),
+                        (route) => false,
+                      );
+                    }
                   : null,
               child: Text(
                 "Verify my account",
@@ -457,7 +451,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       children: [
         Text(title),
         SizedBox(height: 8),
-
         GestureDetector(
           onTap: onTap,
           child: Container(
@@ -467,16 +460,14 @@ class _VerificationFlowState extends State<VerificationFlow> {
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(12),
             ),
-
             child: image != null
                 ? ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(image, fit: BoxFit.cover),
-            )
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(image, fit: BoxFit.cover),
+                  )
                 : Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
           ),
         ),
-
         SizedBox(height: 16),
       ],
     );
@@ -487,6 +478,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
       context,
       MaterialPageRoute(builder: (_) => CameraScreen(isFront: isFront)),
     );
+
+    // ✅ MOST IMPORTANT LINE
+    if (!mounted) return;
 
     if (result != null) {
       setState(() {
@@ -513,9 +507,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
         ),
         child: selfieImage != null
             ? ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(selfieImage!, fit: BoxFit.cover),
-        )
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(selfieImage!, fit: BoxFit.cover),
+              )
             : Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
       ),
     );
@@ -526,6 +520,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
       context,
       MaterialPageRoute(builder: (_) => SelfieCameraScreen()),
     );
+
+    // ✅ ADD THIS
+    if (!mounted) return;
 
     if (result != null) {
       setState(() {

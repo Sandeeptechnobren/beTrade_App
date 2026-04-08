@@ -4,6 +4,7 @@ import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 import 'package:betrade/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -16,12 +17,31 @@ import 'data/services/local_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await LocalStorage.init();
-  await dotenv.load(fileName: ".env");
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+  };
+  try {
+    await LocalStorage.init();
+  } catch (e) {
+    debugPrint("LocalStorage Error: $e");
+  }
+
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("ENV Load Error: $e");
+  }
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
   runApp(const MyApp());
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -29,7 +49,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CountryProvider()),
         ChangeNotifierProvider(create: (_) => BottomNavProvider()),
-        ChangeNotifierProvider(create: (_) => CountryProvider()),
         ChangeNotifierProvider(create: (_) => SignupProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
@@ -41,16 +60,6 @@ class MyApp extends StatelessWidget {
         designSize: const Size(393, 852),
         minTextAdapt: true,
         splitScreenMode: true,
-        // builder: (context, child) {
-        //   return MaterialApp(
-        //     title: 'BeTrade',
-        //     debugShowCheckedModeBanner: false,
-        //     theme: ThemeData(
-        //       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        //     ),
-        //     home: const SplashScreen(),
-        //   );
-        // },
         builder: (context, child) {
           return Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
