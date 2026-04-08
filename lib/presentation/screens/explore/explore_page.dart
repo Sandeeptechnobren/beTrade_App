@@ -244,21 +244,21 @@ class _ExplorePageState extends State<ExplorePage> {
                                 left: 0,
                                 child: CircleAvatar(
                                   radius: 12.r,
-                                  backgroundImage: NetworkImage("image1_url"),
+                                  // backgroundImage: NetworkImage("image1_url"),
                                 ),
                               ),
                               Positioned(
                                 left: 12,
                                 child: CircleAvatar(
                                   radius: 12.r,
-                                  backgroundImage: NetworkImage("image2_url"),
+                                  // backgroundImage: NetworkImage("image2_url"),
                                 ),
                               ),
                               Positioned(
                                 left: 24,
                                 child: CircleAvatar(
                                   radius: 12.r,
-                                  backgroundImage: NetworkImage("image3_url"),
+                                  // backgroundImage: NetworkImage("image3_url"),
                                 ),
                               ),
                             ],
