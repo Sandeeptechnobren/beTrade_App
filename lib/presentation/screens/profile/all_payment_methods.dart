@@ -86,12 +86,6 @@ class AllPaymentMethodsPage extends StatelessWidget {
             ],
           ),
         ),
-        // InkWell(
-        //   onTap: () {
-        //     showDeletePopup(context);
-        //   },
-        //   child: Image.asset("assets/logo/tras.png", height: 20.h),
-        // ),
       ],
     );
   }
