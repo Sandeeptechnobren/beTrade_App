@@ -35,22 +35,17 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ExploreProvider>(context);
-    List<TradeModel> filtered = provider.isSearching
-        ? provider.searchResults
-        : provider.exploreTrades;
+    List<TradeModel> filtered =
+        provider.isSearching ? provider.searchResults : provider.exploreTrades;
     Map<String, List<TradeModel>> groupedTrades = {};
     for (var item in filtered) {
-      final category = item.categoryName.isNotEmpty
-          ? item.categoryName
-          : "Other";
-
+      final category =
+          item.categoryName.isNotEmpty ? item.categoryName : "Other";
       if (!groupedTrades.containsKey(category)) {
         groupedTrades[category] = [];
       }
-
       groupedTrades[category]!.add(item);
     }
-
     List<String> sortedKeys = groupedTrades.keys.toList();
     sortedKeys.sort((a, b) {
       if (a == "Trending") return -1;
@@ -63,117 +58,115 @@ class _ExplorePageState extends State<ExplorePage> {
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : provider.error.isNotEmpty
-          ? Center(child: Text(provider.error))
-          : RefreshIndicator(
-              color: AppColors.primary,
-              backgroundColor: AppColors.whiteDynamic(context),
-              onRefresh: () async {
-                await Provider.of<ExploreProvider>(
-                  context,
-                  listen: false,
-                ).fetchExploreTrades();
-              },
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      alignment: Alignment.center,
-                      padding: EdgeInsets.symmetric(horizontal: 12.w),
-                      height: 48.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.whiteDynamic(context),
-                        border: Border.all(color: Colors.grey, width: 0.5),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: TextField(
-                        // onChanged: (value) {
-                        //   setState(() {
-                        //     searchQuery = value;
-                        //   });
-                        onChanged: (value) {
-                          searchQuery = value;
+              ? Center(child: Text(provider.error))
+              : RefreshIndicator(
+                  color: AppColors.primary,
+                  backgroundColor: AppColors.whiteDynamic(context),
+                  onRefresh: () async {
+                    await Provider.of<ExploreProvider>(
+                      context,
+                      listen: false,
+                    ).fetchExploreTrades();
+                  },
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          alignment: Alignment.center,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.whiteDynamic(context),
+                            border: Border.all(color: Colors.grey, width: 0.5),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: TextField(
+                            // onChanged: (value) {
+                            //   setState(() {
+                            //     searchQuery = value;
+                            //   });
+                            onChanged: (value) {
+                              searchQuery = value;
+                              if (_debounce?.isActive ?? false)
+                                _debounce!.cancel();
+                              _debounce = Timer(
+                                const Duration(milliseconds: 400),
+                                () {
+                                  final provider = Provider.of<ExploreProvider>(
+                                    context,
+                                    listen: false,
+                                  );
 
-                          if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-                          _debounce = Timer(
-                            const Duration(milliseconds: 400),
-                            () {
-                              final provider = Provider.of<ExploreProvider>(
-                                context,
-                                listen: false,
+                                  if (value.trim().isEmpty) {
+                                    provider.clearSearch();
+                                  } else {
+                                    provider.searchTrades(value.trim());
+                                  }
+                                },
                               );
-
-                              if (value.trim().isEmpty) {
-                                provider.clearSearch();
-                              } else {
-                                provider.searchTrades(value.trim());
-                              }
                             },
-                          );
-                        },
-                        decoration: InputDecoration(
-                          hintText: "Search",
-                          hintStyle: AppTextStyle.subHeading,
-                          border: InputBorder.none,
-                          suffixIcon: searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(Icons.close),
-                                  onPressed: () {
-                                    setState(() {
-                                      searchQuery = "";
-                                    });
-                                    Provider.of<ExploreProvider>(
-                                      context,
-                                      listen: false,
-                                    ).clearSearch();
-                                  },
-                                )
-                              : null,
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(top: 4.h),
-                            child: Icon(Icons.search, size: 22.sp),
-                          ),
-                          prefixIconConstraints: BoxConstraints(
-                            minHeight: 20,
-                            minWidth: 40,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-                    ...sortedKeys.map((categoryName) {
-                      final items = groupedTrades[categoryName]!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(categoryName, style: AppTextStyle.heading),
-                          SizedBox(height: 10.h),
-                          ...items.map(
-                            (item) => GestureDetector(
-                              onTap: () {
-                                print("CLICK UUID: ${item.uuid}");
-                                CommonBottomSheet.open(
-                                  context: context,
-                                  builder: (controller) => TradePage(
-                                    scrollController: controller,
-                                    tradeUuid: item.uuid,
-                                  ),
-                                );
-                              },
-                              child: _buildCard(item),
+                            decoration: InputDecoration(
+                              hintText: "Search",
+                              hintStyle: AppTextStyle.subHeading,
+                              border: InputBorder.none,
+                              suffixIcon: searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(Icons.close),
+                                      onPressed: () {
+                                        setState(() {
+                                          searchQuery = "";
+                                        });
+                                        Provider.of<ExploreProvider>(
+                                          context,
+                                          listen: false,
+                                        ).clearSearch();
+                                      },
+                                    )
+                                  : null,
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.only(top: 4.h),
+                                child: Icon(Icons.search, size: 22.sp),
+                              ),
+                              prefixIconConstraints: BoxConstraints(
+                                minHeight: 20,
+                                minWidth: 40,
+                              ),
                             ),
                           ),
-                          SizedBox(height: 20.h),
-                        ],
-                      );
-                    }),
-                  ],
+                        ),
+                        SizedBox(height: 20.h),
+                        ...sortedKeys.map((categoryName) {
+                          final items = groupedTrades[categoryName]!;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(categoryName, style: AppTextStyle.heading),
+                              SizedBox(height: 10.h),
+                              ...items.map(
+                                (item) => GestureDetector(
+                                  onTap: () {
+                                    print("CLICK UUID: ${item.uuid}");
+                                    CommonBottomSheet.open(
+                                      context: context,
+                                      builder: (controller) => TradePage(
+                                        scrollController: controller,
+                                        tradeUuid: item.uuid,
+                                      ),
+                                    );
+                                  },
+                                  child: _buildCard(item),
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
     );
   }
 
@@ -232,7 +225,6 @@ class _ExplorePageState extends State<ExplorePage> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
                     Row(
                       children: [
                         SizedBox(
@@ -280,23 +272,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // String _formatTime(String date) {
-  //   try {
-  //     final d = DateTime.parse(date);
-  //     final diff = DateTime.now().difference(d);
-  //     if (diff.inSeconds < 60) {
-  //       return "${diff.inSeconds}s";
-  //     } else if (diff.inMinutes < 60) {
-  //       return "${diff.inMinutes}m";
-  //     } else if (diff.inHours < 24) {
-  //       return "${diff.inHours}h";
-  //     } else {
-  //       return "${diff.inDays}d";
-  //     }
-  //   } catch (e) {
-  //     return "";
-  //   }
-  // }
   String _formatTime(String date) {
     try {
       if (date.isEmpty) return "";
@@ -314,7 +289,6 @@ class _ExplorePageState extends State<ExplorePage> {
           return "in ${diff.inDays}d";
         }
       }
-
       final diff = now.difference(d);
       if (diff.inSeconds < 60) {
         return "${diff.inSeconds}s";
@@ -332,9 +306,8 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   String _buildMeta(TradeModel item) {
-    final category = item.categoryName.isNotEmpty
-        ? item.categoryName
-        : "Unknown";
+    final category =
+        item.categoryName.isNotEmpty ? item.categoryName : "Unknown";
     final time = _formatTime(item.endDate);
     if (time.isEmpty) return category;
     return "$category • $time";
