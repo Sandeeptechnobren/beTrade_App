@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.sandeep.betrade"
+        applicationId = "com.example.betrade"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

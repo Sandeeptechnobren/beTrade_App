@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void navigateUser() async {
     await Future.delayed(const Duration(seconds: 2));
-
+    if (!mounted) return;
     bool onboardingDone = LocalStorage.isOnboardingDone();
     String? token = LocalStorage.getToken();
 

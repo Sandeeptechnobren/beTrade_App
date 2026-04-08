@@ -23,18 +23,17 @@ class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   int hintStep = 0;
   bool showHint = false;
+  final ScrollController _scrollController = ScrollController();
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   Future.microtask(() {
-  //     context.read<CategoryProvider>().fetchCategories();
-  //     context.read<TradeProvider>().fetchTrades();
-  //   });
-  // }
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        context.read<TradeProvider>().loadMore();
+      }
+    });
 
     Future.microtask(() async {
       context.read<CategoryProvider>().fetchCategories();
@@ -48,7 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
           showHint = true;
         });
       }
-    });
+    }
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _openFilterBottomSheet(BuildContext context) {
@@ -69,8 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 10.h,
+                    horizontal: 14.w,
+                    vertical: 9.h,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -94,11 +100,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 40.w,
                         height: 40.h,
                         decoration: BoxDecoration(
-                          color: AppColors.whiteDynamic(context),
+                          color: AppColors.inputFieldBgDynamic(context),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
-                          child: Icon(Icons.notifications_none, size: 21.sp),
+                          child: Icon(Icons.notifications_none, size: 20.sp),
                         ),
                       ),
                     ],
@@ -194,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   Widget _buildPollList({String? categoryName}) {
     final tradeProvider = context.watch<TradeProvider>();
     if (tradeProvider.isLoading) {
@@ -216,20 +223,48 @@ class _HomeScreenState extends State<HomeScreen> {
     if (filteredTrades.isEmpty) {
       return const Center(child: Text("No Data in this category"));
     }
-    return ListView.builder(
-      padding: EdgeInsets.all(16.w),
-      itemCount: filteredTrades.length,
-      itemBuilder: (context, index) {
-        final trade = filteredTrades[index];
-        return PollCard(trade: trade);
+    // return ListView.builder(
+    //   padding: EdgeInsets.all(16.w),
+    //   itemCount: filteredTrades.length,
+    //   itemBuilder: (context, index) {
+    //     final trade = filteredTrades[index];
+    //     return PollCard(trade: trade);
+    //   },
+    // );
+    return RefreshIndicator(
+      color: AppColors.primary,
+      backgroundColor: AppColors.whiteDynamic(context),
+      onRefresh: () async {
+        await context.read<TradeProvider>().fetchTrades();
       },
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.all(16.w),
+        itemCount:
+            tradeProvider.trades.length +
+            (tradeProvider.isPaginationLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index < tradeProvider.trades.length) {
+            final trade = tradeProvider.trades[index];
+            return PollCard(trade: trade);
+          } else {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+        },
+      ),
     );
   }
 }
+
 class _TabItem extends StatelessWidget {
   final String title;
   final bool isSelected;
+
   const _TabItem({required this.title, this.isSelected = false});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -263,6 +298,7 @@ class _TabItem extends StatelessWidget {
 
 class PollCard extends StatelessWidget {
   final TradeModel trade;
+
   const PollCard({super.key, required this.trade});
 
   @override

@@ -6,13 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_style.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phone;
+
   const OTPScreen({super.key, required this.phone});
+
   @override
   State<OTPScreen> createState() => _OTPScreenState();
 }
+
 class _OTPScreenState extends State<OTPScreen> {
   int secondsRemaining = 30;
   bool canResend = false;
@@ -22,6 +26,7 @@ class _OTPScreenState extends State<OTPScreen> {
   final int otpLength = 6;
   late List<TextEditingController> controllers;
   late List<FocusNode> focusNodes;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +34,7 @@ class _OTPScreenState extends State<OTPScreen> {
     focusNodes = List.generate(otpLength, (_) => FocusNode());
     startTimer();
   }
+
   void startTimer() {
     secondsRemaining = 30;
     canResend = false;
@@ -45,6 +51,7 @@ class _OTPScreenState extends State<OTPScreen> {
       }
     });
   }
+
   Future<void> _verifyOtp() async {
     final provider = context.read<AuthProvider>();
     String otp = getOtp();
@@ -55,11 +62,13 @@ class _OTPScreenState extends State<OTPScreen> {
       _showError(result['message']);
     }
   }
+
   void _showError(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
   Future<void> _resendOtp() async {
     startTimer();
     await context.read<AuthProvider>().sendOtp(widget.phone);
@@ -67,6 +76,7 @@ class _OTPScreenState extends State<OTPScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text("OTP resent")));
   }
+
   void _navigateToHome() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -74,6 +84,7 @@ class _OTPScreenState extends State<OTPScreen> {
       (route) => false,
     );
   }
+
   @override
   void dispose() {
     timer.cancel();
@@ -81,15 +92,18 @@ class _OTPScreenState extends State<OTPScreen> {
     for (var f in focusNodes) f.dispose();
     super.dispose();
   }
+
   String getOtp() {
     return controllers.map((e) => e.text).join();
   }
+
   void checkOtpComplete() {
     String otp = controllers.map((e) => e.text).join();
     setState(() {
       isOtpComplete = otp.length == otpLength;
     });
   }
+
   Widget otpBox(int index) {
     return SizedBox(
       width: 55.w,
@@ -148,10 +162,7 @@ class _OTPScreenState extends State<OTPScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 10.h),
-            Text(
-              "Enter OTP Code",
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500),
-            ),
+            Text("Enter OTP Code", style: AppTextStyle.heading),
             SizedBox(height: 25.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,16 +171,20 @@ class _OTPScreenState extends State<OTPScreen> {
             SizedBox(height: 15.h),
             Row(
               children: [
-                Text("Didn’t Receive Code? ", style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                Text(
+                  "Didn’t Receive Code? ",
+                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
                 ),
                 canResend
                     ? GestureDetector(
-                        onTap: () {startTimer();
+                        onTap: () {
+                          startTimer();
                           print("Resend OTP");
                         },
-                        child: Text("Resend",
+                        child: Text(
+                          "Resend",
                           style: TextStyle(
-                            color:AppColors.primary,
+                            color: AppColors.primary,
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -178,7 +193,7 @@ class _OTPScreenState extends State<OTPScreen> {
                     : Text(
                         "0:${secondsRemaining.toString().padLeft(2, '0')}",
                         style: TextStyle(
-                          color:AppColors.primary,
+                          color: AppColors.primary,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),
@@ -209,7 +224,7 @@ class _OTPScreenState extends State<OTPScreen> {
                             decoration: isOtpComplete
                                 ? BoxDecoration(
                                     borderRadius: BorderRadius.circular(25.r),
-                                    color: const Color(0xFF7B2FF7),
+                                    color: AppColors.primary,
                                   )
                                 : null,
                             child: Center(

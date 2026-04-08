@@ -130,7 +130,7 @@ class AuthService {
   Future<bool> verifyOtp(String phone, String otp) async {
     try {
       final res = await http.post(
-        Uri.parse(ApiEndpoints.verifyOtp), // ✅ FIXED
+        Uri.parse(ApiEndpoints.verifyOtp),
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
