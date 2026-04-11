@@ -52,7 +52,7 @@ class StepHeader extends StatelessWidget {
       case 0:
         return "Region & Preferences";
       case 1:
-        return "ID Verification";
+        return "Upload Your Ghana Card";
       case 2:
         return "Selfie Verification";
       default:

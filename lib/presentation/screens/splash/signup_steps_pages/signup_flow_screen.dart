@@ -19,9 +19,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
   String firstName = "";
   String lastName = "";
   File? image;
-
   bool isLoading = false;
-
   void showMsg(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg)),
@@ -91,12 +89,12 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
               child: IndexedStack(
                 index: step,
                 children: [
-                  StepGender(onChanged: (val) => gender = val),
+                  StepGender(onChanged: (val) => gender = val, onValidationChanged: (bool p1) {  },),
                   StepName(onChanged: (f, l) {
                     firstName = f;
                     lastName = l;
-                  }),
-                  StepProfile(onImageSelected: (file) => image = file),
+                  }, onValidationChanged: (bool p1) {  },),
+                  StepProfile(onImageSelected: (file) => image = file, onValidationChanged: (bool p1) {  },),
                 ],
               ),
             ),

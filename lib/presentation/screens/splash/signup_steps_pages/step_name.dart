@@ -1,10 +1,159 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+//
+// class StepName extends StatefulWidget {
+//   final Function(String firstName, String lastName) onChanged;
+//
+//   const StepName({super.key, required this.onChanged});
+//
+//   @override
+//   State<StepName> createState() => _StepNameState();
+// }
+//
+// class _StepNameState extends State<StepName> {
+//   String firstName = "";
+//   String lastName = "";
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Text(
+//           "What’s Your Name?",
+//           style: TextStyle(
+//               fontSize: 20.sp,
+//               fontWeight: FontWeight.w600,
+//               fontFamily: 'SFProRounded'),
+//         ),
+//
+//         SizedBox(height: 20.h),
+//
+//         _inputField(
+//           hint: "First Name",
+//           onChanged: (val) {
+//             firstName = val;
+//             widget.onChanged(firstName, lastName);
+//           },
+//         ),
+//
+//         SizedBox(height: 15.h),
+//
+//         _inputField(
+//           hint: "Last Name",
+//           onChanged: (val) {
+//             lastName = val;
+//             widget.onChanged(firstName, lastName);
+//           },
+//         ),
+//       ],
+//     );
+//   }
+//
+//   Widget _inputField({
+//     required String hint,
+//     required Function(String) onChanged,
+//   }) {
+//     return Container(
+//       height: 55.h,
+//       padding: EdgeInsets.symmetric(horizontal: 15.w),
+//       decoration: BoxDecoration(
+//         color: Color(0xFFF1F1F1),
+//         borderRadius: BorderRadius.circular(12.r),
+//       ),
+//       child: TextField(
+//         onChanged: onChanged,
+//         decoration: InputDecoration(
+//           border: InputBorder.none,
+//           hintText: hint,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+//
+// class StepName extends StatefulWidget {
+//   final Function(String firstName, String lastName) onChanged;
+//   final Function(bool) onValidationChanged;
+//
+//   const StepName({
+//     super.key,
+//     required this.onChanged,
+//     required this.onValidationChanged,
+//   });
+//
+//   @override
+//   State<StepName> createState() => _StepNameState();
+// }
+//
+// class _StepNameState extends State<StepName> {
+//   String firstName = "";
+//   String lastName = "";
+//
+//   void validate() {
+//     bool isValid = firstName.trim().isNotEmpty && lastName.trim().isNotEmpty;
+//     widget.onValidationChanged(isValid);
+//     widget.onChanged(firstName, lastName);
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Text("What’s Your Name?",
+//             style: TextStyle(
+//                 fontSize: 20.sp,
+//                 fontWeight: FontWeight.w600,
+//                 fontFamily: 'SFProRounded')),
+//         SizedBox(height: 20.h),
+//         _inputField(hint: "First Name", onChanged: (val) {
+//           firstName = val;
+//           validate();
+//         }),
+//         SizedBox(height: 15.h),
+//         _inputField(hint: "Last Name", onChanged: (val) {
+//           lastName = val;
+//           validate();
+//         }),
+//       ],
+//     );
+//   }
+//
+//   Widget _inputField({
+//     required String hint,
+//     required Function(String) onChanged,
+//   }) {
+//     return Container(
+//       height: 55.h,
+//       padding: EdgeInsets.symmetric(horizontal: 15.w),
+//       decoration: BoxDecoration(
+//         color: const Color(0xFFF1F1F1),
+//         borderRadius: BorderRadius.circular(12.r),
+//       ),
+//       child: TextField(
+//         onChanged: onChanged,
+//         decoration: InputDecoration(border: InputBorder.none, hintText: hint),
+//       ),
+//     );
+//   }
+// }
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class StepName extends StatefulWidget {
   final Function(String firstName, String lastName) onChanged;
+  final Function(bool) onValidationChanged;
 
-  const StepName({super.key, required this.onChanged});
+  const StepName({
+    super.key,
+    required this.onChanged,
+    required this.onValidationChanged,
+  });
 
   @override
   State<StepName> createState() => _StepNameState();
@@ -14,6 +163,12 @@ class _StepNameState extends State<StepName> {
   String firstName = "";
   String lastName = "";
 
+  void validate() {
+    bool isValid = firstName.trim().isNotEmpty && lastName.trim().isNotEmpty;
+    widget.onValidationChanged(isValid);
+    widget.onChanged(firstName, lastName);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -22,28 +177,26 @@ class _StepNameState extends State<StepName> {
         Text(
           "What’s Your Name?",
           style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'SFProRounded'),
+            fontSize: 20.sp,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'SFProRounded',
+            color: AppColors.textPrimaryDynamic(context),
+          ),
         ),
-
         SizedBox(height: 20.h),
-
         _inputField(
           hint: "First Name",
           onChanged: (val) {
             firstName = val;
-            widget.onChanged(firstName, lastName);
+            validate();
           },
         ),
-
         SizedBox(height: 15.h),
-
         _inputField(
           hint: "Last Name",
           onChanged: (val) {
             lastName = val;
-            widget.onChanged(firstName, lastName);
+            validate();
           },
         ),
       ],
@@ -54,18 +207,31 @@ class _StepNameState extends State<StepName> {
     required String hint,
     required Function(String) onChanged,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       height: 55.h,
       padding: EdgeInsets.symmetric(horizontal: 15.w),
       decoration: BoxDecoration(
-        color: Color(0xFFF1F1F1),
+        color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.borderDynamic(context),
+        ),
       ),
       child: TextField(
         onChanged: onChanged,
+        style: TextStyle(
+          color: AppColors.textPrimaryDynamic(context),
+          fontSize: 14.sp,
+        ),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
+          hintStyle: TextStyle(
+            color: AppColors.textSecondaryDynamic(context),
+            fontSize: 14.sp,
+          ),
         ),
       ),
     );

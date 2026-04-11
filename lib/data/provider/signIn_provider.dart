@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../data/services/local_storage.dart';
+import '../services/local_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
