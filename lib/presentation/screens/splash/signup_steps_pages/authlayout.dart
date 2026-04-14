@@ -467,6 +467,145 @@
 //   }
 // }
 
+// import 'package:betrade/core/theme/app_colors.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+//
+// class AuthLayout extends StatelessWidget {
+//   final int step;
+//   final Widget child;
+//   final VoidCallback onContinue;
+//   final VoidCallback? onBack;
+//   final bool isLoading;
+//   final bool isCurrentStepValid;
+//
+//   const AuthLayout({
+//     super.key,
+//     required this.step,
+//     required this.child,
+//     required this.onContinue,
+//     this.onBack,
+//     this.isLoading = false,
+//     required this.isCurrentStepValid,
+//   });
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: AppColors.cardBackgroundDynamic(context),
+//       bottomNavigationBar: AnimatedContainer(
+//         duration: const Duration(milliseconds: 50),
+//         curve: Curves.easeOut,
+//         padding: EdgeInsets.only(
+//           left: 20.w,
+//           right: 20.w,
+//           top: 10.h,
+//           bottom: MediaQuery.of(context).viewInsets.bottom > 0
+//               ? MediaQuery.of(context).viewInsets.bottom + 10.h
+//               : 15.h,
+//         ),
+//         child: SafeArea(
+//           child: SizedBox(
+//             height: 55.h,
+//             width: double.infinity,
+//             child: ElevatedButton(
+//               onPressed: (isLoading || !isCurrentStepValid)
+//                   ? null
+//                   : () {
+//                 // ✅ Extra protection against rapid clicks
+//                 if (isLoading) return;
+//                 onContinue();
+//               },
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: AppColors.primary,
+//                 shape: RoundedRectangleBorder(
+//                   borderRadius: BorderRadius.circular(30.r),
+//                 ),
+//               ),
+//               child: isLoading
+//                   ? SizedBox(
+//                 height: 24.h,
+//                 width: 24.h,
+//                 child: const CircularProgressIndicator(
+//                   strokeWidth: 2.5,
+//                   color: Colors.white,
+//                 ),
+//               )
+//                   : Text(
+//                 step == 5 ? "Submit" : "Continue",
+//                 style: TextStyle(
+//                   color: Colors.white,
+//                   fontSize: 16.sp,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//       body: Padding(
+//         padding: EdgeInsets.symmetric(horizontal: 20.w),
+//         child: Column(
+//           children: [
+//             SizedBox(height: 50.h),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 // Back Button
+//                 GestureDetector(
+//                   onTap: (isLoading) ? null : onBack,
+//                   child: Container(
+//                     height: 36.w,
+//                     width: 36.w,
+//                     decoration: BoxDecoration(
+//                       color: AppColors.iconBgDynamic(context),
+//                       shape: BoxShape.circle,
+//                     ),
+//                     child: Icon(
+//                       Icons.arrow_back_ios_new,
+//                       size: 18.sp,
+//                       color: AppColors.textPrimaryDynamic(context),
+//                     ),
+//                   ),
+//                 ),
+//                 // Step Progress Indicator
+//                 Stack(
+//                   alignment: Alignment.center,
+//                   children: [
+//                     SizedBox(
+//                       height: 32.w,
+//                       width: 32.w,
+//                       child: CircularProgressIndicator(
+//                         value: step / 5,
+//                         strokeWidth: 3,
+//                         backgroundColor: AppColors.grey200Dynamic(context),
+//                         valueColor: const AlwaysStoppedAnimation<Color>(
+//                           AppColors.primary,
+//                         ),
+//                       ),
+//                     ),
+//                     Text(
+//                       "$step",
+//                       style: TextStyle(
+//                         fontSize: 12.sp,
+//                         color: AppColors.textPrimaryDynamic(context),
+//                       ),
+//                     ),
+//                   ],
+//                 )
+//               ],
+//             ),
+//             SizedBox(height: 40.h),
+//             Expanded(child: child),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
+//today code
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -489,60 +628,93 @@ class AuthLayout extends StatelessWidget {
     required this.isCurrentStepValid,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cardBackgroundDynamic(context),
-      bottomNavigationBar: AnimatedContainer(
-        duration: const Duration(milliseconds: 50),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(
-          left: 20.w,
-          right: 20.w,
-          top: 10.h,
-          bottom: MediaQuery.of(context).viewInsets.bottom > 0
-              ? MediaQuery.of(context).viewInsets.bottom + 10.h
-              : 15.h,
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 55.h,
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: (isLoading || !isCurrentStepValid)
-                  ? null
-                  : () {
-                // ✅ Extra protection against rapid clicks
-                if (isLoading) return;
-                onContinue();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
-                ),
+  // ✅ FIX #1: Safe progress value (0.0 to 1.0)
+  double _getProgressValue() {
+    if (step <= 0) return 0.0;
+    if (step >= 5) return 1.0;
+    return step / 5;
+  }
+
+  // ✅ FIX #2: Safe back button handler
+  void _handleBack() {
+    if (isLoading) return;
+    if (onBack != null) {
+      onBack!();
+    }
+  }
+
+  // ✅ FIX #3: Safe continue handler
+  void _handleContinue() {
+    if (isLoading) return;
+    if (!isCurrentStepValid) return;
+    onContinue();
+  }
+
+  // ✅ FIX #4: Safe MediaQuery with builder pattern
+  Widget _buildBottomBar(BuildContext context) {
+    double bottomPadding = 15.h;
+
+    try {
+      final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+      if (viewInsets > 0) {
+        bottomPadding = viewInsets + 10.h;
+      }
+    } catch (e) {
+      debugPrint("❌ MediaQuery error: $e");
+      bottomPadding = 15.h;
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200), // ✅ Increased from 50ms
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(
+        left: 20.w,
+        right: 20.w,
+        top: 10.h,
+        bottom: bottomPadding,
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 55.h,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: (isLoading || !isCurrentStepValid) ? null : _handleContinue,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.r),
               ),
-              child: isLoading
-                  ? SizedBox(
-                height: 24.h,
-                width: 24.h,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white,
-                ),
-              )
-                  : Text(
-                step == 5 ? "Submit" : "Continue",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            child: isLoading
+                ? SizedBox(
+              height: 24.h,
+              width: 24.h,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            )
+                : Text(
+              step == 5 ? "Submit" : "Continue",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
+      bottomNavigationBar: _buildBottomBar(context),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(
@@ -551,9 +723,8 @@ class AuthLayout extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Back Button
                 GestureDetector(
-                  onTap: (isLoading) ? null : onBack,
+                  onTap: (onBack != null && !isLoading) ? _handleBack : null,
                   child: Container(
                     height: 36.w,
                     width: 36.w,
@@ -568,7 +739,6 @@ class AuthLayout extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Step Progress Indicator
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -576,7 +746,7 @@ class AuthLayout extends StatelessWidget {
                       height: 32.w,
                       width: 32.w,
                       child: CircularProgressIndicator(
-                        value: step / 5,
+                        value: _getProgressValue(),
                         strokeWidth: 3,
                         backgroundColor: AppColors.grey200Dynamic(context),
                         valueColor: const AlwaysStoppedAnimation<Color>(
@@ -588,11 +758,12 @@ class AuthLayout extends StatelessWidget {
                       "$step",
                       style: TextStyle(
                         fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimaryDynamic(context),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
             SizedBox(height: 40.h),

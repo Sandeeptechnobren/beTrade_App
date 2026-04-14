@@ -40,4 +40,5 @@ class ApiEndpoints {
 
   static String get preferences =>
       '${EnvConfig.baseUrl}/profile/preferences';
+
 }

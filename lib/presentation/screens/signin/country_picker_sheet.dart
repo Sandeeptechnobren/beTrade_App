@@ -337,6 +337,219 @@
 //     );
 //   }
 // }
+//
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:provider/provider.dart';
+// import '../../../core/theme/app_colors.dart';
+// import '../../../data/model/country_model.dart';
+// import '../../../data/provider/country_provider.dart';
+//
+// class CountryPickerSheet extends StatefulWidget {
+//   const CountryPickerSheet({super.key});
+//
+//   @override
+//   State<CountryPickerSheet> createState() => _CountryPickerSheetState();
+// }
+//
+// class _CountryPickerSheetState extends State<CountryPickerSheet> {
+//   final TextEditingController _searchController = TextEditingController();
+//
+//   @override
+//   void dispose() {
+//     _searchController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+//
+//     return Container(
+//       height: 650.h,
+//       decoration: BoxDecoration(
+//         color: AppColors.cardBackgroundDynamic(context),
+//         borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+//       ),
+//       child: Column(
+//         children: [
+//           // Drag handle
+//           Container(
+//             margin: EdgeInsets.only(top: 12.h),
+//             width: 40.w,
+//             height: 4.h,
+//             decoration: BoxDecoration(
+//               color: AppColors.borderDynamic(context),
+//               borderRadius: BorderRadius.circular(10.r),
+//             ),
+//           ),
+//           SizedBox(height: 16.h),
+//
+//           // Header
+//           Padding(
+//             padding: EdgeInsets.symmetric(horizontal: 16.w),
+//             child: Row(
+//               children: [
+//                 GestureDetector(
+//                   onTap: () => Navigator.pop(context),
+//                   child: Container(
+//                     padding: EdgeInsets.all(8.w),
+//                     decoration: BoxDecoration(
+//                       color: AppColors.iconBgDynamic(context),
+//                       shape: BoxShape.circle,
+//                     ),
+//                     child: Icon(
+//                       Icons.arrow_back_ios_new,
+//                       size: 16.sp,
+//                       color: AppColors.textPrimaryDynamic(context),
+//                     ),
+//                   ),
+//                 ),
+//                 SizedBox(width: 12.w),
+//                 Text(
+//                   "Select Country Code",
+//                   style: TextStyle(
+//                     fontSize: 18.sp,
+//                     fontWeight: FontWeight.w600,
+//                     color: AppColors.textPrimaryDynamic(context),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           SizedBox(height: 16.h),
+//
+//           // Search bar
+//           Padding(
+//             padding: EdgeInsets.symmetric(horizontal: 16.w),
+//             child: Container(
+//               decoration: BoxDecoration(
+//                 color: AppColors.inputFieldBgDynamic(context),
+//                 borderRadius: BorderRadius.circular(14.r),
+//                 border: Border.all(
+//                   color: AppColors.borderDynamic(context),
+//                 ),
+//               ),
+//               child: TextField(
+//                 controller: _searchController,
+//                 onChanged: (value) {
+//                   context.read<CountryProvider>().search(value);
+//                 },
+//                 style: TextStyle(
+//                   color: AppColors.textPrimaryDynamic(context),
+//                 ),
+//                 decoration: InputDecoration(
+//                   hintText: "Search Country",
+//                   hintStyle: TextStyle(
+//                     color: AppColors.textSecondaryDynamic(context),
+//                   ),
+//                   prefixIcon: Icon(
+//                     Icons.search,
+//                     color: AppColors.textSecondaryDynamic(context),
+//                   ),
+//                   border: InputBorder.none,
+//                   contentPadding: EdgeInsets.symmetric(vertical: 14.h),
+//                 ),
+//               ),
+//             ),
+//           ),
+//           SizedBox(height: 12.h),
+//
+//           // Country list
+//           Expanded(
+//             child: Consumer<CountryProvider>(
+//               builder: (context, provider, child) {
+//                 if (provider.isLoading) {
+//                   return Center(
+//                     child: CircularProgressIndicator(
+//                       color: AppColors.primary,
+//                     ),
+//                   );
+//                 }
+//
+//                 if (provider.countries.isEmpty) {
+//                   return Center(
+//                     child: Text(
+//                       "No countries found",
+//                       style: TextStyle(
+//                         color: AppColors.textSecondaryDynamic(context),
+//                       ),
+//                     ),
+//                   );
+//                 }
+//
+//                 return ListView.builder(
+//                   itemCount: provider.countries.length,
+//                   itemBuilder: (context, index) {
+//                     final country = provider.countries[index];
+//                     final isSelected = provider.selectedCountry?.phoneCode == country.phoneCode;
+//
+//                     return GestureDetector(
+//                       onTap: () {
+//                         provider.selectCountry(country);
+//                         Navigator.pop(context, country);
+//                       },
+//                       child: Container(
+//                         margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+//                         padding: EdgeInsets.symmetric(
+//                           horizontal: 12.w,
+//                           vertical: 12.h,
+//                         ),
+//                         decoration: BoxDecoration(
+//                           color: isSelected
+//                               ? AppColors.primary.withOpacity(0.15)
+//                               : Colors.transparent,
+//                           borderRadius: BorderRadius.circular(14.r),
+//                         ),
+//                         child: Row(
+//                           children: [
+//                             Text(
+//                               country.flag,
+//                               style: TextStyle(fontSize: 20.sp),
+//                             ),
+//                             SizedBox(width: 12.w),
+//                             Expanded(
+//                               child: Text(
+//                                 country.name,
+//                                 style: TextStyle(
+//                                   fontSize: 15.sp,
+//                                   fontWeight: FontWeight.w500,
+//                                   color: AppColors.textPrimaryDynamic(context),
+//                                 ),
+//                               ),
+//                             ),
+//                             Container(
+//                               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+//                               decoration: BoxDecoration(
+//                                 color: AppColors.buttonSecondaryDynamic(context),
+//                                 borderRadius: BorderRadius.circular(8.r),
+//                                 border: Border.all(
+//                                   color: AppColors.borderDynamic(context),
+//                                 ),
+//                               ),
+//                               child: Text(
+//                                 country.phoneCode,
+//                                 style: TextStyle(
+//                                   fontSize: 13.sp,
+//                                   color: AppColors.textSecondaryDynamic(context),
+//                                   fontWeight: FontWeight.w500,
+//                                 ),
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+//                     );
+//                   },
+//                 );
+//               },
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -354,11 +567,140 @@ class CountryPickerSheet extends StatefulWidget {
 
 class _CountryPickerSheetState extends State<CountryPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isDisposed = false;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (_isDisposed || !mounted) return;
+
+    final query = _searchController.text;
+    if (query != _searchQuery) {
+      _searchQuery = query;
+      _performSearch(query);
+    }
+  }
+
+  void _performSearch(String query) {
+    if (_isDisposed) return;
+
+    try {
+      final provider = Provider.of<CountryProvider>(context, listen: false);
+      provider.search(query);
+    } catch (e) {
+      debugPrint("❌ Search error: $e");
+    }
+  }
+
+  // ✅ Safe navigation with mounted check
+  void _closeWithResult(CountryModel? country) {
+    if (_isDisposed || !mounted) return;
+
+    try {
+      Navigator.pop(context, country);
+    } catch (e) {
+      debugPrint("❌ Navigator pop error: $e");
+      // Fallback: try without result
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  // ✅ Safe country display with null fallbacks
+  String _safeFlag(CountryModel? country) {
+    return country?.flag ?? '🏳️';
+  }
+
+  String _safeName(CountryModel? country) {
+    return country?.name ?? 'Unknown';
+  }
+
+  String _safePhoneCode(CountryModel? country) {
+    return country?.phoneCode ?? '';
+  }
+
+  // ✅ Safe widget for country row
+  Widget _buildCountryRow(CountryModel country, bool isSelected) {
+    final flag = _safeFlag(country);
+    final name = _safeName(country);
+    final phoneCode = _safePhoneCode(country);
+
+    return GestureDetector(
+      onTap: () {
+        try {
+          final provider = Provider.of<CountryProvider>(context, listen: false);
+          provider.selectCountry(country);
+          _closeWithResult(country);
+        } catch (e) {
+          debugPrint("❌ Country select error: $e");
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: 12.w,
+          vertical: 12.h,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Row(
+          children: [
+            Text(
+              flag,
+              style: TextStyle(fontSize: 20.sp),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+              ),
+            ),
+            if (phoneCode.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.buttonSecondaryDynamic(context),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: AppColors.borderDynamic(context),
+                  ),
+                ),
+                child: Text(
+                  phoneCode,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: AppColors.textSecondaryDynamic(context),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -391,7 +733,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => _closeWithResult(null),
                   child: Container(
                     padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
@@ -432,9 +774,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
               ),
               child: TextField(
                 controller: _searchController,
-                onChanged: (value) {
-                  context.read<CountryProvider>().search(value);
-                },
                 style: TextStyle(
                   color: AppColors.textPrimaryDynamic(context),
                 ),
@@ -459,6 +798,8 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
           Expanded(
             child: Consumer<CountryProvider>(
               builder: (context, provider, child) {
+                if (_isDisposed) return const SizedBox();
+
                 if (provider.isLoading) {
                   return Center(
                     child: CircularProgressIndicator(
@@ -467,7 +808,9 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                   );
                 }
 
-                if (provider.countries.isEmpty) {
+                final countries = provider.countries;
+
+                if (countries.isEmpty) {
                   return Center(
                     child: Text(
                       "No countries found",
@@ -478,68 +821,21 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                   );
                 }
 
+                // ✅ Safe ListView with index check
                 return ListView.builder(
-                  itemCount: provider.countries.length,
+                  itemCount: countries.length,
                   itemBuilder: (context, index) {
-                    final country = provider.countries[index];
+                    // ✅ FIX #1: Safe index access
+                    if (index >= countries.length) return const SizedBox();
+
+                    final country = countries[index];
+
+                    // ✅ FIX #2: Null check for country
+                    if (country == null) return const SizedBox();
+
                     final isSelected = provider.selectedCountry?.phoneCode == country.phoneCode;
 
-                    return GestureDetector(
-                      onTap: () {
-                        provider.selectCountry(country);
-                        Navigator.pop(context, country);
-                      },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 12.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withOpacity(0.15)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              country.flag,
-                              style: TextStyle(fontSize: 20.sp),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Text(
-                                country.name,
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimaryDynamic(context),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: AppColors.buttonSecondaryDynamic(context),
-                                borderRadius: BorderRadius.circular(8.r),
-                                border: Border.all(
-                                  color: AppColors.borderDynamic(context),
-                                ),
-                              ),
-                              child: Text(
-                                country.phoneCode,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: AppColors.textSecondaryDynamic(context),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildCountryRow(country, isSelected);
                   },
                 );
               },

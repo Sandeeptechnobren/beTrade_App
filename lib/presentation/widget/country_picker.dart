@@ -3,15 +3,46 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../data/provider/country_provider.dart';
 
-void showCountryPicker(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) {
-      return const _CountryPickerBody();
-    },
-  );
+// void showCountryPicker(BuildContext context) {
+//   showModalBottomSheet(
+//     context: context,
+//     isScrollControlled: true,
+//     backgroundColor: Colors.transparent,
+//     builder: (_) {
+//       return const _CountryPickerBody();
+//     },
+//   );
+// }
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../data/model/country_model.dart';
+import '../../../data/provider/country_provider.dart';
+import '../screens/signin/country_picker_sheet.dart';
+
+Future<void> showCountryPicker(BuildContext context) async {
+  if (!context.mounted) return;
+
+  try {
+    final result = await showModalBottomSheet<CountryModel>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return ChangeNotifierProvider.value(
+          value: Provider.of<CountryProvider>(context, listen: false),
+          child: const CountryPickerSheet(),
+        );
+      },
+    );
+
+    if (result != null && context.mounted) {
+      final provider = context.read<CountryProvider>();
+      provider.selectCountry(result);
+    }
+  } catch (e) {
+    debugPrint("❌ Country picker error: $e");
+  }
 }
 
 class _CountryPickerBody extends StatelessWidget {

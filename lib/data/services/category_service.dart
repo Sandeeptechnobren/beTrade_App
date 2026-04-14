@@ -8,14 +8,6 @@ class CategoryService {
   static Future<List<CategoryModel>> getCategories() async {
     try {
       String? token = LocalStorage.getToken();
-      //
-      // final response = await http.get(
-      //   Uri.parse("https://api.easycoders.in/projects/betrade/public/api/trade/categories-list"),
-      //   headers: {
-      //     "Accept": "application/json",
-      //     "Authorization": "Bearer $token",
-      //   },
-      // );
       final response = await http.get(
         Uri.parse(ApiEndpoints.categories),
         headers: {
@@ -41,7 +33,6 @@ class CategoryService {
     } catch (e) {
       print("API ERROR: $e");
     }
-
     return [];
   }
 }

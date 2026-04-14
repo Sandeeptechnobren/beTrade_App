@@ -92,6 +92,116 @@
 //     );
 //   }
 // }
+// import 'package:betrade/core/theme/app_colors.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:provider/provider.dart';
+// import '../../../data/provider/theam_provider.dart';
+// import 'auth_bottom_sheet.dart';
+//
+// class AuthScreen extends StatelessWidget {
+//   const AuthScreen({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Consumer<ThemeProvider>(
+//       builder: (context, themeProvider, child) {
+//         final isDark = themeProvider.isDark;
+//
+//         return Scaffold(
+//           body: Stack(
+//             children: [
+//               // Background Image
+//               Container(
+//                 width: double.infinity,
+//                 height: double.infinity,
+//                 decoration: const BoxDecoration(
+//                   image: DecorationImage(
+//                     image: AssetImage("assets/images/splash.png"),
+//                     fit: BoxFit.cover,
+//                   ),
+//                 ),
+//               ),
+//               // Dynamic Overlay
+//               Container(
+//                 color: isDark
+//                     ? Colors.black.withOpacity(0.7)
+//                     : Colors.black.withOpacity(0.3),
+//               ),
+//               Positioned(
+//                 top: 50.h,
+//                 right: 16.w,
+//                 child: GestureDetector(
+//                   onTap: () {
+//                     themeProvider.toggleTheme(!isDark);
+//                   },
+//                   child: Container(
+//                     padding: EdgeInsets.all(10.w),
+//                     decoration: BoxDecoration(
+//                       color: isDark
+//                           ? Colors.white
+//                               .withOpacity(0.1) // Soft transparent white
+//                           : Colors.white.withOpacity(0.95),
+//                       // Almost white but soft
+//                       shape: BoxShape.circle,
+//                       border: Border.all(
+//                         color: isDark
+//                             ? Colors.white.withOpacity(0.2)
+//                             : Colors.black.withOpacity(0.05),
+//                         width: 1,
+//                       ),
+//                       boxShadow: [
+//                         BoxShadow(
+//                           color: Colors.black.withOpacity(0.08),
+//                           blurRadius: 6,
+//                           offset: const Offset(0, 2),
+//                         ),
+//                       ],
+//                     ),
+//                     child: Icon(
+//                       isDark ? Icons.light_mode : Icons.dark_mode,
+//                       size: 22.sp,
+//                       color: isDark
+//                           ? AppColors.disableButtonColor
+//                           : Colors.black54, // Soft black
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               Align(
+//                 alignment: Alignment.center,
+//                 child: Container(
+//                   padding: EdgeInsets.all(10.w),
+//                   decoration: BoxDecoration(
+//                     shape: BoxShape.circle,
+//                     color: Colors.black.withOpacity(0.2),
+//                     boxShadow: [
+//                       BoxShadow(
+//                         color: Colors.black.withOpacity(0.15),
+//                         blurRadius: 20,
+//                         spreadRadius: 5,
+//                       ),
+//                     ],
+//                   ),
+//                   child: Image.asset(
+//                     "assets/images/IconLogo.png",
+//                     height: 80.h,
+//                   ),
+//                 ),
+//               ),
+//               const Align(
+//                 alignment: Alignment.bottomCenter,
+//                 child: AuthBottomSheet(),
+//               ),
+//             ],
+//           ),
+//         );
+//       },
+//     );
+//   }
+// }
+
+
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -101,71 +211,107 @@ import 'auth_bottom_sheet.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
+  Widget _buildBackground() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        image: DecorationImage(
+          image: AssetImage("assets/images/splash.png"),
+          fit: BoxFit.cover,
+          onError: (exception, stackTrace) {
+            debugPrint(" Background image missing: $exception");
+          },
+        ),
+      ),
+    );
+  }
+  Widget _buildLogo() {
+    return Image.asset(
+      "assets/images/IconLogo.png",
+      height: 80.h,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint("Logo image missing: $error");
+        return Container(
+          height: 80.h,
+          width: 80.w,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.image_not_supported,
+            size: 40.sp,
+            color: Colors.white54,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeToggle(ThemeProvider themeProvider, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        try {
+          themeProvider.toggleTheme(!isDark);
+        } catch (e) {
+          debugPrint(" Theme toggle error: $e");
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.all(10.w),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.white.withOpacity(0.95),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.2)
+                : Colors.black.withOpacity(0.05),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          isDark ? Icons.light_mode : Icons.dark_mode,
+          size: 22.sp,
+          color: isDark
+              ? AppColors.disableButtonColor
+              : Colors.black54,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final isDark = themeProvider.isDark;
-
-        return Scaffold(
-          body: Stack(
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
             children: [
-              // Background Image
+              _buildBackground(),
               Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/images/splash.png"),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              // Dynamic Overlay
-              Container(
-                color: isDark
+                color: (themeProvider.isDark
                     ? Colors.black.withOpacity(0.7)
-                    : Colors.black.withOpacity(0.3),
+                    : Colors.black.withOpacity(0.3)),
               ),
               Positioned(
-                top: 50.h,
+                top: MediaQuery.of(context).padding.top + 50.h,
                 right: 16.w,
-                child: GestureDetector(
-                  onTap: () {
-                    themeProvider.toggleTheme(!isDark);
+                child: Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, child) {
+                    return _buildThemeToggle(themeProvider, themeProvider.isDark);
                   },
-                  child: Container(
-                    padding: EdgeInsets.all(10.w),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white
-                              .withOpacity(0.1) // Soft transparent white
-                          : Colors.white.withOpacity(0.95),
-                      // Almost white but soft
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.2)
-                            : Colors.black.withOpacity(0.05),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      isDark ? Icons.light_mode : Icons.dark_mode,
-                      size: 22.sp,
-                      color: isDark
-                          ? AppColors.disableButtonColor
-                          : Colors.black54, // Soft black
-                    ),
-                  ),
                 ),
               ),
               Align(
@@ -183,20 +329,17 @@ class AuthScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Image.asset(
-                    "assets/images/IconLogo.png",
-                    height: 80.h,
-                  ),
+                  child: _buildLogo(),
                 ),
               ),
-              const Align(
+              Align(
                 alignment: Alignment.bottomCenter,
-                child: AuthBottomSheet(),
+                child: const AuthBottomSheet(),
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
