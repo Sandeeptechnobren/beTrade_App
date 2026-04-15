@@ -43,7 +43,6 @@ class DioClient {
     _dio.options.headers.remove("Authorization");
   }
 
-  // Multipart requests ke liye alag Dio instance (without default JSON header)
   static Dio get multipartInstance {
     final multipartDio = Dio(
       BaseOptions(

@@ -7,7 +7,6 @@ import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
 
 class AuthService {
-
   // Future<bool> sendOtp(String phone) async {
   //   try {
   //     final res = await http.post(
@@ -54,58 +53,59 @@ class AuthService {
     }
   }
 
-Future<bool> verifyOtp(String phone, String otp) async {
-  try {
-    final response = await DioClient.instance.post(
-      ApiEndpoints.verifyOtp,
-      data: {
-        "phone": phone,
-        "otp": otp,
-      },
-    );
+  Future<bool> verifyOtp(String phone, String otp) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.verifyOtp,
+        data: {
+          "phone": phone,
+          "otp": otp,
+        },
+      );
 
-    print("OTP VERIFY STATUS: ${response.statusCode}");
-    print("OTP VERIFY RESPONSE: ${response.data}");
-    if (response.statusCode == 200) {
-      final responseData = response.data;
-      if (responseData is Map) {
-        final isSuccess = responseData['status'] == true ||
-            responseData['success'] == true;
+      print("OTP VERIFY STATUS: ${response.statusCode}");
+      print("OTP VERIFY RESPONSE: ${response.data}");
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map) {
+          final isSuccess =
+              responseData['status'] == true || responseData['success'] == true;
 
-        if (isSuccess) {
-          final token = responseData['token'] ?? responseData['access_token'];
-          if (token != null) {
-            DioClient.setToken(token);
+          if (isSuccess) {
+            final token = responseData['token'] ?? responseData['access_token'];
+            if (token != null) {
+              DioClient.setToken(token);
+            }
+            print(" OTP verified successfully!");
+            return true;
+          } else {
+            print("OTP verification failed: ${responseData['message']}");
+            return false;
           }
-          print(" OTP verified successfully!");
-          return true;
-        } else {
-          print("OTP verification failed: ${responseData['message']}");
-          return false;
         }
+        return false;
+      }
+
+      return false;
+    } catch (e) {
+      if (e is DioException) {
+        print("OTP ERROR: ${e.message}");
+        print("OTP ERROR RESPONSE: ${e.response?.data}");
+
+        // Even if status code is 200, check response data
+        if (e.response?.statusCode == 200 && e.response?.data != null) {
+          final responseData = e.response?.data;
+          if (responseData is Map) {
+            return responseData['status'] == true ||
+                responseData['success'] == true;
+          }
+        }
+      } else {
+        print("OTP ERROR: $e");
       }
       return false;
     }
-
-    return false;
-  } catch (e) {
-    if (e is DioException) {
-      print("OTP ERROR: ${e.message}");
-      print("OTP ERROR RESPONSE: ${e.response?.data}");
-
-      // Even if status code is 200, check response data
-      if (e.response?.statusCode == 200 && e.response?.data != null) {
-        final responseData = e.response?.data;
-        if (responseData is Map) {
-          return responseData['status'] == true || responseData['success'] == true;
-        }
-      }
-    } else {
-      print("OTP ERROR: $e");
-    }
-    return false;
   }
-}
 
   // Future<bool> completeSignup({
   //   required String phone,
@@ -137,7 +137,6 @@ Future<bool> verifyOtp(String phone, String otp) async {
   //     return false;
   //   }
   // }
-
   Future<bool> completeSignup({
     required String phone,
     required String gender,
@@ -146,16 +145,32 @@ Future<bool> verifyOtp(String phone, String otp) async {
     required File image,
   }) async {
     try {
-      // Create FormData object
+      // Extension check karo, agar nahi hai to .jpg force karo
+      String imagePath = image.path;
+      String fileName = imagePath.split('/').last;
+
+      // Agar filename mein extension nahi hai, .jpg add karo
+      if (!fileName.contains('.')) {
+        fileName = '$fileName.jpg';
+      }
+
       FormData formData = FormData.fromMap({
         'phone': phone,
         'gender': gender,
         'first_name': firstName,
         'last_name': lastName,
-        'avatar': await MultipartFile.fromFile(image.path),
+        // 'avatar': await MultipartFile.fromFile(
+        //   imagePath,
+        //   filename: fileName,           // ← yeh important hai
+        //   contentType: DioMediaType('image', 'jpeg'), // ← yeh camera ke liye fix hai
+        // ),
+        'avatar': await MultipartFile.fromFile(
+          image.path,
+          filename: 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          contentType: DioMediaType('image', 'jpeg'),
+        ),
       });
 
-      // Use multipartInstance from your DioClient
       final response = await DioClient.multipartInstance.post(
         ApiEndpoints.completeProfile,
         data: formData,
