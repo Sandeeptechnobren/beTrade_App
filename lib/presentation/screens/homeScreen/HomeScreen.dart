@@ -497,8 +497,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
-    // ✅ FIX #1: Safe scroll listener with disposed check
     _scrollController.addListener(() {
       if (!_isDisposed && mounted && _scrollController.hasClients) {
         if (_scrollController.position.pixels >=
@@ -511,8 +509,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
-
-    // ✅ FIX #2: Safe async initialization
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!_isDisposed && mounted) {
         _initializeData();
@@ -550,7 +546,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // ✅ Safe setState
   void _safeSetState(VoidCallback fn) {
     if (!_isDisposed && mounted) {
       setState(fn);
@@ -576,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
         showHint = false;
       });
     } catch (e) {
-      debugPrint("❌ Close hint error: $e");
+      debugPrint("Close hint error: $e");
     }
   }
 
@@ -585,7 +580,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isDisposed) return const SizedBox();
 
     final provider = context.watch<CategoryProvider>();
-
     return Scaffold(
       body: Stack(
         children: [
@@ -594,13 +588,12 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
+                    horizontal: 16.w,
                     vertical: 9.h,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // ✅ Safe image with errorBuilder
                       Image.asset(
                         "assets/images/IconLogo.png",
                         height: 35.h,
@@ -625,8 +618,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.inputFieldBgDynamic(context),
                           shape: BoxShape.circle,
                         ),
-                        child: Center(
-                          child: Icon(Icons.notifications_none, size: 20.sp),
+                        child:
+                        // Center(
+                        //   child: Icon(Icons.notifications_none, size: 20.sp),
+                        // ),
+                        Center(
+                          child: Image.asset(
+                            "assets/images/Bell.png",
+                            width: 20.w,
+                            height: 20.h,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ],
@@ -742,7 +744,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: ListView.builder(
         controller: _scrollController,
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(10.w),
         itemCount:
         tradeProvider.trades.length +
             (tradeProvider.isPaginationLoading ? 1 : 0),
@@ -778,105 +780,234 @@ class PollCard extends StatelessWidget {
               TradePage(scrollController: controller, tradeUuid: trade.uuid),
         );
       },
-      child: Container(
-        height: 605.h,
+      child:
+      Container(
         margin: EdgeInsets.only(bottom: 10.h),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r)),
-        child: Stack(
-          children: [
-            // ✅ Safe network image with loading builder
-            if (trade.image != null && trade.image!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20.r),
-                child: Image.network(
-                  trade.image!,
-                  height: double.infinity,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey.shade800,
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint("❌ Image error: $error");
-                    return Container(color: Colors.grey.shade800);
-                  },
-                ),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.r),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                ),
-              ),
-            ),
-            Positioned(
-              top: 12.h,
-              left: 12.w,
-              child: Container(
-                height: 36.h,
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.whiteDynamic(context),
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                child: Center(
-                  child: Text(
-                    trade.categoryName ?? "",
-                    style: AppTextStyle.small,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30.r),
+          child: Container(
+            height: 605.h,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : Colors.grey.shade900,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (trade.image != null && trade.image!.isNotEmpty)
+                  Image.network(
+                    trade.image!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+
+                      return Container(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.grey.shade900,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.grey.shade900,
+                      );
+                    },
+                  ),
+
+                /// ✅ GRADIENT (ADAPTIVE)
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.85)
+                            : Colors.black.withOpacity(0.6), // light me halka
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              top: 12.h,
-              right: 12.w,
-              child: CommonShareButton(onTap: () {}),
-            ),
-            Positioned(
-              bottom: 12.h,
-              left: 12.w,
-              right: 12.w,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+
+                /// ✅ CATEGORY TAG
+                Positioned(
+                  top: 14.h,
+                  left: 14.w,
+                  child: Container(
+                    height: 36.h,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteDynamic(context),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Center(
+                      child: Text(
+                        trade.categoryName ?? "",
+                        style: AppTextStyle.small,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 14.h,
+                  right:14.w,
+                  child: CommonShareButton(onTap: () {}),
+                ),
+                Positioned(
+                  bottom: 12.h,
+                  left: 12.w,
+                  right: 12.w,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
-                      SizedBox(width: 4.w),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 12.r,
+                            backgroundColor: Colors.white,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            "3975 trades",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 6.h),
+
                       Text(
-                        "3975 trades",
-                        style: TextStyle(color: Colors.white, fontSize: 12.sp),
+                        trade.description ?? "",
+                        style: AppTextStyle.headingWhite,
+                      ),
+
+                      SizedBox(height: 10.h),
+
+                      Row(
+                        children: [
+                          Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+                          SizedBox(width: 10.w),
+                          Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+                        ],
                       ),
                     ],
                   ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    trade.description ?? "", // ✅ Safe null check
-                    style: AppTextStyle.headingWhite,
-                  ),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
-                      SizedBox(width: 10.w),
-                      Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
+      // child:ClipRRect(
+      //   borderRadius: BorderRadius.circular(25.r),
+      //   child: Container(
+      //     height: 605.h,
+      //     margin: EdgeInsets.only(bottom: 10.h),
+      //     decoration: BoxDecoration(borderRadius: BorderRadius.circular(25.r)),
+      //     child: Stack(
+      //       children: [
+      //         if (trade.image != null && trade.image!.isNotEmpty)
+      //           ClipRRect(
+      //             borderRadius: BorderRadius.circular(0.r),
+      //             child: Image.network(
+      //               trade.image!,
+      //               height: double.infinity,
+      //               width: double.infinity,
+      //               fit: BoxFit.cover,
+      //               loadingBuilder: (context, child, loadingProgress) {
+      //                 if (loadingProgress == null) return child;
+      //                 return Container(
+      //                   color: Colors.grey.shade800,
+      //                   child: const Center(
+      //                     child: CircularProgressIndicator(),
+      //                   ),
+      //                 );
+      //               },
+      //               errorBuilder: (context, error, stackTrace) {
+      //                 debugPrint("❌ Image error: $error");
+      //                 return Container(color: Colors.grey.shade800);
+      //               },
+      //             ),
+      //           ),
+      //         Container(
+      //           decoration: BoxDecoration(
+      //             borderRadius: BorderRadius.circular(16.r),
+      //             gradient: LinearGradient(
+      //               begin: Alignment.topCenter,
+      //               end: Alignment.bottomCenter,
+      //               colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+      //             ),
+      //           ),
+      //         ),
+      //         Positioned(
+      //           top: 12.h,
+      //           left: 12.w,
+      //           child: Container(
+      //             height: 36.h,
+      //             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+      //             decoration: BoxDecoration(
+      //               color: AppColors.whiteDynamic(context),
+      //               borderRadius: BorderRadius.circular(16.r),
+      //             ),
+      //             child: Center(
+      //               child: Text(
+      //                 trade.categoryName ?? "",
+      //                 style: AppTextStyle.small,
+      //               ),
+      //             ),
+      //           ),
+      //         ),
+      //         Positioned(
+      //           top: 12.h,
+      //           right: 12.w,
+      //           child: CommonShareButton(onTap: () {}),
+      //         ),
+      //         Positioned(
+      //           bottom: 12.h,
+      //           left: 12.w,
+      //           right: 12.w,
+      //           child: Column(
+      //             crossAxisAlignment: CrossAxisAlignment.start,
+      //             children: [
+      //               Row(
+      //                 children: [
+      //                   CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
+      //                   SizedBox(width: 4.w),
+      //                   Text(
+      //                     "3975 trades",
+      //                     style: TextStyle(color: Colors.white, fontSize: 12.sp),
+      //                   ),
+      //                 ],
+      //               ),
+      //               SizedBox(height: 6.h),
+      //               Text(
+      //                 trade.description ?? "",
+      //                 style: AppTextStyle.headingWhite,
+      //               ),
+      //               SizedBox(height: 10.h),
+      //               Row(
+      //                 children: [
+      //                   Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+      //                   SizedBox(width: 10.w),
+      //                   Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+      //                 ],
+      //               ),
+      //             ],
+      //           ),
+      //         ),
+      //       ],
+      //     ),
+      //   ),
+      // ),
     );
   }
 

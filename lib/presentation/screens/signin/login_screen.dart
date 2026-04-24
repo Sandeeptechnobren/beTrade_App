@@ -120,13 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleContinue() async {
     if (_isDisposed || !mounted) return;
-
-    // Validation
     if (!_isValidPhoneNumber()) {
       _showSnackBar("Enter valid phone number");
       return;
     }
-
     if (_selectedCountry == null) {
       _showSnackBar("Please select country");
       return;
@@ -232,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     height: 50.h,
                     padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(12.r),
@@ -242,16 +239,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        Text(
-                          _selectedCountry?.flag ?? "🇮🇳",
-                          style: TextStyle(fontSize: 16.sp),
+                        _selectedCountry == null
+                            ? SizedBox(
+                          width: 20.w,
+                          height: 20.h,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : ClipOval(
+                          child: Image.network(
+                            _selectedCountry!.flag,
+                            width: 23.4.w,
+                            height: 23.4.h,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.flag,
+                              size: 16.sp,
+                            ),
+                          ),
                         ),
+
                         SizedBox(width: 5.w),
+
                         Icon(
                           Icons.keyboard_arrow_down,
                           size: 18.sp,
-                          color:
-                              isDarkMode ? Colors.grey.shade400 : Colors.grey,
+                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
                         ),
                       ],
                     ),

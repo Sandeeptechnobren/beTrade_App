@@ -44,13 +44,13 @@ class AllPaymentMethodsPage extends StatelessWidget {
                 child: Column(
                   children: [
                     _item(context, "visa", "VISA", "******856"),
-                    _divider(),
+                SizedBox(height: 10.h,),
                     _item(context, "master", "MasterCard", "******856"),
-                    _divider(),
+                    SizedBox(height: 10.h,),
                     _item(context, "mtn", "MTN Mobile Money", "******061"),
-                    _divider(),
+                    SizedBox(height: 10.h,),
                     _item(context, "bank", "Bank Account", "******234"),
-                    _divider(),
+                    SizedBox(height: 10.h,),
                   ],
                 ),
               ),
@@ -61,12 +61,6 @@ class AllPaymentMethodsPage extends StatelessWidget {
     );
   }
 
-  Widget _divider() {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Divider(color: Colors.grey.shade300, thickness: 1),
-    );
-  }
 
   Widget _item(BuildContext context, String type, String title, String number) {
     return Row(
@@ -86,12 +80,12 @@ class AllPaymentMethodsPage extends StatelessWidget {
             ],
           ),
         ),
-        // InkWell(
-        //   onTap: () {
-        //     showDeletePopup(context);
-        //   },
-        //   child: Image.asset("assets/logo/tras.png", height: 20.h),
-        // ),
+        InkWell(
+          onTap: () {
+            showDeletePopup(context);
+          },
+          child: Image.asset("assets/images/Vector.png", height: 20.h),
+        ),
       ],
     );
   }
@@ -184,7 +178,7 @@ class AllPaymentMethodsPage extends StatelessWidget {
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: Color(0xFF991b1b),
                       borderRadius: BorderRadius.circular(30.r),
                     ),
                     child: Center(
@@ -206,7 +200,11 @@ class AllPaymentMethodsPage extends StatelessWidget {
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppColors.whiteDynamic(context),
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 0.5
+                      ),
                       borderRadius: BorderRadius.circular(30.r),
                     ),
                     child: Center(

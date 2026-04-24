@@ -586,7 +586,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
 
   void _onSearchChanged() {
     if (_isDisposed || !mounted) return;
-
     final query = _searchController.text;
     if (query != _searchQuery) {
       _searchQuery = query;
@@ -601,26 +600,22 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
       final provider = Provider.of<CountryProvider>(context, listen: false);
       provider.search(query);
     } catch (e) {
-      debugPrint("❌ Search error: $e");
+      debugPrint(" Search error: $e");
     }
   }
 
-  // ✅ Safe navigation with mounted check
   void _closeWithResult(CountryModel? country) {
     if (_isDisposed || !mounted) return;
 
     try {
       Navigator.pop(context, country);
     } catch (e) {
-      debugPrint("❌ Navigator pop error: $e");
-      // Fallback: try without result
+      debugPrint("Navigator pop error: $e");
       if (mounted) {
         Navigator.pop(context);
       }
     }
   }
-
-  // ✅ Safe country display with null fallbacks
   String _safeFlag(CountryModel? country) {
     return country?.flag ?? '🏳️';
   }
@@ -632,8 +627,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
   String _safePhoneCode(CountryModel? country) {
     return country?.phoneCode ?? '';
   }
-
-  // ✅ Safe widget for country row
   Widget _buildCountryRow(CountryModel country, bool isSelected) {
     final flag = _safeFlag(country);
     final name = _safeName(country);
@@ -646,7 +639,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
           provider.selectCountry(country);
           _closeWithResult(country);
         } catch (e) {
-          debugPrint("❌ Country select error: $e");
+          debugPrint(" Country select error: $e");
         }
       },
       child: Container(
@@ -657,44 +650,38 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withOpacity(0.15)
+              ? AppColors.primary.withOpacity(0.05)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(14.r),
         ),
         child: Row(
           children: [
-            Text(
-              flag,
-              style: TextStyle(fontSize: 20.sp),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryDynamic(context),
-                ),
+            ClipOval(
+              child: Image.network(
+                flag,
+                width:23.4.w,
+                height:23.4.w,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(Icons.flag),
               ),
             ),
+            SizedBox(width:7.8.w),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimaryDynamic(context),
+              ),
+            ),
+            SizedBox(width:7.8.w),
             if (phoneCode.isNotEmpty)
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.buttonSecondaryDynamic(context),
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(
-                    color: AppColors.borderDynamic(context),
-                  ),
-                ),
-                child: Text(
-                  phoneCode,
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: AppColors.textSecondaryDynamic(context),
-                    fontWeight: FontWeight.w500,
-                  ),
+              Text(
+                "($phoneCode)",
+                style: TextStyle(
+                  fontSize: 13.sp,
+
+                  fontWeight: FontWeight.w500,
                 ),
               ),
           ],
@@ -706,7 +693,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       height: 650.h,
       decoration: BoxDecoration(
@@ -715,7 +701,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
       ),
       child: Column(
         children: [
-          // Drag handle
           Container(
             margin: EdgeInsets.only(top: 12.h),
             width: 40.w,
@@ -726,8 +711,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
             ),
           ),
           SizedBox(height: 16.h),
-
-          // Header
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
@@ -760,8 +743,6 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
             ),
           ),
           SizedBox(height: 16.h),
-
-          // Search bar
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Container(
@@ -792,24 +773,24 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
               ),
             ),
           ),
-          SizedBox(height: 12.h),
-
-          // Country list
+          SizedBox(height: 5.h,),
+          Divider(
+            color: Colors.grey,
+            thickness: 0.5,
+          ),
+          SizedBox(height: 3.h),
           Expanded(
             child: Consumer<CountryProvider>(
               builder: (context, provider, child) {
                 if (_isDisposed) return const SizedBox();
-
                 if (provider.isLoading) {
                   return Center(
                     child: CircularProgressIndicator(
-                      color: AppColors.primary,
+                      color:AppColors.inputFieldBg,
                     ),
                   );
                 }
-
                 final countries = provider.countries;
-
                 if (countries.isEmpty) {
                   return Center(
                     child: Text(
@@ -820,21 +801,13 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                     ),
                   );
                 }
-
-                // ✅ Safe ListView with index check
                 return ListView.builder(
                   itemCount: countries.length,
                   itemBuilder: (context, index) {
-                    // ✅ FIX #1: Safe index access
                     if (index >= countries.length) return const SizedBox();
-
                     final country = countries[index];
-
-                    // ✅ FIX #2: Null check for country
                     if (country == null) return const SizedBox();
-
                     final isSelected = provider.selectedCountry?.phoneCode == country.phoneCode;
-
                     return _buildCountryRow(country, isSelected);
                   },
                 );

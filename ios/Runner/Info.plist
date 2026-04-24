@@ -3,22 +3,24 @@
 <plist version="1.0">
 <dict>
 
-    <!--  Permissions (Apple Safe Wording) -->
+    <!-- 🔐 Permissions (Crash-safe & App Store friendly wording) -->
     <key>NSCameraUsageDescription</key>
-    <string>Camera access is required to capture identity do
-
-    cuments for KYC verification</string>
+    <string>We use the camera to capture documents for KYC verification.</string>
 
     <key>NSMicrophoneUsageDescription</key>
-    <string>Microphone access is required for video capture</string>
+    <string>Microphone access is required for recording videos.</string>
 
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Gallery access is required to upload documents</string>
+    <string>We need access to your photo library to upload documents.</string>
 
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Permission required to save images to your gallery</string>
+    <string>We need permission to save images to your photo library.</string>
 
-    <!-- App Info -->
+    <!-- (Optional - future safe for file picking) -->
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>We need access to files to upload documents.</string>
+
+    <!-- 📱 App Info -->
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
 
@@ -49,14 +51,14 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!--  Launch -->
+    <!-- 🚀 Launch -->
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
 
     <key>UIMainStoryboardFile</key>
     <string>Main</string>
 
-    <!-- 📲 Orientation (Safe for Flutter + Camera) -->
+    <!-- 📲 Orientation (Safe for Camera apps) -->
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -67,7 +69,7 @@
         <string>UIInterfaceOrientationPortrait</string>
     </array>
 
-    <!-- ⚡ Performance (Safe minimal config) -->
+    <!-- ⚡ Performance -->
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 

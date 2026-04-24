@@ -13,7 +13,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final url = Uri.parse(
-        "https://api.easycoders.in/projects/betrade/public/api/login",
+        "https://api.buildacademy.io/projects/betrade/public/api/login",
       );
       final response = await http.post(
         url,
@@ -48,7 +48,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final url = Uri.parse(
-        "https://api.easycoders.in/projects/betrade/public/api/verify-otp/login",
+        "https://api.buildacademy.io/projects/betrade/public/api/verify-otp/login",
       );
 
       final response = await http.post(

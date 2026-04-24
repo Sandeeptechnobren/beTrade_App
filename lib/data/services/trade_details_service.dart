@@ -7,7 +7,7 @@ class TradeDetailService {
     try {
       String? token = LocalStorage.getToken();
       final url =
-          "https://api.easycoders.in/projects/betrade/public/api/trade/view/$uuid";
+          "https://api.buildacademy.io/projects/betrade/public/api/trade/view/$uuid";
       print(" API HIT: $url");
       final response = await http.get(
         Uri.parse(url),

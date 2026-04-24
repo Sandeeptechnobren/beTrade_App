@@ -199,7 +199,7 @@ class ProfileService {
       request.fields['gender'] = gender;
       request.fields['country'] = country;
 
-      print("📌 Update Data:");
+      print(" Update Data:");
       print("   first_name: $firstName");
       print("   last_name: $lastName");
       print("   phone: $phone");

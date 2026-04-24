@@ -1,4 +1,3 @@
-
 import 'env_config.dart';
 
 class ApiEndpoints {
@@ -40,5 +39,8 @@ class ApiEndpoints {
 
   static String get preferences =>
       '${EnvConfig.baseUrl}/profile/preferences';
+
+  static String get countries =>
+      '${EnvConfig.baseUrl}/countries';
 
 }

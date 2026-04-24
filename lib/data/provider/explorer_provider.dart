@@ -142,7 +142,6 @@ class ExploreProvider extends ChangeNotifier {
   bool isSearching = false;
   String error = "";
 
-  // 🔥 Track last search query
   String _lastSearchQuery = "";
 
   Future<void> fetchExploreTrades() async {
@@ -162,7 +161,6 @@ class ExploreProvider extends ChangeNotifier {
   }
 
   Future<void> searchTrades(String query) async {
-    // 🔥 Don't search if query is empty
     if (query.trim().isEmpty) {
       return;
     }
@@ -174,8 +172,6 @@ class ExploreProvider extends ChangeNotifier {
       notifyListeners();
 
       final results = await ExploreService.searchTrades(query);
-
-      // 🔥 Only update if this is still the current search
       if (_lastSearchQuery == query) {
         searchResults = results;
       }

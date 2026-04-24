@@ -285,8 +285,25 @@ class _EditProfileState extends State<EditProfile> {
               items: countries.map((e) {
                 return DropdownMenuItem(
                   value: e,
-                  child: Row(
-                    children: [Text(e.flag), SizedBox(width: 8), Text(e.name)],
+                  child:
+                  Row(
+                    children: [
+                      e.flag != null && e.flag!.startsWith("http")
+                          ? ClipOval(
+                        child: Image.network(
+                          e.flag!,
+                          width: 23.4.w,
+                          height: 23.4.h,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(Icons.flag, size: 16),
+                        ),
+                      )
+                          : Icon(Icons.flag, size: 16),
+
+                      SizedBox(width: 8),
+
+                      Text(e.name ?? 'Unknown'),
+                    ],
                   ),
                 );
               }).toList(),

@@ -118,7 +118,7 @@ class _NotificationPreferencesPageState
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBg,
+        color: AppColors.whiteDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(

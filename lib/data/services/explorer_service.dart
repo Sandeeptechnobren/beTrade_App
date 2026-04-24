@@ -47,31 +47,23 @@ class ExploreService {
   static Future<List<TradeModel>> searchTrades(String query) async {
     try {
       String? token = LocalStorage.getToken();
-
       final response = await http.get(
         Uri.parse(
-          "https://api.easycoders.in/projects/betrade/public/api/trade/explore?search=$query",
+          "https://api.buildacademy.io/projects/betrade/public/api/trade/explore?search=$query",
         ),
         headers: {
           "Authorization": "Bearer $token",
           "Accept": "application/json",
         },
       );
-
       print("Search Response : ${response.body}");
-
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-
         if (decoded['status'] == true) {
-
-          // ✅ FIX: data direct LIST hai (yaha galti thi)
           final List list = decoded['data'];
-
           return list
               .map((e) => TradeModel.fromJson(e))
               .toList();
-
         } else {
           throw Exception(decoded['message'] ?? "No data found");
         }

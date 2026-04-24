@@ -193,7 +193,7 @@ class AuthBottomSheet extends StatelessWidget {
           ),
           SizedBox(height: 15.h),
           Button(
-            title: "Create an Account",
+            title: "Create an account",
             isPrimary: true,
             onPressed: () async {
               Navigator.pop(context);

@@ -35,8 +35,6 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 10.h),
-
                         SizedBox(height: 20.h),
                         Container(
                           width: double.infinity,
@@ -100,7 +98,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                   )
                                 ],
                               ),
-                              SizedBox(height: 5.h),
+                              SizedBox(height:0.h),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [

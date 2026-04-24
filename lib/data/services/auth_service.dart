@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/config/api_endpoint..dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
+import 'local_storage.dart';
 
 class AuthService {
   // Future<bool> sendOtp(String phone) async {
@@ -71,14 +72,24 @@ class AuthService {
           final isSuccess =
               responseData['status'] == true || responseData['success'] == true;
 
+          // if (isSuccess) {
+          //   final token = responseData['token'] ?? responseData['access_token'];
+          //   if (token != null) {
+          //     DioClient.setToken(token);
+          //   }
+          //   print(" OTP verified successfully!");
+          //   return true;
+          // }
           if (isSuccess) {
             final token = responseData['token'] ?? responseData['access_token'];
             if (token != null) {
               DioClient.setToken(token);
+              await LocalStorage.setToken(token);
             }
             print(" OTP verified successfully!");
             return true;
-          } else {
+          }
+          else {
             print("OTP verification failed: ${responseData['message']}");
             return false;
           }
@@ -107,36 +118,7 @@ class AuthService {
     }
   }
 
-  // Future<bool> completeSignup({
-  //   required String phone,
-  //   required String gender,
-  //   required String firstName,
-  //   required String lastName,
-  //   required File image,
-  // }) async {
-  //   try {
-  //     var request = http.MultipartRequest(
-  //       'POST',
-  //       Uri.parse(ApiEndpoints.completeProfile),
-  //     );
-  //
-  //     request.fields['phone'] = phone;
-  //     request.fields['gender'] = gender;
-  //     request.fields['first_name'] = firstName;
-  //     request.fields['last_name'] = lastName;
-  //
-  //     request.files.add(
-  //       await http.MultipartFile.fromPath('avatar', image.path),
-  //     );
-  //
-  //     var response = await request.send();
-  //
-  //     return response.statusCode == 200;
-  //   } catch (e) {
-  //     print("Signup Error: $e");
-  //     return false;
-  //   }
-  // }
+
   Future<bool> completeSignup({
     required String phone,
     required String gender,
@@ -145,40 +127,28 @@ class AuthService {
     required File image,
   }) async {
     try {
-      // Extension check karo, agar nahi hai to .jpg force karo
       String imagePath = image.path;
       String fileName = imagePath.split('/').last;
-
-      // Agar filename mein extension nahi hai, .jpg add karo
       if (!fileName.contains('.')) {
         fileName = '$fileName.jpg';
       }
-
       FormData formData = FormData.fromMap({
         'phone': phone,
         'gender': gender,
         'first_name': firstName,
         'last_name': lastName,
-        // 'avatar': await MultipartFile.fromFile(
-        //   imagePath,
-        //   filename: fileName,           // ← yeh important hai
-        //   contentType: DioMediaType('image', 'jpeg'), // ← yeh camera ke liye fix hai
-        // ),
         'avatar': await MultipartFile.fromFile(
           image.path,
           filename: 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg',
           contentType: DioMediaType('image', 'jpeg'),
         ),
       });
-
       final response = await DioClient.multipartInstance.post(
         ApiEndpoints.completeProfile,
         data: formData,
       );
-
       print("SIGNUP STATUS: ${response.statusCode}");
       print("SIGNUP RESPONSE: ${response.data}");
-
       return response.statusCode == 200;
     } catch (e) {
       if (e is DioException) {
@@ -191,32 +161,13 @@ class AuthService {
     }
   }
 
-  // Future<List<ChartData>> fetchChartData() async {
-  //   try {
-  //     final response = await http.get(
-  //       Uri.parse(ApiEndpoints.chart), // ✅ FIXED
-  //     );
-  //
-  //     if (response.statusCode == 200) {
-  //       final List data = jsonDecode(response.body);
-  //       return data.map((e) => ChartData.fromJson(e)).toList();
-  //     } else {
-  //       throw Exception("Failed to load data");
-  //     }
-  //   } catch (e) {
-  //     throw Exception("Chart Error: $e");
-  //   }
-  // }
-
   Future<List<ChartData>> fetchChartData() async {
     try {
       final response = await DioClient.instance.get(
         ApiEndpoints.chart,
       );
-
       print("CHART DATA STATUS: ${response.statusCode}");
       print("CHART DATA RESPONSE: ${response.data}");
-
       if (response.statusCode == 200) {
         final List data = response.data;
         return data.map((e) => ChartData.fromJson(e)).toList();
@@ -235,24 +186,6 @@ class AuthService {
     }
   }
 
-  // static Future<bool> logout(String token) async {
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse(ApiEndpoints.logout),
-  //       headers: {
-  //         "Authorization": "Bearer $token",
-  //         "Accept": "application/json",
-  //       },
-  //     );
-  //
-  //     print("Logout Response: ${response.body}");
-  //
-  //     return response.statusCode == 200;
-  //   } catch (e) {
-  //     print("Logout Error: $e");
-  //     return false;
-  //   }
-  // }
   static Future<bool> logout(String token) async {
     try {
       final response = await DioClient.instance.post(
@@ -263,10 +196,8 @@ class AuthService {
           },
         ),
       );
-
       print("Logout Response: ${response.data}");
       print("Logout Status: ${response.statusCode}");
-
       return response.statusCode == 200;
     } catch (e) {
       if (e is DioException) {
@@ -274,6 +205,31 @@ class AuthService {
         print("Logout Error Response: ${e.response?.data}");
       } else {
         print("Logout Error: $e");
+      }
+      return false;
+    }
+  }
+
+  Future<bool> verifyToken(String token) async {
+    try {
+      final response = await DioClient.instance.get(
+        "https://api.buildacademy.io/projects/betrade/public/api/verify-token",
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+          },
+        ),
+      );
+      print("VERIFY TOKEN STATUS: ${response.statusCode}");
+      print("VERIFY TOKEN RESPONSE: ${response.data}");
+      if (response.statusCode == 200) {
+        return response.data['status'] == true;
+      }
+      return false;
+    } catch (e) {
+      if (e is DioException) {
+        print("VERIFY TOKEN ERROR: ${e.message}");
+        print("VERIFY TOKEN RESPONSE: ${e.response?.data}");
       }
       return false;
     }

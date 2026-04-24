@@ -547,24 +547,54 @@ class _VerificationFlowState extends State<VerificationFlow> {
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: AppColors.borderDynamic(context)),
           ),
-          child: DropdownButton<CountryModel>(
+          child:
+          DropdownButton<CountryModel>(
             value: validCountry,
             isExpanded: true,
             underline: const SizedBox(),
-            dropdownColor: AppColors.cardBackgroundDynamic(context),
-            style: TextStyle(color: AppColors.textPrimaryDynamic(context)),
+
+            /// ✅ THIS IS THE FIX
+            selectedItemBuilder: (context) {
+              return countries.map((e) {
+                return Row(
+                  children: [
+                    ClipOval(
+                      child: Image.network(
+                        e.flag ?? "",
+                        width: 23,
+                        height: 23,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(Icons.flag),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(e.name ?? 'Unknown'),
+                  ],
+                );
+              }).toList();
+            },
+
             items: countries.map((e) {
               return DropdownMenuItem(
                 value: e,
                 child: Row(
                   children: [
-                    Text(e.flag ?? '🏳️', style: TextStyle(fontSize: 16.sp)),
-                    SizedBox(width: 8.w),
+                    ClipOval(
+                      child: Image.network(
+                        e.flag ?? "",
+                        width: 23.4.w,
+                        height: 23.4.h,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(Icons.flag),
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     Text(e.name ?? 'Unknown'),
                   ],
                 ),
               );
             }).toList(),
+
             onChanged: (val) {
               if (val == null) return;
               _safeSetState(() {
@@ -572,7 +602,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
                 selectedCurrency = val.currency;
               });
             },
-          ),
+          )
         ),
         SizedBox(height: 16.h),
       ],

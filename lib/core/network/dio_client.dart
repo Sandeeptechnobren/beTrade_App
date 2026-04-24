@@ -34,7 +34,6 @@ class DioClient {
   );
 
   static Dio get instance => _dio;
-
   static void setToken(String token) {
     _dio.options.headers["Authorization"] = "Bearer $token";
   }
@@ -51,16 +50,12 @@ class DioClient {
         receiveTimeout: const Duration(seconds: 30),
         headers: {
           "Accept": "application/json",
-          // Content-Type automatic set hoga multipart ke liye
         },
       ),
     );
-
-    // Token copy kardo agar hai to
     if (_dio.options.headers.containsKey("Authorization")) {
       multipartDio.options.headers["Authorization"] = _dio.options.headers["Authorization"];
     }
-
     return multipartDio;
   }
 }

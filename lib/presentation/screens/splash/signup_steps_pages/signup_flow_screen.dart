@@ -49,7 +49,7 @@ class _SignupFlowScreenState extends State<SignupFlowScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse("https://api.easycoders.in/projects/betrade/public/api/complete-profile"),
+      Uri.parse("https://api.buildacademy.io/projects/betrade/public/api/complete-profile"),
     );
 
     request.fields['gender'] = gender;

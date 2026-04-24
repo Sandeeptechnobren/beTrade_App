@@ -559,7 +559,7 @@ class _ExplorePageState extends State<ExplorePage> {
             left: 0,
             child: CircleAvatar(
               radius: 12.r,
-              backgroundColor: Colors.grey.shade300,
+              backgroundColor:AppColors.whiteDynamic(context),
               child: const Icon(Icons.person, size: 12),
             ),
           ),
@@ -567,7 +567,7 @@ class _ExplorePageState extends State<ExplorePage> {
             left: 12.w,
             child: CircleAvatar(
               radius: 12.r,
-              backgroundColor: Colors.grey.shade300,
+              backgroundColor:AppColors.whiteDynamic(context),
               child: const Icon(Icons.person, size: 12),
             ),
           ),
@@ -575,7 +575,7 @@ class _ExplorePageState extends State<ExplorePage> {
             left: 24.w,
             child: CircleAvatar(
               radius: 12.r,
-              backgroundColor: Colors.grey.shade300,
+              backgroundColor:AppColors.whiteDynamic(context),
               child: const Icon(Icons.person, size: 12),
             ),
           ),
@@ -633,7 +633,6 @@ class _ExplorePageState extends State<ExplorePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search Bar
               Column(
                 children: [
                   Container(
@@ -755,8 +754,6 @@ class _ExplorePageState extends State<ExplorePage> {
               ),
 
               SizedBox(height: 20.h),
-
-              // 🔥 Show current search query banner
               if (provider.isSearching && _searchController.text.isNotEmpty) ...[
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -809,8 +806,6 @@ class _ExplorePageState extends State<ExplorePage> {
                 ),
                 SizedBox(height: 16.h),
               ],
-
-              // Search Results Section
               if (provider.isSearching && provider.searchResults.isEmpty) ...[
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 80.h),
@@ -858,8 +853,6 @@ class _ExplorePageState extends State<ExplorePage> {
                   ),
                 ),
               ],
-
-              // Category and Cards (only show if not searching OR has results)
               if (!provider.isSearching || provider.searchResults.isNotEmpty)
                 ...sortedKeys.map((categoryName) {
                   final items = groupedTrades[categoryName]!;
@@ -895,7 +888,6 @@ class _ExplorePageState extends State<ExplorePage> {
       ),
     );
   }
-
   Widget _buildCard(TradeModel item) {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
