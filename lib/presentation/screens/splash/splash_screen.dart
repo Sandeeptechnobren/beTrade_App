@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:betrade/presentation/auth/auth_screen.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
@@ -13,76 +12,20 @@ class SplashScreen extends StatefulWidget {
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
-
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     super.initState();
-
-    // ✅ SINGLE postFrameCallback - No race condition
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-
-      // Preload images
       precacheImage(const AssetImage("assets/images/splash.png"), context);
       precacheImage(const AssetImage("assets/images/IconLogo.png"), context);
-
-      // Navigate
       _navigateUser();
     });
   }
 
-  // void _navigateUser() async {
-  //   // Small delay for smooth transition (optional, remove if not needed)
-  //   await Future.delayed(const Duration(milliseconds: 100));
-  //
-  //   if (!mounted) return;
-  //
-  //   // Safe LocalStorage access
-  //   bool onboardingDone = false;
-  //   String? token;
-  //
-  //   try {
-  //     onboardingDone = LocalStorage.isOnboardingDone() ?? false;
-  //     token = LocalStorage.getToken();
-  //   } catch (e) {
-  //     debugPrint("❌ LocalStorage error: $e");
-  //     // Default values already set, continue
-  //   }
-  //
-  //   if (!mounted) return;
-  //
-  //   // Navigation logic
-  //   try {
-  //     if (!onboardingDone) {
-  //       Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-  //       );
-  //     } else if (token == null || token.isEmpty) {
-  //       Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (_) => const AuthScreen()),
-  //       );
-  //     } else {
-  //       Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (_) => const MainScreen(showWelcomePopup: false)),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     debugPrint("❌ Navigation error: $e");
-  //     // Fallback - retry after delay
-  //     if (mounted) {
-  //       Future.delayed(const Duration(milliseconds: 500), () {
-  //         if (mounted) _navigateUser();
-  //       });
-  //     }
-  //   }
-  // }
-  void _navigateUser() async {
-    await Future.delayed(const Duration(milliseconds: 100));
+  Future<void> _navigateUser() async {
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
@@ -93,62 +36,44 @@ class _SplashScreenState extends State<SplashScreen> {
       onboardingDone = LocalStorage.isOnboardingDone() ?? false;
       token = LocalStorage.getToken();
     } catch (e) {
-      debugPrint("❌ LocalStorage error: $e");
+      debugPrint(" LocalStorage error: $e");
     }
-
     if (!mounted) return;
-
     try {
       if (!onboardingDone) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-        );
+        _go(const OnboardingScreen());
         return;
       }
-
-      // 🔴 NEW LOGIC START
       if (token == null || token.isEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
-        );
+        _go(const AuthScreen());
         return;
       }
-
-      // 👉 verify token from backend
       final isValid = await AuthService().verifyToken(token);
-
       if (!mounted) return;
-
-      if (isValid) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const MainScreen(showWelcomePopup: false),
-          ),
-        );
-      } else {
-        // ❌ token invalid → logout
+      if (isValid == true) {
+        _go(const MainScreen(showWelcomePopup: false));
+      } else if (isValid == false) {
         await LocalStorage.clearToken();
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
-        );
+        _go(const AuthScreen());
+      } else {
+        debugPrint("Network issue, skipping token verification");
+        _go(const MainScreen(showWelcomePopup: false));
       }
-      // 🔴 NEW LOGIC END
-
     } catch (e) {
-      debugPrint("❌ Navigation error: $e");
-
-      if (mounted) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) _navigateUser();
-        });
-      }
+      debugPrint(" Navigation error: $e");
+      _go(const MainScreen(showWelcomePopup: false));
     }
   }
+
+  void _go(Widget screen) {
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,8 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
               "assets/images/IconLogo.png",
               height: 175,
               width: 142,
-              errorBuilder: (context, error, stack) =>
-              const SizedBox(),
+              errorBuilder: (context, error, stack) => const SizedBox(),
             ),
           ),
         ],

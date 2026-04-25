@@ -209,8 +209,7 @@ class AuthService {
       return false;
     }
   }
-
-  Future<bool> verifyToken(String token) async {
+  Future<bool?> verifyToken(String token) async {
     try {
       final response = await DioClient.instance.get(
         "https://api.buildacademy.io/projects/betrade/public/api/verify-token",
@@ -220,18 +219,39 @@ class AuthService {
           },
         ),
       );
-      print("VERIFY TOKEN STATUS: ${response.statusCode}");
-      print("VERIFY TOKEN RESPONSE: ${response.data}");
+
       if (response.statusCode == 200) {
         return response.data['status'] == true;
       }
-      return false;
+
+      return false; // real invalid
     } catch (e) {
-      if (e is DioException) {
-        print("VERIFY TOKEN ERROR: ${e.message}");
-        print("VERIFY TOKEN RESPONSE: ${e.response?.data}");
-      }
-      return false;
+      return null; // ⚠️ network issue
     }
   }
+  //
+  // Future<bool> verifyToken(String token) async {
+  //   try {
+  //     final response = await DioClient.instance.get(
+  //       "https://api.buildacademy.io/projects/betrade/public/api/verify-token",
+  //       options: Options(
+  //         headers: {
+  //           "Authorization": "Bearer $token",
+  //         },
+  //       ),
+  //     );
+  //     print("VERIFY TOKEN STATUS: ${response.statusCode}");
+  //     print("VERIFY TOKEN RESPONSE: ${response.data}");
+  //     if (response.statusCode == 200) {
+  //       return response.data['status'] == true;
+  //     }
+  //     return false;
+  //   } catch (e) {
+  //     if (e is DioException) {
+  //       print("VERIFY TOKEN ERROR: ${e.message}");
+  //       print("VERIFY TOKEN RESPONSE: ${e.response?.data}");
+  //     }
+  //     return false;
+  //   }
+  // }
 }
