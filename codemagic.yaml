@@ -1,0 +1,69 @@
+workflows:
+  ios-testflight:
+    name: iOS — TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # Set up the App Store Connect API integration ONCE in Codemagic:
+      #   Teams → <your team> → Integrations → Developer Portal →
+      #   "Add App Store Connect API key"  (key id, issuer id, .p8 file)
+      # Name the integration EXACTLY as below (or change this to match).
+      app_store_connect: betrade_appstore
+    environment:
+      ios_signing:
+        # `automatic` uses the App Store Connect integration above to
+        # fetch / generate certs + profiles for this bundle id.
+        distribution_type: app_store
+        bundle_identifier: com.buildacademy.betrade
+      vars:
+        # Match what you registered in App Store Connect.
+        APP_STORE_APPLE_ID: 0000000000  # ← REPLACE with your numeric Apple ID
+                                        #   from App Store Connect →
+                                        #   App Information → "Apple ID"
+        BUNDLE_ID: com.buildacademy.betrade
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Use system default keychain
+        script: keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Install pods
+        script: |
+          find . -name "Podfile" -execdir pod install \;
+      - name: Flutter analyze
+        script: flutter analyze
+        ignore_failure: true
+      - name: Bump build number to App Store Connect latest + 1
+        script: |
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        # Same integration name as above.
+        auth: integration
+        # Set to true once the build successfully reaches App Store Connect
+        # at least once and you've configured TestFlight beta groups.
+        submit_to_testflight: true
+        # Optional: list beta tester groups to auto-add new builds to.
+        # Each name must match a group in App Store Connect → TestFlight.
+        # beta_groups:
+        #   - "Internal QA"
