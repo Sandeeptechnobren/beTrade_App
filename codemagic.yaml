@@ -17,9 +17,9 @@ workflows:
         bundle_identifier: com.build.betrade
       vars:
         # Match what you registered in App Store Connect.
-        APP_STORE_APPLE_ID: 0000000000  # ← REPLACE with your numeric Apple ID
-                                        #   from App Store Connect →
-                                        #   App Information → "Apple ID"
+        APP_STORE_APPLE_ID: 6763999222  # numeric Apple ID for the
+                                        #   com.build.betrade app in
+                                        #   App Store Connect.
         BUNDLE_ID: com.build.betrade
       flutter: stable
       xcode: latest
