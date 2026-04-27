@@ -73,5 +73,19 @@
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
+    <!-- 🔒 Export Compliance — set to false because the app uses only
+         standard HTTPS / TLS, no custom cryptography. Avoids the manual
+         "uses non-exempt encryption?" prompt on every TestFlight upload.
+         If you ever add custom crypto (e.g. end-to-end encrypted chat),
+         flip to <true/> and obtain an export compliance code. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- 🛍 App Store category. Finance is the closest fit for a
+         prediction-markets app; change to .productivity or .lifestyle
+         if review feedback suggests otherwise. -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.finance</string>
+
 </dict>
 </plist>
