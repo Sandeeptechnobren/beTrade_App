@@ -1,4 +1,4 @@
-package com.example.betrade;
+package com.build.betrade;
 
 import io.flutter.embedding.android.FlutterActivity;
 

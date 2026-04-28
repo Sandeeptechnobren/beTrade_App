@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.betrade"
+    namespace = "com.build.betrade"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.betrade"
+        applicationId = "com.build.betrade"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
