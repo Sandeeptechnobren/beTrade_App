@@ -38,7 +38,6 @@ class AuthService {
           "phone": phone,
         },
       );
-
       print("STATUS: ${response.statusCode}");
       print("RESPONSE: ${response.data}");
 
