@@ -1388,25 +1388,6 @@ class _StepProfileState extends State<StepProfile> {
       setState(fn);
     }
   }
-  //
-  // // Helper method to copy image to app's temporary directory
-  // Future<File> _copyImageToTempDirectory(File originalImage) async {
-  //   try {
-  //     final Directory tempDir = await getTemporaryDirectory();
-  //     final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-  //     final String fileName = 'profile_image_$timestamp.jpg';
-  //     final String tempPath = '${tempDir.path}/$fileName';
-  //
-  //     final File tempFile = await originalImage.copy(tempPath);
-  //     print("✅ Image copied to: ${tempFile.path}");
-  //     print("✅ File exists: ${await tempFile.exists()}");
-  //
-  //     return tempFile;
-  //   } catch (e) {
-  //     print("❌ Error copying image: $e");
-  //     return originalImage; // Return original if copy fails
-  //   }
-  // }
 
   Future<File> _copyImageToTempDirectory(File originalImage, {bool isCamera = false}) async {
     try {

@@ -17,21 +17,17 @@ import 'data/provider/theam_provider.dart';
 import 'data/services/local_storage.dart';
 
 Future<void> main() async {
-  // Step 1: Initialize binding FIRST
   WidgetsFlutterBinding.ensureInitialized();
-  // Step 2: Setup error handlers
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint("Flutter Error: ${details.exception}");
   };
-  // Local storage
   try {
     await LocalStorage.init();
     debugPrint("LocalStorage initialized");
   } catch (e) {
     debugPrint(" LocalStorage Error: $e");
   }
-  // Environment variables (CRITICAL - MUST LOAD FIRST)
   try {
     await dotenv.load(fileName: ".env");
     if (dotenv.env['API_BASE_URL'] == null) {

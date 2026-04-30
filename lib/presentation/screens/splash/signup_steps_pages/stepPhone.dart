@@ -86,7 +86,6 @@ class _StepPhoneState extends State<StepPhone> {
           countryCode: country?.phoneCode,
         );
       }
-
       _safeSetState(() {
         _phoneError = error;
         _phoneNumber = value;
@@ -152,7 +151,6 @@ class _StepPhoneState extends State<StepPhone> {
         SizedBox(height: 20.h),
         Row(
           children: [
-            // Country Picker Button
             GestureDetector(
               onTap: _showCountryPicker,
               child: Container(

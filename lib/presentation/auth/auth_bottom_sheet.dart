@@ -195,13 +195,31 @@ class AuthBottomSheet extends StatelessWidget {
           Button(
             title: "Create an account",
             isPrimary: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SignupScreen()),
-              );
-            },
+            // onPressed: () async {
+            //   Navigator.pop(context);
+            //   // Navigator.push(
+            //   //   context,
+            //   //   MaterialPageRoute(builder: (_) => const SignupScreen()),
+            //   // );
+            //   Navigator.pushReplacement(
+            //     context,
+            //     MaterialPageRoute(
+            //       builder: (_) => const SignupScreen(),
+            //     ),
+            //   );
+            // },
+              onPressed: () async {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SignupScreen(),
+                      ),
+                    );
+                  }
+                });
+              }
           ),
           SizedBox(height: 15.h),
           _buildSocialButton(

@@ -346,7 +346,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
   void showLogoutDialog() {
     showDialog(
       context: context,
