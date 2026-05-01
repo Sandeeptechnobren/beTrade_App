@@ -85,6 +85,7 @@ class SignupProvider extends ChangeNotifier {
   String gender = "";
   String firstName = "";
   String lastName = "";
+  String email = "";
   File? profileImage;
   bool isLoading = false;
 
@@ -103,9 +104,10 @@ class SignupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setName(String f, String l) {
+  void setName(String f, String l, String e) {
     firstName = f;
     lastName = l;
+    email = e;
     notifyListeners();
   }
 
@@ -154,6 +156,7 @@ class SignupProvider extends ChangeNotifier {
         gender: gender,
         firstName: firstName,
         lastName: lastName,
+        email: email,
         image: profileImage!,
       );
 

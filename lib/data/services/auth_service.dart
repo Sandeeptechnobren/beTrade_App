@@ -87,8 +87,7 @@ class AuthService {
             }
             print(" OTP verified successfully!");
             return true;
-          }
-          else {
+          } else {
             print("OTP verification failed: ${responseData['message']}");
             return false;
           }
@@ -117,12 +116,12 @@ class AuthService {
     }
   }
 
-
   Future<bool> completeSignup({
     required String phone,
     required String gender,
     required String firstName,
     required String lastName,
+    required String email,
     required File image,
   }) async {
     try {
@@ -136,6 +135,7 @@ class AuthService {
         'gender': gender,
         'first_name': firstName,
         'last_name': lastName,
+        'email': email,
         'avatar': await MultipartFile.fromFile(
           image.path,
           filename: 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -208,10 +208,11 @@ class AuthService {
       return false;
     }
   }
+
   Future<bool?> verifyToken(String token) async {
     try {
       final response = await DioClient.instance.get(
-        "https://api.buildacademy.io/projects/betrade/public/api/verify-token",
+        ApiEndpoints.verifyToken,
         options: Options(
           headers: {
             "Authorization": "Bearer $token",
@@ -253,4 +254,86 @@ class AuthService {
   //     return false;
   //   }
   // }
+
+  Future<Map<String, dynamic>> login(String phone) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.login,
+        data: {"phone": phone},
+      );
+
+      final data = response.data;
+      if (data is Map) {
+        return {
+          "success": data['status'] == true,
+          "message": data['message'] ?? "Something went wrong",
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("LOGIN ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("LOGIN ERROR: $e");
+      return {"success": false, "message": "Server error"};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyLoginOtp(String phone, String otp) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.verifyLoginOtp,
+        data: {"phone": phone, "otp": otp},
+      );
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+
+        if (isSuccess) {
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            DioClient.setToken(token);
+            await LocalStorage.setToken(token);
+          }
+        }
+
+        final user = data['user'];
+        final rawStatus =
+            user is Map ? user['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
+
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+          "data": user,
+          "doc_upload_status": docUploadStatus,
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("VERIFY LOGIN OTP ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("VERIFY LOGIN OTP ERROR: $e");
+      return {"success": false, "message": "Server error"};
+    }
+  }
 }

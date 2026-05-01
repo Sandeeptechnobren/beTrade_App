@@ -83,7 +83,11 @@ class Button extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25.r),
-            color: isPrimary ? const Color(0xFF7B2FF7) : Colors.grey.shade200,
+            color: isPrimary
+                ? ((onPressed == null || isLoading)
+                    ? const Color(0xFF7B2FF7).withOpacity(0.45)
+                    : const Color(0xFF7B2FF7))
+                : Colors.grey.shade200,
             border: isPrimary ? null : Border.all(color: Colors.grey.shade400),
           ),
           child: Center(

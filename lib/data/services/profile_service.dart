@@ -168,6 +168,7 @@ class ProfileService {
     required String firstName,
     required String lastName,
     required String phone,
+    required String email,
     required String gender,
     required String country,
     File? image,
@@ -196,6 +197,7 @@ class ProfileService {
       request.fields['first_name'] = firstName;
       request.fields['last_name'] = lastName;
       request.fields['phone'] = phone;
+      request.fields['email'] = email;
       request.fields['gender'] = gender;
       request.fields['country'] = country;
 

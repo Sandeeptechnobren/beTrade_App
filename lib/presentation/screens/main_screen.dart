@@ -19,8 +19,13 @@ import '../bottom_navigation/bottom_nav.dart';
 
 class MainScreen extends StatefulWidget {
   final bool showWelcomePopup;
+  final int docUploadStatus;
 
-  const MainScreen({super.key, this.showWelcomePopup = false});
+  const MainScreen({
+    super.key,
+    this.showWelcomePopup = false,
+    this.docUploadStatus = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -33,18 +38,14 @@ class _MainScreenState extends State<MainScreen> {
   Timer? _tokenTimer;
   bool _isDialogShowing = false;
 
-  final screens = [
-    HomeScreen(),
-    ExplorePage(),
-    InfoChartScreen(),
-    PortfolioPage(),
-    ProfilePage(),
-  ];
+  int _docUploadStatus = 0;
+  bool _welcomeSkipped = false;
 
   @override
   void initState() {
     super.initState();
 
+    _docUploadStatus = widget.docUploadStatus;
     _startTokenChecker();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -174,13 +175,13 @@ class _MainScreenState extends State<MainScreen> {
       setState(() {});
     }
 
-    if (widget.showWelcomePopup && mounted) {
+    if (widget.showWelcomePopup && _docUploadStatus == 0 && mounted) {
       _showWelcomePopup();
     }
   }
 
-  void _showWelcomePopup() {
-    showDialog(
+  Future<void> _showWelcomePopup() async {
+    final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
@@ -255,7 +256,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 SizedBox(height: 10.h),
                 InkWell(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => Navigator.pop(context, 'skip'),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
@@ -281,6 +282,11 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+    if (mounted && _docUploadStatus == 0) {
+      setState(() {
+        _welcomeSkipped = true;
+      });
+    }
   }
 
   @override
@@ -291,10 +297,21 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final showKycBanner = _welcomeSkipped && _docUploadStatus == 0;
+
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
-        children: screens,
+        children: [
+          HomeScreen(
+            showKycBanner: showKycBanner,
+            onBannerTap: _showWelcomePopup,
+          ),
+          ExplorePage(),
+          InfoChartScreen(),
+          PortfolioPage(),
+          ProfilePage(),
+        ],
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: currentIndex,
