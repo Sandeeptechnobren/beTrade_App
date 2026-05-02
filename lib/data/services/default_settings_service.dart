@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-
 import '../../core/config/api_endpoint..dart';
 import '../../core/network/dio_client.dart';
 import '../model/default_settings_model.dart';
@@ -78,7 +77,7 @@ class DefaultSettingsService {
       }
 
       final response = await DioClient.instance.put(
-        ApiEndpoints.userDefaultSettingsList,
+        ApiEndpoints.updateUserDefaultSettingsList,
         data: {
           "min_default_amount": amount,
         },
@@ -101,8 +100,7 @@ class DefaultSettingsService {
         }
         final msg = (decoded is Map ? decoded['message'] : null) ??
             "unknown server error";
-        debugPrint(
-            "❌ DefaultSettings PUT failed (server status=false): $msg");
+        debugPrint("❌ DefaultSettings PUT failed (server status=false): $msg");
         return false;
       }
 
@@ -110,8 +108,7 @@ class DefaultSettingsService {
           "❌ DefaultSettings PUT failed (HTTP ${response.statusCode}): ${response.data}");
       return false;
     } on DioException catch (e) {
-      debugPrint(
-          "❌ DefaultSettings PUT DioException: ${e.message}; "
+      debugPrint("❌ DefaultSettings PUT DioException: ${e.message}; "
           "code=${e.response?.statusCode}; response=${e.response?.data}");
       return false;
     } catch (e, stack) {

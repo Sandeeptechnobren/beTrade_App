@@ -91,9 +91,9 @@ class ProfileProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
     required String phone,
-    required String email,
-    required String gender,
-    required String country,
+    // required String email,
+    // required String gender,
+    // required String country,
     File? image,
   }) async {
     print("\n========== 🔵 UPDATE PROFILE CALLED ==========");
@@ -105,9 +105,9 @@ class ProfileProvider extends ChangeNotifier {
       firstName: firstName,
       lastName: lastName,
       phone: phone,
-      email: email,
-      gender: gender,
-      country: country,
+      // email: email,
+      // gender: gender,
+      // country: country,
       image: image,
     );
 

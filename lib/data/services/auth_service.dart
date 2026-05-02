@@ -313,6 +313,11 @@ class AuthService {
           docUploadStatus = rawStatus ? 1 : 0;
         }
 
+        // Persist so the KYC banner survives app close/reopen.
+        if (isSuccess) {
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+        }
+
         return {
           "success": isSuccess,
           "message": data['message'] ?? "Something went wrong",

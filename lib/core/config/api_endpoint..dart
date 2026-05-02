@@ -40,4 +40,7 @@ class ApiEndpoints {
 
   static String get userDefaultSettingsList =>
       '${EnvConfig.baseUrl}/userDefaultSettings/list';
+
+  static String get updateUserDefaultSettingsList =>
+      '${EnvConfig.baseUrl}/userDefaultSettings/update';
 }

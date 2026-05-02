@@ -237,6 +237,9 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
       if (!_isDisposed && mounted) {
         if (response.statusCode == 200) {
+          // Persist the verified status so the KYC banner is hidden on the
+          // next MainScreen load (and across app close/reopen).
+          await LocalStorage.setDocUploadStatus(1);
           _showSuccess("KYC submitted successfully!");
           _safeNavigateToHome();
         } else {
