@@ -1,15 +1,15 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/verification/step_heder.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/config/api_endpoint..dart';
+import '../../../core/network/dio_client.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
 import '../camera/camera_screen.dart';
@@ -64,15 +64,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
     }
   }
 
-  dynamic _safeJsonDecode(String body) {
-    try {
-      return jsonDecode(body);
-    } catch (e) {
-      debugPrint("❌ JSON decode error: $e");
-      return null;
-    }
-  }
-
   // ✅ FIX #1: Safe data extraction
   dynamic _safeGetData(dynamic data, String key) {
     try {
@@ -107,16 +98,20 @@ class _VerificationFlowState extends State<VerificationFlow> {
         return;
       }
 
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.languages),
-        headers: {
-          "Accept": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await DioClient.instance.get(
+        ApiEndpoints.languages,
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token",
+          },
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
 
       if (!_isDisposed && mounted && response.statusCode == 200) {
-        final data = _safeJsonDecode(response.body);
+        final data = response.data;
         final dataList = _safeGetData(data, 'data');
 
         if (dataList is List) {
@@ -166,13 +161,16 @@ class _VerificationFlowState extends State<VerificationFlow> {
     return frontImage != null && backImage != null;
   }
 
-  Future<http.MultipartFile?> _safeMultipartFile(String field, File file) async {
+  /// Builds a Dio MultipartFile from a local image. The `field` arg is kept
+  /// for caller-side readability; in Dio the field name is supplied via the
+  /// FormData map key, not on the MultipartFile itself.
+  Future<MultipartFile?> _safeMultipartFile(String field, File file) async {
     try {
       if (!await file.exists()) {
         debugPrint("❌ File does not exist: ${file.path}");
         return null;
       }
-      return await http.MultipartFile.fromPath(field, file.path);
+      return await MultipartFile.fromFile(file.path);
     } catch (e) {
       debugPrint("❌ MultipartFile error: $e");
       return null;
@@ -209,16 +207,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
         return;
       }
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(ApiEndpoints.kycSubmit),
-      );
-
-      request.headers.addAll({
-        "Authorization": "Bearer $token",
-        "Accept": "application/json",
-      });
-
       final frontFile = await _safeMultipartFile('id_front', frontImage!);
       final backFile = await _safeMultipartFile('id_back', backImage!);
       final selfieFile = await _safeMultipartFile('selfie', selfieImage!);
@@ -228,14 +216,24 @@ class _VerificationFlowState extends State<VerificationFlow> {
         return;
       }
 
-      request.files.add(frontFile);
-      request.files.add(backFile);
-      request.files.add(selfieFile);
+      final formData = FormData.fromMap({
+        'id_front': frontFile,
+        'id_back': backFile,
+        'selfie': selfieFile,
+      });
 
-      final response = await request.send();
-      var responseData = await response.stream.bytesToString();
+      final response = await DioClient.multipartInstance.post(
+        ApiEndpoints.kycSubmit,
+        data: formData,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
+      );
 
-      debugPrint("KYC RESPONSE: $responseData");
+      debugPrint("KYC RESPONSE: ${response.data}");
 
       if (!_isDisposed && mounted) {
         if (response.statusCode == 200) {
@@ -244,6 +242,12 @@ class _VerificationFlowState extends State<VerificationFlow> {
         } else {
           _showError("KYC submission failed. Please try again.");
         }
+      }
+    } on DioException catch (e) {
+      debugPrint(
+          "KYC DioException: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
+      if (!_isDisposed && mounted) {
+        _showError("An error occurred. Please try again.");
       }
     } catch (e) {
       debugPrint("KYC ERROR: $e");
@@ -264,19 +268,24 @@ class _VerificationFlowState extends State<VerificationFlow> {
       final token = LocalStorage.getToken();
       if (token == null) return;
 
-      final url = Uri.parse(ApiEndpoints.preferences);
-      await http.post(
-        url,
-        headers: {
-          "Accept": "application/json",
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
+      await DioClient.instance.post(
+        ApiEndpoints.preferences,
+        data: {
           "country_id": selectedCountry?.id,
           "preferred_language_id": language?.id,
-        }),
-      ).timeout(const Duration(seconds: 30));
+        },
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token",
+          },
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+    } on DioException catch (e) {
+      debugPrint(
+          "submitStep1 DioException: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
     } catch (e) {
       debugPrint("API Error: $e");
     }

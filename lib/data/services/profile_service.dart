@@ -74,10 +74,10 @@
 //     }
 //   }
 // }
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../../core/config/api_endpoint..dart';
+import '../../core/network/dio_client.dart';
 import '../model/profile_model.dart';
 import 'local_storage.dart';
 
@@ -96,19 +96,26 @@ class ProfileService {
 
       print("📌 API URL: ${ApiEndpoints.profile}");
 
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.profile),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
+      final response = await DioClient.instance.get(
+        ApiEndpoints.profile,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
       );
 
       print("📌 Response Status Code: ${response.statusCode}");
-      print("📌 Response Body: ${response.body}");
+      print("📌 Response Body: ${response.data}");
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
+        final dynamic raw = response.data;
+        if (raw is! Map) {
+          print("❌ Response is not a Map");
+          return null;
+        }
+        final Map<String, dynamic> data = Map<String, dynamic>.from(raw);
         print("📌 Parsed JSON Keys: ${data.keys}");
 
         ProfileModel? profile;
@@ -116,13 +123,13 @@ class ProfileService {
         // Check if response has 'data' key
         if (data.containsKey('data') && data['data'] != null) {
           print("✅ Using data['data'] structure");
-          profile = ProfileModel.fromJson(data['data']);
-        }
-        else if (data.containsKey('user') && data['user'] != null) {
+          profile = ProfileModel.fromJson(
+              Map<String, dynamic>.from(data['data'] as Map));
+        } else if (data.containsKey('user') && data['user'] != null) {
           print("✅ Using data['user'] structure");
-          profile = ProfileModel.fromJson(data['user']);
-        }
-        else {
+          profile = ProfileModel.fromJson(
+              Map<String, dynamic>.from(data['user'] as Map));
+        } else {
           print("✅ Using direct data structure");
           profile = ProfileModel.fromJson(data);
         }
@@ -143,21 +150,23 @@ class ProfileService {
         }
 
         return profile;
-      }
-      else if (response.statusCode == 401) {
-        print("❌ Unauthorized! Token may be expired.");
-        print("🔄 Clearing token...");
-        await LocalStorage.clearToken();
-        return null;
-      }
-      else if (response.statusCode == 404) {
-        print("❌ API Endpoint not found! Check URL: ${ApiEndpoints.profile}");
-        return null;
-      }
-      else {
+      } else {
         print("❌ Unknown error! Status Code: ${response.statusCode}");
         return null;
       }
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401) {
+        print("❌ Unauthorized! Token may be expired.");
+        print("🔄 Clearing token...");
+        await LocalStorage.clearToken();
+      } else if (code == 404) {
+        print("❌ API Endpoint not found! Check URL: ${ApiEndpoints.profile}");
+      } else {
+        print(
+            "❌ DioException in getProfile: ${e.message}; code=$code; response=${e.response?.data}");
+      }
+      return null;
     } catch (e) {
       print("❌ EXCEPTION in getProfile: $e");
       return null;
@@ -184,44 +193,45 @@ class ProfileService {
         return false;
       }
 
-      var request = http.MultipartRequest(
-        "PUT",
-        Uri.parse(ApiEndpoints.editProfile),
-      );
-
-      request.headers.addAll({
-        "Authorization": "Bearer $token",
-        "Accept": "application/json",
-      });
-
-      request.fields['first_name'] = firstName;
-      request.fields['last_name'] = lastName;
-      request.fields['phone'] = phone;
-      request.fields['email'] = email;
-      request.fields['gender'] = gender;
-      request.fields['country'] = country;
+      final fields = <String, dynamic>{
+        'first_name': firstName,
+        'last_name': lastName,
+        'phone': phone,
+        'email': email,
+        'gender': gender,
+        'country': country,
+      };
 
       print(" Update Data:");
       print("   first_name: $firstName");
       print("   last_name: $lastName");
       print("   phone: $phone");
+      print("   email: $email");
       print("   gender: $gender");
       print("   country: $country");
 
       if (image != null) {
         print("📌 Image: ${image.path}");
-        request.files.add(
-          await http.MultipartFile.fromPath('avatar', image.path),
-        );
+        fields['avatar'] = await MultipartFile.fromFile(image.path);
       } else {
         print("📌 Image: Not changed");
       }
 
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
+      final formData = FormData.fromMap(fields);
+
+      final response = await DioClient.multipartInstance.put(
+        ApiEndpoints.editProfile,
+        data: formData,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
+      );
 
       print("📌 Response Status: ${response.statusCode}");
-      print("📌 Response Body: $responseData");
+      print("📌 Response Body: ${response.data}");
 
       if (response.statusCode == 200) {
         print("✅ Profile updated successfully!");
@@ -232,6 +242,10 @@ class ProfileService {
         print("==========================================\n");
         return false;
       }
+    } on DioException catch (e) {
+      print(
+          "❌ DioException in updateProfile: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
+      return false;
     } catch (e) {
       print("❌ EXCEPTION in updateProfile: $e");
       return false;

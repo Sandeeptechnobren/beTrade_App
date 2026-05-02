@@ -34,4 +34,10 @@ class ApiEndpoints {
   static String get preferences => '${EnvConfig.baseUrl}/profile/preferences';
 
   static String get countries => '${EnvConfig.baseUrl}/countries';
+
+  static String get notificationPreferences =>
+      '${EnvConfig.baseUrl}/notificationPreferences';
+
+  static String get userDefaultSettingsList =>
+      '${EnvConfig.baseUrl}/userDefaultSettings/list';
 }

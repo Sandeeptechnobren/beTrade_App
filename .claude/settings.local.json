@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "Bash(sed -n '12,16p' lib/core/config/api_endpoint..dart)",
+      "Bash(sed -n '209,225p' lib/data/services/auth_service.dart)",
+      "Bash(sed -n '290,330p' lib/data/services/auth_service.dart)",
+      "Bash(sed -n '484,500p' lib/presentation/screens/signin/otp_screen.dart)",
+      "Bash(sed -n '513,528p' lib/presentation/screens/signin/otp_screen.dart)",
+      "Bash(sed -n '20,32p' lib/presentation/screens/main_screen.dart)",
+      "Bash(sed -n '34,46p' lib/presentation/screens/main_screen.dart)",
+      "Bash(sed -n '49,60p' lib/presentation/screens/main_screen.dart)",
+      "Bash(grep -n \"profile.email\\\\|profile\\\\\\\\.email\\\\|profile?.email\" lib/presentation/screens/profile/profile_page.dart)",
+      "Bash(grep -n \"^import\\\\|^//import\" lib/presentation/screens/splash/signup_steps_pages/step_profile.dart)",
+      "Bash(grep -v \"^//\")",
+      "Bash(git add *)",
+      "Bash(grep -n \"import\\\\|http\\\\|Dio\\\\|http\\\\\\\\.get\\\\|http\\\\\\\\.put\" lib/data/services/notification_service.dart)",
+      "Bash(grep -v \"^[a-z/_.]*\\\\.dart:[0-9]*:[ ]*//\")",
+      "Bash(grep -v \"^[0-9]*:[ ]*//\")",
+      "Bash(grep -v \"//.*http\\\\.\")"
+    ]
+  }
+}

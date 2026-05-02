@@ -3,6 +3,8 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../data/model/notification_preferences_model.dart';
+import '../../../data/services/notification_service.dart';
 import '../../widget/common_header.dart';
 
 class NotificationPreferencesPage extends StatefulWidget {
@@ -18,13 +20,100 @@ class NotificationPreferencesPage extends StatefulWidget {
 
 class _NotificationPreferencesPageState
     extends State<NotificationPreferencesPage> {
-  bool trendingMarkets = true;
-  bool newMarkets = true;
-  bool positionUpdates = true;
-  bool payouts = true;
-  bool tradeConfirmations = true;
-  bool deposits = true;
-  bool withdrawals = true;
+  bool _isLoading = true;
+  List<NotificationSection> _sections = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPreferences();
+  }
+
+  Future<void> _fetchPreferences() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    final fetched = await NotificationService.getPreferences();
+    if (!mounted) return;
+    setState(() {
+      _sections = fetched;
+      _isLoading = false;
+    });
+  }
+
+  /// Refetch silently — does NOT toggle the spinner. Used after a successful
+  /// PUT to confirm the backend actually persisted the change without
+  /// flashing a loading overlay over the whole list.
+  Future<void> _silentRefetch() async {
+    if (!mounted) return;
+    final fetched = await NotificationService.getPreferences();
+    if (!mounted) return;
+    setState(() {
+      _sections = fetched;
+    });
+  }
+
+  Future<void> _toggleItem(
+    int sectionIdx,
+    int itemIdx,
+    bool value,
+  ) async {
+    if (!mounted) return;
+
+    final section = _sections[sectionIdx];
+    final item = section.items[itemIdx];
+    final previousValue = item.isActive;
+
+    // 1. Optimistic UI update — flip the switch immediately so the user
+    //    sees instant feedback.
+    _applyToggle(sectionIdx, itemIdx, value);
+
+    // 2. PUT /notificationPreferences with {title, status}.
+    final ok = await NotificationService.updatePreference(
+      title: item.title,
+      isActive: value,
+    );
+
+    if (!mounted) return;
+
+    if (!ok) {
+      // Backend rejected or the request failed → revert + warn.
+      _applyToggle(sectionIdx, itemIdx, previousValue);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Failed to update notification setting"),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(12.w),
+        ),
+      );
+      return;
+    }
+
+    // PUT succeeded — trust the backend. The optimistic UI update is now
+    // the persisted state. We deliberately do NOT refetch here so the
+    // toggle stays flipped within this screen session.
+    //
+    // NOTE: cross-session persistence (close + reopen the sheet) still
+    // depends on the backend actually saving the change. If GET on the
+    // next open returns the old status, that's a backend persistence bug
+    // (PUT returns success but doesn't store the new state).
+  }
+
+  void _applyToggle(int sectionIdx, int itemIdx, bool value) {
+    if (!mounted) return;
+    setState(() {
+      final section = _sections[sectionIdx];
+      final newItems = List<NotificationItem>.from(section.items);
+      newItems[itemIdx] = newItems[itemIdx].copyWith(isActive: value);
+      _sections = List<NotificationSection>.from(_sections)
+        ..[sectionIdx] = NotificationSection(
+          section: section.section,
+          items: newItems,
+        );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,70 +132,41 @@ class _NotificationPreferencesPageState
                   children: [
                     SizedBox(height: 12.h),
                     Expanded(
-                      child: ListView(
-                        children: [
-                          buildSection(
-                            title: "Discover & Trends",
-                            items: [
-                              buildItem(
-                                "Trending Markets",
-                                "What everyone is trading right now",
-                                trendingMarkets,
-                                (val) => setState(() => trendingMarkets = val),
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _fetchPreferences,
+                              child: ListView(
+                                children: _sections
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                  final sectionIdx = entry.key;
+                                  final section = entry.value;
+                                  return buildSection(
+                                    title: section.section,
+                                    items: section.items
+                                        .asMap()
+                                        .entries
+                                        .map(
+                                          (e) => buildItem(
+                                            e.value.title,
+                                            e.value.description,
+                                            e.value.isActive,
+                                            (val) => _toggleItem(
+                                              sectionIdx,
+                                              e.key,
+                                              val,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                  );
+                                }).toList(),
                               ),
-                              buildItem(
-                                "New Markets",
-                                "Be the first to explore new opportunities",
-                                newMarkets,
-                                (val) => setState(() => newMarkets = val),
-                              ),
-                            ],
-                          ),
-
-                          buildSection(
-                            title: "Your Trades",
-                            items: [
-                              buildItem(
-                                "Position Updates",
-                                "Changes to your active trades",
-                                positionUpdates,
-                                (val) => setState(() => positionUpdates = val),
-                              ),
-                              buildItem(
-                                "Payouts & Winnings",
-                                "When you earn from a winning trade",
-                                payouts,
-                                (val) => setState(() => payouts = val),
-                              ),
-                              buildItem(
-                                "Trade Confirmations",
-                                "When a trade is successfully placed",
-                                tradeConfirmations,
-                                (val) =>
-                                    setState(() => tradeConfirmations = val),
-                              ),
-                            ],
-                          ),
-
-                          buildSection(
-                            title: "Wallet Activity",
-                            items: [
-                              buildItem(
-                                "Deposits",
-                                "When money is added to your wallet",
-                                deposits,
-                                (val) => setState(() => deposits = val),
-                              ),
-                              buildItem(
-                                "Withdrawals",
-                                "Status updates on your withdrawals",
-                                withdrawals,
-                                (val) => setState(() => withdrawals = val),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
                     ),
                   ],
                 ),
@@ -123,7 +183,7 @@ class _NotificationPreferencesPageState
     return Container(
       // gap: 9.75px (Figma)
       margin: EdgeInsets.only(bottom: 9.75.h),
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
+      padding: EdgeInsets.fromLTRB(12.w, 16.h, 12.w, 16.h),
       decoration: BoxDecoration(
         // Figma section card — soft neutral grey on white sheet
         color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F7),

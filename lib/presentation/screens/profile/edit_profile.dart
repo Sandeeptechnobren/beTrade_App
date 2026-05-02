@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
 import '../../../core/config/api_endpoint..dart';
+import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
@@ -113,26 +113,29 @@ class _EditProfileState extends State<EditProfile> {
       }
 
       final token = LocalStorage.getToken();
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.languages),
-        headers: {
-          "Accept": "application/json",
-          "Authorization": "Bearer $token",
-        },
+      final response = await DioClient.instance.get(
+        ApiEndpoints.languages,
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        ),
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List list = data['data'];
+        final data = response.data;
+        if (data is Map && data['data'] is List) {
+          final List list = data['data'];
+          languages = list
+              .map((e) => DropdownItem(id: e['id'], name: e['name']))
+              .toList();
 
-        languages = list
-            .map((e) => DropdownItem(id: e['id'], name: e['name']))
-            .toList();
-
-        if (languages.isNotEmpty) {
-          language = languages.first;
+          if (languages.isNotEmpty) {
+            language = languages.first;
+          }
         }
       }
 

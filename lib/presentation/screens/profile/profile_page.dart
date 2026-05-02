@@ -55,7 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const AuthScreen()),
-            (route) => false,
+        (route) => false,
       );
     } else {
       ScaffoldMessenger.of(
@@ -71,6 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           final profile = provider.profile;
+          print("EMAIL: ${profile?.email}");
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(
@@ -80,7 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   margin: EdgeInsets.symmetric(horizontal: 16.w),
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    border: Border.all(color:Colors.grey.shade300, width: 0.5),
+                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
                     color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
@@ -100,11 +101,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         provider.isLoading
                             ? "Loading..."
                             : profile != null
-                            ? "${profile.firstName} ${profile.lastName}"
-                            : "No Name",
+                                ? "${profile.firstName} ${profile.lastName}"
+                                : "No Name",
                         style: AppTextStyle.heading,
                       ),
-                      if (profile?.email != null && profile!.email!.isNotEmpty) ...[
+                      if (profile?.email != null &&
+                          profile!.email!.isNotEmpty) ...[
                         SizedBox(height: 4.h),
                         Text(
                           profile.email!,
@@ -143,7 +145,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     margin: EdgeInsets.symmetric(horizontal: 16.w),
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      border: Border.all(color:Colors.grey.shade300, width: 0.5),
+                      border:
+                          Border.all(color: Colors.grey.shade300, width: 0.5),
                       color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(20.r),
                     ),
@@ -175,7 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   margin: EdgeInsets.symmetric(horizontal: 16.w),
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    border: Border.all(color:Colors.grey.shade300, width: 0.5),
+                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
                     color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
@@ -186,7 +189,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       buildListTile(
                         LucideIcons.user,
                         "Personal Info",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
                             builder: (controller) =>
@@ -197,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       buildListTile(
                         LucideIcons.wallet,
                         "Payment Methods",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
                             builder: (controller) => PaymentMethodsPage(
@@ -209,28 +212,27 @@ class _ProfilePageState extends State<ProfilePage> {
                       buildListTile(
                         LucideIcons.settings,
                         "Default Settings",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
-                            builder: (controller) =>
-                                DefaultSettingsPage(
-                                  scrollController: controller,
-                                ),
+                            builder: (controller) => DefaultSettingsPage(
+                              scrollController: controller,
+                            ),
                           );
                         },
                       ),
                       buildListTile(
                         LucideIcons.bell,
                         "Notification Preferences",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
                             // Figma scrim — #00000052
                             barrierColor: const Color(0x52000000),
                             builder: (controller) =>
                                 NotificationPreferencesPage(
-                                  scrollController: controller,
-                                ),
+                              scrollController: controller,
+                            ),
                           );
                         },
                       ),
@@ -238,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       buildListTile(
                         LucideIcons.shieldCheck,
                         "Privacy Policy",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
                             builder: (controller) =>
@@ -250,7 +252,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       buildListTile(
                         LucideIcons.fileText,
                         "Terms of Service",
-                            () {
+                        () {
                           CommonBottomSheet.open(
                             context: context,
                             builder: (controller) => TermsOfServicePage(
@@ -341,6 +343,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+
   Widget buildListTile(IconData icon, String title, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -375,6 +378,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+
   void showLogoutDialog() {
     showDialog(
       context: context,

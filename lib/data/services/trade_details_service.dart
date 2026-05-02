@@ -1,5 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import '../../core/network/dio_client.dart';
 import 'local_storage.dart';
 
 class TradeDetailService {
@@ -9,23 +9,29 @@ class TradeDetailService {
       final url =
           "https://api.buildacademy.io/projects/betrade/public/api/trade/view/$uuid";
       print(" API HIT: $url");
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
+      final response = await DioClient.instance.get(
+        url,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
       );
 
       print("STATUS CODE: ${response.statusCode}");
-      print(" RESPONSE: ${response.body}");
+      print(" RESPONSE: ${response.data}");
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        return json["data"];
+        final json = response.data;
+        if (json is Map && json["data"] is Map) {
+          return Map<String, dynamic>.from(json["data"] as Map);
+        }
       } else {
         print(" API ERROR");
       }
+    } on DioException catch (e) {
+      print(" DioException: ${e.message}; response=${e.response?.data}");
     } catch (e) {
       print(" EXCEPTION: $e");
     }

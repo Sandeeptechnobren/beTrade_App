@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'package:betrade/data/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../services/local_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
