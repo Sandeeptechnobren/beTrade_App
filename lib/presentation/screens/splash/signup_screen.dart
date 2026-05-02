@@ -108,8 +108,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
       case 4:
         return StepName(
-          onChanged: (f, l) {
-            if (!_isDisposed && mounted) provider.setName(f, l);
+          onChanged: (f, l, e) {
+            if (!_isDisposed && mounted) provider.setName(f, l, e);
           },
           onValidationChanged: (isValid) {
             if (!_isDisposed && mounted) {

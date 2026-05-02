@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
 import '../../../core/config/api_endpoint..dart';
+import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
@@ -26,6 +26,7 @@ class _EditProfileState extends State<EditProfile> {
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
+  final emailController = TextEditingController();
 
   String gender = "male";
   File? selectedImage;
@@ -36,6 +37,15 @@ class _EditProfileState extends State<EditProfile> {
   DropdownItem? language;
   String? selectedCurrency;
   bool isLoading = true;
+
+  // Originals captured once profile + lookup data are loaded.
+  String _originalFirstName = "";
+  String _originalLastName = "";
+  String _originalPhone = "";
+  String _originalEmail = "";
+  String _originalGender = "male";
+  String _originalCountryName = "";
+  bool _hasChanges = false;
 
   @override
   void initState() {
@@ -50,12 +60,39 @@ class _EditProfileState extends State<EditProfile> {
       firstNameController.text = profile.firstName;
       lastNameController.text = profile.lastName;
       phoneController.text = profile.phone ?? '';
+      emailController.text = profile.email ?? '';
       gender = profile.gender ?? "male";
+
+      _originalFirstName = profile.firstName;
+      _originalLastName = profile.lastName;
+      _originalPhone = profile.phone ?? '';
+      _originalEmail = profile.email ?? '';
+      _originalGender = profile.gender ?? "male";
+      _originalCountryName = profile.country ?? "";
     }
+
+    firstNameController.addListener(_recomputeHasChanges);
+    lastNameController.addListener(_recomputeHasChanges);
+    phoneController.addListener(_recomputeHasChanges);
+    emailController.addListener(_recomputeHasChanges);
 
     Future.microtask(() {
       loadAllData();
     });
+  }
+
+  void _recomputeHasChanges() {
+    final countryName = selectedCountry?.name ?? "";
+    final changed = firstNameController.text != _originalFirstName ||
+        lastNameController.text != _originalLastName ||
+        phoneController.text != _originalPhone ||
+        emailController.text != _originalEmail ||
+        gender != _originalGender ||
+        countryName != _originalCountryName ||
+        selectedImage != null;
+    if (changed != _hasChanges && mounted) {
+      setState(() => _hasChanges = changed);
+    }
   }
 
   Future<void> loadAllData() async {
@@ -76,26 +113,29 @@ class _EditProfileState extends State<EditProfile> {
       }
 
       final token = LocalStorage.getToken();
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.languages),
-        headers: {
-          "Accept": "application/json",
-          "Authorization": "Bearer $token",
-        },
+      final response = await DioClient.instance.get(
+        ApiEndpoints.languages,
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        ),
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List list = data['data'];
+        final data = response.data;
+        if (data is Map && data['data'] is List) {
+          final List list = data['data'];
+          languages = list
+              .map((e) => DropdownItem(id: e['id'], name: e['name']))
+              .toList();
 
-        languages = list
-            .map((e) => DropdownItem(id: e['id'], name: e['name']))
-            .toList();
-
-        if (languages.isNotEmpty) {
-          language = languages.first;
+          if (languages.isNotEmpty) {
+            language = languages.first;
+          }
         }
       }
 
@@ -115,6 +155,7 @@ class _EditProfileState extends State<EditProfile> {
       setState(() {
         selectedImage = File(pickedFile.path);
       });
+      _recomputeHasChanges();
     }
   }
 
@@ -195,6 +236,11 @@ class _EditProfileState extends State<EditProfile> {
                               children: [
                                 _buildField("First Name", firstNameController),
                                 _buildField("Last Name", lastNameController),
+                                _buildField(
+                                  "Email",
+                                  emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
                                 buildCountryDropdown(),
                                 buildCurrencyDropdown(),
                                 buildLanguageDropdown(),
@@ -215,13 +261,14 @@ class _EditProfileState extends State<EditProfile> {
             child: Button(
               title: "Save Changes",
               isLoading: provider.isLoading,
-              onPressed: selectedCountry == null
+              onPressed: (selectedCountry == null || !_hasChanges)
                   ? null
                   : () async {
                       bool success = await provider.updateProfile(
                         firstName: firstNameController.text,
                         lastName: lastNameController.text,
                         phone: phoneController.text,
+                        email: emailController.text,
                         gender: gender,
                         country: selectedCountry?.name ?? "",
                         image: selectedImage,
@@ -240,7 +287,11 @@ class _EditProfileState extends State<EditProfile> {
     );
   }
 
-  Widget _buildField(String title, TextEditingController controller) {
+  Widget _buildField(
+    String title,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
       child: Column(
@@ -255,6 +306,7 @@ class _EditProfileState extends State<EditProfile> {
             ),
             child: TextField(
               controller: controller,
+              keyboardType: keyboardType,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(14.w),
@@ -313,6 +365,7 @@ class _EditProfileState extends State<EditProfile> {
                   selectedCountry = val;
                   selectedCurrency = val.currency;
                 });
+                _recomputeHasChanges();
               }),
         ),
         SizedBox(height: 16),

@@ -72,7 +72,7 @@ class PaymentMethodsPage extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding:EdgeInsets.symmetric(horizontal: 16.w),
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
                       child: Button(title: "Add New", onPressed:(){
 
                           CommonBottomSheet.open(

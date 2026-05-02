@@ -481,7 +481,7 @@ class _OTPScreenState extends State<OTPScreen> {
     );
   }
 
-  void _navigateToHome() {
+  void _navigateToHome(int docUploadStatus) {
     if (_isDisposed || !mounted) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -489,8 +489,12 @@ class _OTPScreenState extends State<OTPScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-              builder: (_) => const MainScreen(showWelcomePopup: true)),
-              (route) => false,
+            builder: (_) => MainScreen(
+              showWelcomePopup: true,
+              docUploadStatus: docUploadStatus,
+            ),
+          ),
+          (route) => false,
         );
       }
     });
@@ -516,7 +520,9 @@ class _OTPScreenState extends State<OTPScreen> {
       final parsed = _safeParseResult(result);
 
       if (parsed['success'] == true) {
-        _navigateToHome();
+        final rawStatus = result['doc_upload_status'];
+        final docUploadStatus = rawStatus is int ? rawStatus : 0;
+        _navigateToHome(docUploadStatus);
       } else {
         _showMessage(parsed['message']);
         _clearOtpFields();

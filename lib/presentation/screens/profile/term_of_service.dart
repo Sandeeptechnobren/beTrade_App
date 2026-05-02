@@ -18,7 +18,7 @@ class TermsOfServicePage extends StatelessWidget {
           children: [
             CommonHeader(title: "Term of Service"),
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 32.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -66,6 +66,7 @@ class TermsOfServicePage extends StatelessWidget {
                   sectionText(
                     "If you have any questions regarding these Terms, please contact us at support@yourapp.com.",
                   ),
+                  SizedBox(height: 32.h),
                 ],
               ),
             ),

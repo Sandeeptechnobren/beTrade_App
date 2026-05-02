@@ -28,8 +28,8 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32.r),
       ),
       child: SingleChildScrollView(
         controller: widget.scrollController,
@@ -38,7 +38,7 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
           children: [
             CommonHeader(title: "Achievements"),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 16.h),
               child: GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -54,15 +54,10 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(6.w),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                        ),
-                        child: CircleAvatar(
-                          radius: 30.r,
-                          backgroundImage: AssetImage(item["image"]!),
-                        ),
+                      CircleAvatar(
+                        radius: 30.r,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: AssetImage(item["image"]!),
                       ),
                       SizedBox(height: 8.h),
                       Text(
@@ -71,8 +66,9 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11.sp,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
                     ],

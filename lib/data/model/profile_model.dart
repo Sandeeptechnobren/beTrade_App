@@ -35,6 +35,7 @@ class ProfileModel {
   final String? country;
   final String? currency;
   final String? language;
+  final String? email;
 
   ProfileModel({
     required this.firstName,
@@ -45,6 +46,7 @@ class ProfileModel {
     this.country,
     this.currency,
     this.language,
+    this.email,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,7 @@ class ProfileModel {
       country: json['country'],
       currency: json['currency'],
       language: json['language'],
+      email: json['email'],
     );
   }
   static String _fixAvatar(String url) {

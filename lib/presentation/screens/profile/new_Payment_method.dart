@@ -24,18 +24,46 @@ class _NewPaymentMethodPageState extends State<NewPaymentMethodPage> {
   final TextEditingController accountName = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    accountNumber.addListener(_onChanged);
+    accountName.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    accountNumber.removeListener(_onChanged);
+    accountName.removeListener(_onChanged);
+    accountNumber.dispose();
+    accountName.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _isFormFilled =>
+      accountNumber.text.trim().isNotEmpty &&
+      accountName.text.trim().isNotEmpty;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Button(title: "Add", onPressed: () {
-
-          CommonBottomSheet.open(
-            context: context,
-            builder: (controller) =>
-                AllPaymentMethodsPage(scrollController: controller),
-          );
-        }),
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+        child: Button(
+          title: "Add",
+          onPressed: _isFormFilled
+              ? () {
+                  CommonBottomSheet.open(
+                    context: context,
+                    builder: (controller) =>
+                        AllPaymentMethodsPage(scrollController: controller),
+                  );
+                }
+              : null,
+        ),
       ),
       resizeToAvoidBottomInset: true,
       body: SafeArea(

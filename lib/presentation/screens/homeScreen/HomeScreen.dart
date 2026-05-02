@@ -14,7 +14,14 @@ import '../../widget/common_share_button.dart';
 import '../trade/trade_page.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showKycBanner;
+  final VoidCallback? onBannerTap;
+
+  const HomeScreen({
+    super.key,
+    this.showKycBanner = false,
+    this.onBannerTap,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -166,6 +173,43 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+                if (widget.showKycBanner)
+                  GestureDetector(
+                    onTap: widget.onBannerTap,
+                    child: Container(
+                      width: double.infinity,
+                      color: Colors.orange.shade700,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 12.h,
+                        horizontal: 16.w,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: Text(
+                              "Complete your KYC verification",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: provider.categories.isEmpty
                       ? const Center(child: CircularProgressIndicator())

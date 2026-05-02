@@ -2,6 +2,7 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widget/purple_button.dart';
 
@@ -15,7 +16,7 @@ class AllPaymentMethodsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
         child: Button(
           title: "Add New",
           onPressed: () {
@@ -31,7 +32,7 @@ class AllPaymentMethodsPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            CommonHeader(title: "Payments Methods"),
+            CommonHeader(title: "Payment Methods"),
             SizedBox(height: 20.h),
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 0),
@@ -84,7 +85,11 @@ class AllPaymentMethodsPage extends StatelessWidget {
           onTap: () {
             showDeletePopup(context);
           },
-          child: Image.asset("assets/images/Vector.png", height: 20.h),
+          child: Icon(
+            LucideIcons.trash2,
+            size: 20.sp,
+            color: const Color(0xFFDC2626),
+          ),
         ),
       ],
     );
@@ -97,45 +102,91 @@ class AllPaymentMethodsPage extends StatelessWidget {
           child: Text(
             "VISA",
             style: TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
+              fontStyle: FontStyle.italic,
               fontSize: 14.sp,
-              color: Colors.blue,
+              color: const Color(0xFF1A1F71),
+              letterSpacing: 0.5,
             ),
           ),
         );
       case "master":
         return _logoBox(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(radius: 7.r, backgroundColor: Colors.red),
-              CircleAvatar(radius: 7.r, backgroundColor: Colors.orange),
-            ],
+          child: SizedBox(
+            width: 30.w,
+            height: 18.h,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  child: Container(
+                    width: 18.w,
+                    height: 18.h,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEB001B),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 12.w,
+                  child: Container(
+                    width: 18.w,
+                    height: 18.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF79E1B).withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       case "mtn":
         return _logoBox(
-          child: Text(
-            "MTN",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14.sp,
-              color: Colors.blue,
+          background: const Color(0xFFFFCC00),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+            child: Text(
+              "MTN\nMobile\nMoney",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 7.sp,
+                color: const Color(0xFFD32F2F),
+                height: 1.0,
+              ),
             ),
           ),
         );
       default:
-        return _logoBox(child: Icon(Icons.lock, size: 20.sp));
+        return _logoBox(
+          background: Colors.black,
+          border: false,
+          child: Icon(
+            LucideIcons.dollarSign,
+            size: 22.sp,
+            color: Colors.white,
+          ),
+        );
     }
   }
 
-  Widget _logoBox({required Widget child}) {
+  Widget _logoBox({
+    required Widget child,
+    Color? background,
+    bool border = true,
+  }) {
     return Container(
       height: 44.h,
       width: 64.w,
       decoration: BoxDecoration(
+        color: background ?? Colors.white,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: Colors.grey, width: 0.5),
+        border: border
+            ? Border.all(color: Colors.grey.shade300, width: 0.8)
+            : null,
       ),
       alignment: Alignment.center,
       child: child,

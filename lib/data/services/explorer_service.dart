@@ -38,8 +38,8 @@
 //   }
 // }
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import '../../core/network/dio_client.dart';
 import '../model/trade_model.dart';
 import 'local_storage.dart';
 
@@ -47,29 +47,33 @@ class ExploreService {
   static Future<List<TradeModel>> searchTrades(String query) async {
     try {
       String? token = LocalStorage.getToken();
-      final response = await http.get(
-        Uri.parse(
-          "https://api.buildacademy.io/projects/betrade/public/api/trade/explore?search=$query",
+      final response = await DioClient.instance.get(
+        "https://api.buildacademy.io/projects/betrade/public/api/trade/explore?search=$query",
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
         ),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/json",
-        },
       );
-      print("Search Response : ${response.body}");
+      print("Search Response : ${response.data}");
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        if (decoded['status'] == true) {
+        final decoded = response.data;
+        if (decoded is Map && decoded['status'] == true) {
           final List list = decoded['data'];
-          return list
-              .map((e) => TradeModel.fromJson(e))
-              .toList();
+          return list.map((e) => TradeModel.fromJson(e)).toList();
         } else {
-          throw Exception(decoded['message'] ?? "No data found");
+          final msg = decoded is Map
+              ? (decoded['message'] ?? "No data found")
+              : "No data found";
+          throw Exception(msg);
         }
       } else {
         throw Exception("Server error ${response.statusCode}");
       }
+    } on DioException catch (e) {
+      print("DioException IN SEARCH API: ${e.message}; response=${e.response?.data}");
+      throw Exception("Failed to search trades: ${e.message}");
     } catch (e) {
       print("ERROR IN SEARCH API: $e");
       throw Exception("Failed to search trades: $e");

@@ -1346,6 +1346,7 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1528,6 +1529,47 @@ class _StepProfileState extends State<StepProfile> {
     } catch (e) {
       debugPrint("❌ Camera error: $e");
       if (mounted) _showError("Failed to capture image");
+    } finally {
+      if (!_isDisposed && mounted) _isProcessing = false;
+    }
+  }
+
+  Future<void> _pickAvatar(String assetPath) async {
+    if (_isDisposed || !mounted || _isProcessing) return;
+    _isProcessing = true;
+
+    try {
+      // Close the avatar sheet immediately for a snappy feel.
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context);
+      }
+
+      // 1. Copy the bundled asset bytes to a temp file.
+      final byteData = await rootBundle.load(assetPath);
+      final tempDir = await getTemporaryDirectory();
+      final srcPath =
+          '${tempDir.path}/avatar_src_${DateTime.now().millisecondsSinceEpoch}.png';
+      final srcFile = await File(srcPath).writeAsBytes(
+        byteData.buffer
+            .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+      );
+
+      if (_isDisposed || !mounted) return;
+
+      // 2. Run it through the same JPEG compression pipeline as
+      //    camera / gallery so completeSignup uploads a consistent format.
+      final File compressedFile = await _compressAndSaveImage(srcFile);
+
+      if (_isDisposed || !mounted) return;
+
+      // 3. Mark visual selection and propagate to the parent.
+      _safeSetState(() {
+        _selectedAvatar = assetPath;
+      });
+      _updateImage(compressedFile);
+    } catch (e) {
+      debugPrint("❌ Avatar picker error: $e");
+      if (mounted) _showError("Failed to set avatar");
     } finally {
       if (!_isDisposed && mounted) _isProcessing = false;
     }
@@ -1800,14 +1842,7 @@ class _StepProfileState extends State<StepProfile> {
                 final isSelected = _selectedAvatar == avatarPath;
 
                 return GestureDetector(
-                  onTap: () {
-                    if (_isDisposed || !mounted) return;
-
-                    _safeSetState(() {
-                      _selectedAvatar = avatarPath;
-                    });
-                    Navigator.pop(context);
-                  },
+                  onTap: () => _pickAvatar(avatarPath),
                   child: _safeAvatarImage(avatarPath, isSelected),
                 );
               },
