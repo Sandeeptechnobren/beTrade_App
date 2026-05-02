@@ -30,6 +30,9 @@ class ApiEndpoints {
   static String tradeQuote(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/quote';
 
+  static String tradeBuy(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/buy';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';

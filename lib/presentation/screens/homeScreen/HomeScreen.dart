@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sync the user's default amount from `/userDefaultSettings/list` so
       // the swipe action sends the correct cost_ghs even if the user
       // hasn't opened Default Settings yet this session.
-      context.read<DefaultAmountProvider>().loadFromBackend();
+      // context.read<DefaultAmountProvider>().loadFromBackend();
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -358,6 +358,7 @@ class PollCard extends StatefulWidget {
 
 class _PollCardState extends State<PollCard> {
   bool isSending = false;
+  bool _isPlacingOrder = false;
 
   Future<void> _handleSwipe(String outcome) async {
     if (isSending) return;
@@ -448,6 +449,202 @@ class _PollCardState extends State<PollCard> {
 
     final isYes = outcome.toLowerCase() == 'yes';
     final outcomeColor = isYes ? Colors.green : Colors.red;
+    final costAmount = (data['cost_ghs'] as num?) ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          bool isPlacingOrder = _isPlacingOrder;
+
+          Future<void> onTradePressed() async {
+            if (isPlacingOrder) return;
+            setDialogState(() {
+              _isPlacingOrder = true;
+              isPlacingOrder = true;
+            });
+
+            // Capture the dialog navigator before any await so we don't
+            // touch the dialog's BuildContext after the gap.
+            final dialogNavigator = Navigator.of(ctx);
+
+            final response = await HomeService.buyTrade(
+              uuid: widget.trade.uuid ?? "",
+              outcome: outcome,
+              amount: costAmount,
+            );
+
+            _isPlacingOrder = false;
+            if (!mounted) return;
+
+            if (response == null) {
+              setDialogState(() => isPlacingOrder = false);
+              _showSnack("Trade failed — please try again");
+              return;
+            }
+            if (response['status'] != true) {
+              setDialogState(() => isPlacingOrder = false);
+              _showSnack(response['message']?.toString() ?? "Trade failed");
+              return;
+            }
+
+            // Success — close the quote dialog and open the confirmation.
+            dialogNavigator.pop();
+            final responseData = response['data'];
+            if (responseData is Map) {
+              _showTradeSuccessPopup(
+                Map<String, dynamic>.from(responseData),
+                outcome,
+              );
+            }
+          }
+
+          return Dialog(
+            backgroundColor: AppColors.cardBackgroundDynamic(context),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            insetPadding: EdgeInsets.all(20.w),
+            child: Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header — title + outcome chip
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Trade Quote",
+                        style: AppTextStyle.subHeading.copyWith(
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: outcomeColor,
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          outcome.toUpperCase(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Hero summary
+                  Text(
+                    "You'll receive ${_formatNum(data['shares'], 2)} shares",
+                    style: AppTextStyle.heading.copyWith(
+                      color: AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "at GH₵ ${_formatNum(data['avg_price_per_share'], 5)} / share",
+                    style: TextStyle(fontSize: 13.sp, color: Colors.grey),
+                  ),
+                  SizedBox(height: 16.h),
+                  Divider(color: Colors.grey.shade300, height: 1),
+                  SizedBox(height: 12.h),
+
+                  // Detail rows
+                  _quoteRow(
+                    "Amount paid",
+                    "GH₵ ${_formatNum(data['cost_ghs'], 2)}",
+                  ),
+                  _quoteRow(
+                    "Max payout",
+                    "GH₵ ${_formatNum(data['max_payout_ghs'], 2)}",
+                  ),
+                  _quoteRow(
+                    "Potential profit",
+                    "+GH₵ ${_formatNum(data['potential_profit_ghs'], 2)}",
+                    valueColor: Colors.green,
+                  ),
+                  _quoteRow(
+                    "Fee",
+                    "GH₵ ${_formatNum(data['fee_ghs'], 2)}",
+                  ),
+                  _quoteRow("Price impact", priceImpact),
+
+                  SizedBox(height: 20.h),
+
+                  Row(
+                    children: [
+                      /// CLOSE BUTTON
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isPlacingOrder
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            padding: EdgeInsets.symmetric(vertical: 15.h),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                              borderRadius: BorderRadius.circular(30.r),
+                            ),
+                          ),
+                          child: Text(
+                            "Close",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(width: 10.w),
+
+                      /// TRADE BUTTON
+                      Expanded(
+                        child: Button(
+                          title: 'Trade',
+                          isLoading: isPlacingOrder,
+                          onPressed: onTradePressed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showTradeSuccessPopup(Map<String, dynamic> data, String outcome) {
+    if (!mounted) return;
+
+    final order = (data['order'] is Map)
+        ? Map<String, dynamic>.from(data['order'])
+        : <String, dynamic>{};
+    final quote = (data['quote'] is Map)
+        ? Map<String, dynamic>.from(data['quote'])
+        : <String, dynamic>{};
+    final walletBalance = data['wallet_balance'];
+
+    final isYes = outcome.toLowerCase() == 'yes';
+    final outcomeColor = isYes ? Colors.green : Colors.red;
 
     showDialog(
       context: context,
@@ -463,15 +660,22 @@ class _PollCardState extends State<PollCard> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header — title + outcome chip
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Trade Quote",
-                    style: AppTextStyle.subHeading.copyWith(
-                      color: AppColors.textPrimaryDynamic(context),
-                    ),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle,
+                          color: Colors.green, size: 22.sp),
+                      SizedBox(width: 8.w),
+                      Text(
+                        "Order Filled",
+                        style: AppTextStyle.subHeading.copyWith(
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
+                      ),
+                    ],
                   ),
                   Container(
                     padding: EdgeInsets.symmetric(
@@ -495,16 +699,16 @@ class _PollCardState extends State<PollCard> {
               ),
               SizedBox(height: 16.h),
 
-              // Hero summary
+              // Hero summary — shares purchased
               Text(
-                "You'll receive ${_formatNum(data['shares'], 2)} shares",
+                "You bought ${_formatNum(order['shares'] ?? quote['shares'], 2)} shares",
                 style: AppTextStyle.heading.copyWith(
                   color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
               SizedBox(height: 4.h),
               Text(
-                "at GH₵ ${_formatNum(data['avg_price_per_share'], 5)} / share",
+                "at GH₵ ${_formatNum(order['avg_fill_price'] ?? quote['avg_price_per_share'], 5)} / share",
                 style: TextStyle(fontSize: 13.sp, color: Colors.grey),
               ),
               SizedBox(height: 16.h),
@@ -514,62 +718,53 @@ class _PollCardState extends State<PollCard> {
               // Detail rows
               _quoteRow(
                 "Amount paid",
-                "GH₵ ${_formatNum(data['cost_ghs'], 2)}",
+                "GH₵ ${_formatNum(order['total_cost_ghs'] ?? quote['cost_ghs'], 2)}",
               ),
               _quoteRow(
                 "Max payout",
-                "GH₵ ${_formatNum(data['max_payout_ghs'], 2)}",
+                "GH₵ ${_formatNum(quote['max_payout_ghs'], 2)}",
               ),
               _quoteRow(
                 "Potential profit",
-                "+GH₵ ${_formatNum(data['potential_profit_ghs'], 2)}",
+                "+GH₵ ${_formatNum(quote['potential_profit_ghs'], 2)}",
                 valueColor: Colors.green,
               ),
               _quoteRow(
                 "Fee",
-                "GH₵ ${_formatNum(data['fee_ghs'], 2)}",
+                "GH₵ ${_formatNum(order['fee_ghs'] ?? quote['fee_ghs'], 2)}",
               ),
-              _quoteRow("Price impact", priceImpact),
+              if (walletBalance != null)
+                _quoteRow(
+                  "Wallet balance",
+                  "GH₵ ${_formatNum(walletBalance, 2)}",
+                ),
 
               SizedBox(height: 20.h),
 
-              Row(
-                children: [
-                  /// CLOSE BUTTON
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        padding: EdgeInsets.symmetric(vertical: 15.h),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          side: BorderSide(
-                            color: Colors.grey.shade300,
-                          ),
-                          borderRadius: BorderRadius.circular(30.r),
-                        ),
-                        // padding: EdgeInsets.symmetric(vertical: 14.h),
-                      ),
-                      child: Text(
-                        "Close",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.sp,
-                        ),
-                      ),
+              /// CLOSE BUTTON (only)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 15.h),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(30.r),
                     ),
                   ),
-
-                  SizedBox(width: 10.w),
-
-                  /// TRADE BUTTON
-                  Expanded(
-                    child: Button(title: 'Trade', onPressed: () {  },)
+                  child: Text(
+                    "Close",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
                   ),
-                ],
-              )
+                ),
+              ),
             ],
           ),
         ),
