@@ -30,8 +30,15 @@ class DefaultSettingsService {
       if (response.statusCode == 200) {
         final decoded = response.data;
         if (decoded is Map && decoded['status'] == true) {
-          final data = decoded['data'];
-          if (data is Map) {
+          final raw = decoded['data'];
+          // Backend returns either a single object or a one-element list.
+          Map? data;
+          if (raw is Map) {
+            data = raw;
+          } else if (raw is List && raw.isNotEmpty && raw.first is Map) {
+            data = raw.first as Map;
+          }
+          if (data != null) {
             final parsed = DefaultSettingsModel.fromJson(
               Map<String, dynamic>.from(data),
             );
@@ -39,7 +46,8 @@ class DefaultSettingsService {
                 "✅ DefaultSettings GET success: min=${parsed.minDefaultAmount}, max=${parsed.maxDefaultAmount}");
             return parsed;
           }
-          debugPrint("❌ DefaultSettings GET: 'data' is not a Map: $data");
+          debugPrint(
+              "❌ DefaultSettings GET: 'data' is not a Map or non-empty List: $raw");
           return null;
         }
         final msg = (decoded is Map ? decoded['message'] : null) ??
