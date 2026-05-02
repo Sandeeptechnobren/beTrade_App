@@ -1,16 +1,14 @@
-import 'dart:async';
-
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/model/default_settings_model.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/services/default_settings_service.dart';
 import '../../widget/common_header.dart';
+import '../../widget/purple_button.dart';
 
 class DefaultSettingsPage extends StatefulWidget {
   const DefaultSettingsPage({
@@ -25,30 +23,19 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
   late final TextEditingController _maxDefaultAmountController;
   late final TextEditingController _defaultAmountController;
 
-  bool _exceedSnackbarShown = false;
   bool _isLoading = true;
-
-  /// Last value successfully persisted via the PUT API. Used to skip
-  /// redundant PUTs when the value hasn't actually changed.
-  int? _lastSavedAmount;
-
-  /// Debounce so we don't PUT on every keystroke.
-  Timer? _amountDebounce;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // Start blank — values populate from `/userDefaultSettings/list`.
     _maxDefaultAmountController = TextEditingController();
     _defaultAmountController = TextEditingController();
-    _defaultAmountController.addListener(_onDefaultAmountChanged);
     _fetchSettings();
   }
 
   @override
   void dispose() {
-    _amountDebounce?.cancel();
-    _defaultAmountController.removeListener(_onDefaultAmountChanged);
     _maxDefaultAmountController.dispose();
     _defaultAmountController.dispose();
     super.dispose();
@@ -63,110 +50,55 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     setState(() => _isLoading = false);
   }
 
-  /// Refetch silently after a successful PUT — does NOT toggle the spinner.
-  /// Confirms the backend's persisted state without disrupting the user's
-  /// view of the form.
-  Future<void> _silentRefetch() async {
-    if (!mounted) return;
-    final settings = await DefaultSettingsService.getSettings();
-    if (!mounted) return;
-    _populateFromSettings(settings);
-  }
-
-  /// Push the fetched settings into the controllers without triggering the
-  /// `_onDefaultAmountChanged` listener (which would otherwise schedule a
-  /// redundant PUT on a backend-side text update).
   void _populateFromSettings(DefaultSettingsModel? settings) {
     if (settings == null) return;
-    _defaultAmountController.removeListener(_onDefaultAmountChanged);
-
-    final newMax = settings.maxDefaultAmount.toString();
-    if (_maxDefaultAmountController.text != newMax) {
-      _maxDefaultAmountController.text = newMax;
-    }
-    final newMin = settings.minDefaultAmount.toString();
-    if (_defaultAmountController.text != newMin) {
-      _defaultAmountController.text = newMin;
-    }
-    _lastSavedAmount = settings.minDefaultAmount;
-
-    // Sync the global provider so HomeScreen's swipe uses this value.
-    final provider = context.read<DefaultAmountProvider>();
-    provider.setDefaultAmount(settings.minDefaultAmount);
-
-    _defaultAmountController.addListener(_onDefaultAmountChanged);
+    _maxDefaultAmountController.text = settings.maxDefaultAmount.toString();
+    _defaultAmountController.text = settings.minDefaultAmount.toString();
+    context
+        .read<DefaultAmountProvider>()
+        .setDefaultAmount(settings.minDefaultAmount);
   }
 
-  void _onDefaultAmountChanged() {
-    if (!mounted) return;
+  Future<void> _onSavePressed() async {
+    if (_isSaving) return;
+    FocusScope.of(context).unfocus();
+
     final defaultVal =
         int.tryParse(_defaultAmountController.text.trim()) ?? 0;
-    final maxVal =
-        int.tryParse(_maxDefaultAmountController.text.trim()) ?? 0;
+    final maxVal = int.tryParse(_maxDefaultAmountController.text.trim()) ?? 0;
 
-    // 1. Validate: default must not exceed max (max is admin-controlled).
-    if (defaultVal > maxVal && maxVal > 0) {
-      _amountDebounce?.cancel();
-      if (_exceedSnackbarShown) return;
-      _exceedSnackbarShown = true;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            "Cannot set default amount greater than max value",
-          ),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(12.w),
-        ),
-      );
-      return;
-    }
-    _exceedSnackbarShown = false;
-
-    // 2. Skip PUT for clearly-invalid input (empty / zero).
     if (defaultVal <= 0) {
-      _amountDebounce?.cancel();
+      _showSnack("Please enter a valid default amount");
+      return;
+    }
+    if (maxVal > 0 && defaultVal > maxVal) {
+      _showSnack("Cannot set default amount greater than max value");
       return;
     }
 
-    // 3. Skip PUT if value hasn't actually changed since last save.
-    if (defaultVal == _lastSavedAmount) {
-      _amountDebounce?.cancel();
-      return;
-    }
+    setState(() => _isSaving = true);
+    final ok = await DefaultSettingsService.updateDefaultAmount(defaultVal);
+    if (!mounted) return;
+    setState(() => _isSaving = false);
 
-    // 4. Debounce 800ms then save → refetch.
-    _amountDebounce?.cancel();
-    _amountDebounce = Timer(
-      const Duration(milliseconds: 800),
-      () => _saveDefaultAmount(defaultVal),
-    );
+    if (ok) {
+      context.read<DefaultAmountProvider>().setDefaultAmount(defaultVal);
+      _showSnack("Default amount updated");
+    } else {
+      _showSnack("Failed to save default amount");
+    }
   }
 
-  Future<void> _saveDefaultAmount(int amount) async {
-    if (!mounted) return;
-    final ok = await DefaultSettingsService.updateDefaultAmount(amount);
-    if (!mounted) return;
-    if (ok) {
-      _lastSavedAmount = amount;
-      // Refetch silently to confirm the backend's persisted state.
-      final provider = context.read<DefaultAmountProvider>();
-      provider.setDefaultAmount(amount);
-      debugPrint("✅ Provider updated to: $amount");
-
-      // await _silentRefetch();
-    } else {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Failed to save default amount"),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(12.w),
-        ),
-      );
-    }
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(12.w),
+      ),
+    );
   }
 
   @override
@@ -179,15 +111,13 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 8.w),
-                child: Column(
-                  children: [
-                    SizedBox(height: 20.h),
-                    Expanded(
-                      child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
-                          : RefreshIndicator(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: [
+                          SizedBox(height: 20.h),
+                          Expanded(
+                            child: RefreshIndicator(
                               onRefresh: _fetchSettings,
                               child: ListView(
                                 children: [
@@ -206,7 +136,8 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
                                         title: "Default Amount",
                                         subtitle:
                                             "Pre-filled amount when starting a new trade",
-                                        controller: _defaultAmountController,
+                                        controller:
+                                            _defaultAmountController,
                                         enabled: true,
                                       ),
                                     ],
@@ -214,9 +145,16 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
                                 ],
                               ),
                             ),
-                    ),
-                  ],
-                ),
+                          ),
+                          SizedBox(height: 12.h),
+                          Button(
+                            title: "Save",
+                            isLoading: _isSaving,
+                            onPressed: _onSavePressed,
+                          ),
+                          SizedBox(height: 8.h),
+                        ],
+                      ),
               ),
             ),
           ],
@@ -238,7 +176,6 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
         children: [
           Text(
             title,
-            // Same SFProRounded family as the sheet header.
             style: AppTextStyle.heading.copyWith(
               fontSize: 16.sp,
               fontWeight: FontWeight.w700,
