@@ -47,7 +47,6 @@ class DefaultSettingsService {
         debugPrint("❌ DefaultSettings GET (server status=false): $msg");
         return null;
       }
-
       debugPrint(
           "❌ DefaultSettings GET failed (HTTP ${response.statusCode}): ${response.data}");
       return null;

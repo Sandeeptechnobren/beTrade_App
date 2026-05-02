@@ -127,7 +127,7 @@ class _NotificationPreferencesPageState
             Expanded(
               child: Padding(
                 // padding: 8px (Figma)
-                padding: EdgeInsets.all(8.w),
+                padding: EdgeInsets.all(12.w),
                 child: Column(
                   children: [
                     SizedBox(height: 12.h),

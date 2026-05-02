@@ -27,6 +27,9 @@ class ApiEndpoints {
   static String tradeList(int page) =>
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
 
+  static String tradeQuote(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/quote';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';

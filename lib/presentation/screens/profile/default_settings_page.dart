@@ -4,8 +4,11 @@ import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:http/http.dart';
+import 'package:provider/provider.dart';
 
 import '../../../data/model/default_settings_model.dart';
+import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/services/default_settings_service.dart';
 import '../../widget/common_header.dart';
 
@@ -14,7 +17,6 @@ class DefaultSettingsPage extends StatefulWidget {
     super.key,
     required ScrollController scrollController,
   });
-
   @override
   State<DefaultSettingsPage> createState() => _DefaultSettingsPageState();
 }
@@ -88,6 +90,10 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     }
     _lastSavedAmount = settings.minDefaultAmount;
 
+    // Sync the global provider so HomeScreen's swipe uses this value.
+    final provider = context.read<DefaultAmountProvider>();
+    provider.setDefaultAmount(settings.minDefaultAmount);
+
     _defaultAmountController.addListener(_onDefaultAmountChanged);
   }
 
@@ -145,7 +151,11 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     if (ok) {
       _lastSavedAmount = amount;
       // Refetch silently to confirm the backend's persisted state.
-      await _silentRefetch();
+      final provider = context.read<DefaultAmountProvider>();
+      provider.setDefaultAmount(amount);
+      debugPrint("✅ Provider updated to: $amount");
+
+      // await _silentRefetch();
     } else {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +178,7 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
             const CommonHeader(title: "Default Settings"),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(8.w, 0, 8.w, 8.w),
+                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 8.w),
                 child: Column(
                   children: [
                     SizedBox(height: 20.h),

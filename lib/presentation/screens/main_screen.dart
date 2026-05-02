@@ -58,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _startTokenChecker() {
-    _tokenTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _tokenTimer = Timer.periodic(const Duration(seconds: 300), (timer) async {
       try {
         final token = LocalStorage.getToken();
         if (token == null || token.isEmpty) return;

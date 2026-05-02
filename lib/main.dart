@@ -1,4 +1,5 @@
 import 'package:betrade/data/provider/category_provider.dart';
+import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
@@ -68,6 +69,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TradeProvider()),
         ChangeNotifierProvider(create: (_) => ExploreProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => DefaultAmountProvider()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
