@@ -1,16 +1,3 @@
-/// DTO for the `userDefaultSettings/list` response.
-///
-/// Backend shape:
-/// ```
-/// {
-///   "user_id": 14,
-///   "min_default_amount": 100,
-///   "max_default_amount": 1000
-/// }
-/// ```
-///
-/// `min_default_amount` is the user's pre-fill / "Default Amount".
-/// `max_default_amount` is the upper limit (displayed disabled in the UI).
 class DefaultSettingsModel {
   final int? userId;
   final int minDefaultAmount;
@@ -25,7 +12,7 @@ class DefaultSettingsModel {
   factory DefaultSettingsModel.fromJson(Map<String, dynamic> json) {
     return DefaultSettingsModel(
       userId: _parseIntOrNull(json['user_id']),
-      minDefaultAmount: _parseInt(json['min_default_amount'], 100),
+      minDefaultAmount: _parseInt(json['default_amount'], 100),
       maxDefaultAmount: _parseInt(json['max_default_amount'], 1000),
     );
   }
@@ -33,7 +20,11 @@ class DefaultSettingsModel {
   static int _parseInt(dynamic v, int fallback) {
     if (v is int) return v;
     if (v is num) return v.toInt();
-    if (v is String) return int.tryParse(v) ?? fallback;
+    if (v is String) {
+      // Backend may send "60.00" (decimal string). int.tryParse rejects
+      // those; route through num.tryParse so "60.00" → 60.0 → 60.
+      return num.tryParse(v)?.toInt() ?? fallback;
+    }
     return fallback;
   }
 

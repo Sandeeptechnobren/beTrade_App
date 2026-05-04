@@ -67,7 +67,7 @@ class CategoryProvider extends ChangeNotifier {
       if (_isDisposed) return;
 
       // ✅ Null safety
-      _categories = result ?? [];
+      _categories = result;
 
       // ✅ Error message update
       if (_categories.isEmpty && !_isDisposed) {

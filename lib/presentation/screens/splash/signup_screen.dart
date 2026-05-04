@@ -7,7 +7,7 @@ import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_prof
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/animations/success_animation.dart';
-import '../../../data/provider/signUp_provider.dart';
+import '../../../data/provider/signup_provider.dart';
 import '../../auth/auth_screen.dart';
 
 class SignupScreen extends StatefulWidget {

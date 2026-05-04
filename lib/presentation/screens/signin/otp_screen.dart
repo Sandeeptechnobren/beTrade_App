@@ -6,7 +6,7 @@
 // import 'package:provider/provider.dart';
 // import '../../../core/theme/app_colors.dart';
 // import '../../../core/theme/app_text_style.dart';
-// import '../../../data/provider/signIn_provider.dart';
+// import '../../../data/provider/signin_provider.dart';
 //
 // class OTPScreen extends StatefulWidget {
 //   final String phone;
@@ -390,7 +390,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
-import '../../../data/provider/signIn_provider.dart';
+import '../../../data/provider/signin_provider.dart';
 import '../../../data/services/local_storage.dart';
 
 class OTPScreen extends StatefulWidget {

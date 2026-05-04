@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/provider/theam_provider.dart';
+import '../../../data/provider/theme_provider.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
@@ -71,7 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           final profile = provider.profile;
-          print("EMAIL: ${profile?.email}");
+          // print("EMAIL: ${profile?.email}");
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(

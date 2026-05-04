@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/utils/validators/phone_number_validator.dart';
 import '../../../../data/model/country_model.dart';
 import '../../../../data/provider/country_provider.dart';
-import '../../../../data/provider/signUp_provider.dart';
+import '../../../../data/provider/signup_provider.dart';
 import '../../../widget/country_picker.dart';
 
 class StepPhone extends StatefulWidget {

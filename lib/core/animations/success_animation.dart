@@ -324,7 +324,8 @@ class _SuccessScreenState extends State<SuccessScreen>
                 ),
               ),
             );
-          }).toList(),
+          }),
+              // .toList(),
 
           /// EMOJI + TEXT
           Center(

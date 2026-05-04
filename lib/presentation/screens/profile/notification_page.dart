@@ -3,8 +3,8 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../data/model/notification_preferences_model.dart';
-import '../../../data/services/notification_service.dart';
+import '../../../data/model/profile_notification_preferences_model.dart';
+import '../../../data/services/profile_notification_service.dart';
 import '../../widget/common_header.dart';
 
 class NotificationPreferencesPage extends StatefulWidget {
