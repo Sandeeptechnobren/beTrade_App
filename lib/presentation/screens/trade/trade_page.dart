@@ -2,6 +2,7 @@ import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../data/services/trade_details_service.dart';
+import '../../widget/buy_bottom_sheet.dart';
 import '../../widget/common_header.dart';
 
 class TradePage extends StatefulWidget {
@@ -65,6 +66,38 @@ class _TradePageState extends State<TradePage> {
 
   double get profit => payout - amount;
 
+  /// Show the confirm-and-buy bottom sheet for the current
+  /// (outcome, amount). Refreshes trade detail on success so the
+  /// price ticker, total volume etc. update with the user's own fill.
+  Future<void> _openBuySheet(BuildContext context) async {
+    // Capture the messenger BEFORE the await so we don't use
+    // BuildContext across an async gap (lint: use_build_context_synchronously).
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (_) => BuyBottomSheet(
+        marketUuid: widget.tradeUuid,
+        outcomeSlug: isYesSelected ? 'yes' : 'no',
+        costGhs: amount,
+        marketTitle: tradeData?['title']?.toString(),
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Refresh detail so the new price + volume reflect this fill.
+      fetchTradeDetail();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Order filled.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -86,7 +119,7 @@ class _TradePageState extends State<TradePage> {
         child: SizedBox(
           height: 55.h,
           child: ElevatedButton(
-            onPressed: isEnabled ? () {} : null,
+            onPressed: isEnabled ? () => _openBuySheet(context) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: isEnabled
                   ? (isYesSelected ? const Color(0xff1B5E20) : Colors.red)
