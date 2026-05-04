@@ -45,7 +45,8 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    _docUploadStatus = widget.docUploadStatus;
+    final stored = LocalStorage.getDocUploadStatus();
+    _docUploadStatus = stored ?? widget.docUploadStatus;
     _startTokenChecker();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -54,7 +55,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _startTokenChecker() {
-    _tokenTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _tokenTimer = Timer.periodic(const Duration(seconds: 300), (timer) async {
       try {
         final token = LocalStorage.getToken();
         if (token == null || token.isEmpty) return;

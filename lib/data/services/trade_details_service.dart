@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import 'local_storage.dart';
 
@@ -6,8 +7,7 @@ class TradeDetailService {
   static Future<Map<String, dynamic>?> getTradeDetail(String uuid) async {
     try {
       String? token = LocalStorage.getToken();
-      final url =
-          "https://api.buildacademy.io/projects/betrade/public/api/trade/view/$uuid";
+      final url = ApiEndpoints.tradeView(uuid);
       print(" API HIT: $url");
       final response = await DioClient.instance.get(
         url,

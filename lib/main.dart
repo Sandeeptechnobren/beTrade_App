@@ -1,4 +1,5 @@
 import 'package:betrade/data/provider/category_provider.dart';
+import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
@@ -17,34 +18,30 @@ import 'data/provider/theam_provider.dart';
 import 'data/services/local_storage.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint("Flutter Error: ${details.exception}");
-  };
-  try {
-    await LocalStorage.init();
-    debugPrint("LocalStorage initialized");
-  } catch (e) {
-    debugPrint(" LocalStorage Error: $e");
-  }
-  try {
-    await dotenv.load(fileName: ".env");
-    if (dotenv.env['API_BASE_URL'] == null) {
-      debugPrint("API_BASE_URL missing, using default");
-      // Note: dotenv.env is read-only, create a config class instead
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint("Flutter Error: ${details.exception}");
+    };
+    try {
+      await LocalStorage.init();
+      debugPrint("LocalStorage initialized");
+    } catch (e) {
+      debugPrint(" LocalStorage Error: $e");
     }
-  } catch (e) {
-    debugPrint("ENV Load Error: $e");
-    // Set fallback in a separate config
-  }
-  // Orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  // Step 4: NOW start the app (ALL dependencies ready)
-  runZonedGuarded(() {
+    try {
+      await dotenv.load(fileName: ".env");
+      if (dotenv.env['API_BASE_URL'] == null) {
+        debugPrint("API_BASE_URL missing, using default");
+      }
+    } catch (e) {
+      debugPrint("ENV Load Error: $e");
+    }
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     runApp(const MyApp());
   }, (error, stack) {
     debugPrint(" Async Error: $error");
@@ -68,6 +65,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TradeProvider()),
         ChangeNotifierProvider(create: (_) => ExploreProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => DefaultAmountProvider()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),

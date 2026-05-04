@@ -1,4 +1,5 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/data/services/home_service.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -8,9 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
+import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
+import '../../widget/purple_button.dart';
 import '../trade/trade_page.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -62,6 +65,10 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       context.read<CategoryProvider>().fetchCategories();
       context.read<TradeProvider>().fetchTrades();
+      // Sync the user's default amount from `/userDefaultSettings/list` so
+      // the swipe action sends the correct cost_ghs even if the user
+      // hasn't opened Default Settings yet this session.
+      // context.read<DefaultAmountProvider>().loadFromBackend();
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -340,24 +347,461 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class PollCard extends StatelessWidget {
+class PollCard extends StatefulWidget {
   final TradeModel trade;
 
   const PollCard({super.key, required this.trade});
 
   @override
+  State<PollCard> createState() => _PollCardState();
+}
+
+class _PollCardState extends State<PollCard> {
+  bool isSending = false;
+  bool _isPlacingOrder = false;
+
+  Future<void> _handleSwipe(String outcome) async {
+    if (isSending) return;
+
+    setState(() => isSending = true);
+    final defaultAmount =
+        context.read<DefaultAmountProvider>().defaultAmount;
+
+    debugPrint("💰 Sending amount: $defaultAmount");
+
+    final response = await HomeService.getQuote(
+      uuid: widget.trade.uuid ?? "",
+      outcome: outcome,
+      amount: defaultAmount,
+    );
+
+    if (!mounted) return;
+    setState(() => isSending = false);
+
+    if (response == null) {
+      _showSnack("Something went wrong");
+      debugPrint("❌ Quote failed");
+      return;
+    }
+    debugPrint("✅ Quote received for $outcome");
+    if (response["status"] == false) {
+      if (response["code"] == "MARKET_CLOSED") {
+        _showSnack("Market is closed or already resolved");
+      } else {
+        _showSnack(response["message"] ?? "Error occurred");
+      }
+      return;
+    }
+
+
+    final data = response['data'];
+    if (data is Map) {
+      _showQuotePopup(Map<String, dynamic>.from(data), outcome);
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+  String _formatNum(dynamic v, int decimals) {
+    if (v is num) return v.toStringAsFixed(decimals);
+    return v?.toString() ?? '0';
+  }
+
+  Widget _quoteRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? AppColors.textPrimaryDynamic(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuotePopup(Map<String, dynamic> data, String outcome) {
+    if (!mounted) return;
+
+    final avg = (data['avg_price_per_share'] as num?)?.toDouble() ?? 0.0;
+    final newP = (data['new_price_after_fill'] as num?)?.toDouble() ?? 0.0;
+    final impactPct = avg > 0 ? ((newP - avg) / avg) * 100 : 0.0;
+    final sign = impactPct >= 0 ? '+' : '';
+    final priceImpact =
+        "${_formatNum(avg, 3)} → ${_formatNum(newP, 3)} "
+        "($sign${impactPct.toStringAsFixed(2)}%)";
+
+    final isYes = outcome.toLowerCase() == 'yes';
+    final outcomeColor = isYes ? Colors.green : Colors.red;
+    final costAmount = (data['cost_ghs'] as num?) ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          bool isPlacingOrder = _isPlacingOrder;
+
+          Future<void> onTradePressed() async {
+            if (isPlacingOrder) return;
+            setDialogState(() {
+              _isPlacingOrder = true;
+              isPlacingOrder = true;
+            });
+
+            // Capture the dialog navigator before any await so we don't
+            // touch the dialog's BuildContext after the gap.
+            final dialogNavigator = Navigator.of(ctx);
+
+            final response = await HomeService.buyTrade(
+              uuid: widget.trade.uuid ?? "",
+              outcome: outcome,
+              amount: costAmount,
+            );
+
+            _isPlacingOrder = false;
+            if (!mounted) return;
+
+            if (response == null) {
+              setDialogState(() => isPlacingOrder = false);
+              _showSnack("Trade failed — please try again");
+              return;
+            }
+            if (response['status'] != true) {
+              setDialogState(() => isPlacingOrder = false);
+              _showSnack(response['message']?.toString() ?? "Trade failed");
+              return;
+            }
+
+            // Success — close the quote dialog and open the confirmation.
+            dialogNavigator.pop();
+            final responseData = response['data'];
+            if (responseData is Map) {
+              _showTradeSuccessPopup(
+                Map<String, dynamic>.from(responseData),
+                outcome,
+              );
+            }
+          }
+
+          return Dialog(
+            backgroundColor: AppColors.cardBackgroundDynamic(context),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            insetPadding: EdgeInsets.all(20.w),
+            child: Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header — title + outcome chip
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Trade Quote",
+                        style: AppTextStyle.subHeading.copyWith(
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: outcomeColor,
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          outcome.toUpperCase(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Hero summary
+                  Text(
+                    "You'll receive ${_formatNum(data['shares'], 2)} shares",
+                    style: AppTextStyle.heading.copyWith(
+                      color: AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "at GH₵ ${_formatNum(data['avg_price_per_share'], 5)} / share",
+                    style: TextStyle(fontSize: 13.sp, color: Colors.grey),
+                  ),
+                  SizedBox(height: 16.h),
+                  Divider(color: Colors.grey.shade300, height: 1),
+                  SizedBox(height: 12.h),
+
+                  // Detail rows
+                  _quoteRow(
+                    "Amount paid",
+                    "GH₵ ${_formatNum(data['cost_ghs'], 2)}",
+                  ),
+                  _quoteRow(
+                    "Max payout",
+                    "GH₵ ${_formatNum(data['max_payout_ghs'], 2)}",
+                  ),
+                  _quoteRow(
+                    "Potential profit",
+                    "+GH₵ ${_formatNum(data['potential_profit_ghs'], 2)}",
+                    valueColor: Colors.green,
+                  ),
+                  _quoteRow(
+                    "Fee",
+                    "GH₵ ${_formatNum(data['fee_ghs'], 2)}",
+                  ),
+                  _quoteRow("Price impact", priceImpact),
+
+                  SizedBox(height: 20.h),
+
+                  Row(
+                    children: [
+                      /// CLOSE BUTTON
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isPlacingOrder
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            padding: EdgeInsets.symmetric(vertical: 15.h),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                              borderRadius: BorderRadius.circular(30.r),
+                            ),
+                          ),
+                          child: Text(
+                            "Close",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(width: 10.w),
+
+                      /// TRADE BUTTON
+                      Expanded(
+                        child: Button(
+                          title: 'Trade',
+                          isLoading: isPlacingOrder,
+                          onPressed: onTradePressed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showTradeSuccessPopup(Map<String, dynamic> data, String outcome) {
+    if (!mounted) return;
+
+    final order = (data['order'] is Map)
+        ? Map<String, dynamic>.from(data['order'])
+        : <String, dynamic>{};
+    final quote = (data['quote'] is Map)
+        ? Map<String, dynamic>.from(data['quote'])
+        : <String, dynamic>{};
+    final walletBalance = data['wallet_balance'];
+
+    final isYes = outcome.toLowerCase() == 'yes';
+    final outcomeColor = isYes ? Colors.green : Colors.red;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.cardBackgroundDynamic(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        insetPadding: EdgeInsets.all(20.w),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle,
+                          color: Colors.green, size: 22.sp),
+                      SizedBox(width: 8.w),
+                      Text(
+                        "Order Filled",
+                        style: AppTextStyle.subHeading.copyWith(
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: outcomeColor,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      outcome.toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+
+              // Hero summary — shares purchased
+              Text(
+                "You bought ${_formatNum(order['shares'] ?? quote['shares'], 2)} shares",
+                style: AppTextStyle.heading.copyWith(
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                "at GH₵ ${_formatNum(order['avg_fill_price'] ?? quote['avg_price_per_share'], 5)} / share",
+                style: TextStyle(fontSize: 13.sp, color: Colors.grey),
+              ),
+              SizedBox(height: 16.h),
+              Divider(color: Colors.grey.shade300, height: 1),
+              SizedBox(height: 12.h),
+
+              // Detail rows
+              _quoteRow(
+                "Amount paid",
+                "GH₵ ${_formatNum(order['total_cost_ghs'] ?? quote['cost_ghs'], 2)}",
+              ),
+              _quoteRow(
+                "Max payout",
+                "GH₵ ${_formatNum(quote['max_payout_ghs'], 2)}",
+              ),
+              _quoteRow(
+                "Potential profit",
+                "+GH₵ ${_formatNum(quote['potential_profit_ghs'], 2)}",
+                valueColor: Colors.green,
+              ),
+              _quoteRow(
+                "Fee",
+                "GH₵ ${_formatNum(order['fee_ghs'] ?? quote['fee_ghs'], 2)}",
+              ),
+              if (walletBalance != null)
+                _quoteRow(
+                  "Wallet balance",
+                  "GH₵ ${_formatNum(walletBalance, 2)}",
+                ),
+
+              SizedBox(height: 20.h),
+
+              /// CLOSE BUTTON (only)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 15.h),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                  ),
+                  child: Text(
+                    "Close",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final trade = widget.trade;
+
     return GestureDetector(
       onTap: () {
         debugPrint("CLICK UUID: ${trade.uuid}");
         CommonBottomSheet.open(
           context: context,
-          builder: (controller) =>
-              TradePage(scrollController: controller, tradeUuid: trade.uuid),
+          builder: (controller) => TradePage(
+            scrollController: controller,
+            tradeUuid: trade.uuid,
+          ),
         );
       },
-      child:
-      Container(
+
+      // 👇 SWIPE LOGIC HERE
+      onHorizontalDragEnd: (details) {
+        double velocity = details.primaryVelocity ?? 0;
+
+        if (velocity.abs() < 300) return;
+
+        if (velocity > 0) {
+          _handleSwipe("yes"); // 👉 RIGHT
+        } else {
+          _handleSwipe("no"); // 👈 LEFT
+        }
+      },
+
+      child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30.r),
@@ -375,28 +819,9 @@ class PollCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-
-                      return Container(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.grey.shade900,
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.grey.shade900,
-                      );
-                    },
                   ),
 
-                /// ✅ GRADIENT (ADAPTIVE)
+                /// Gradient
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -412,7 +837,7 @@ class PollCard extends StatelessWidget {
                   ),
                 ),
 
-                /// ✅ CATEGORY TAG
+                /// Bottom Content
                 Positioned(
                   top: 14.h,
                   left: 14.w,
@@ -478,112 +903,19 @@ class PollCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                /// 🔥 Optional: Loading Overlay
+                if (isSending)
+                  Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Colors.deepPurple,),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
       ),
-      // child:ClipRRect(
-      //   borderRadius: BorderRadius.circular(25.r),
-      //   child: Container(
-      //     height: 605.h,
-      //     margin: EdgeInsets.only(bottom: 10.h),
-      //     decoration: BoxDecoration(borderRadius: BorderRadius.circular(25.r)),
-      //     child: Stack(
-      //       children: [
-      //         if (trade.image != null && trade.image!.isNotEmpty)
-      //           ClipRRect(
-      //             borderRadius: BorderRadius.circular(0.r),
-      //             child: Image.network(
-      //               trade.image!,
-      //               height: double.infinity,
-      //               width: double.infinity,
-      //               fit: BoxFit.cover,
-      //               loadingBuilder: (context, child, loadingProgress) {
-      //                 if (loadingProgress == null) return child;
-      //                 return Container(
-      //                   color: Colors.grey.shade800,
-      //                   child: const Center(
-      //                     child: CircularProgressIndicator(),
-      //                   ),
-      //                 );
-      //               },
-      //               errorBuilder: (context, error, stackTrace) {
-      //                 debugPrint("❌ Image error: $error");
-      //                 return Container(color: Colors.grey.shade800);
-      //               },
-      //             ),
-      //           ),
-      //         Container(
-      //           decoration: BoxDecoration(
-      //             borderRadius: BorderRadius.circular(16.r),
-      //             gradient: LinearGradient(
-      //               begin: Alignment.topCenter,
-      //               end: Alignment.bottomCenter,
-      //               colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-      //             ),
-      //           ),
-      //         ),
-      //         Positioned(
-      //           top: 12.h,
-      //           left: 12.w,
-      //           child: Container(
-      //             height: 36.h,
-      //             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      //             decoration: BoxDecoration(
-      //               color: AppColors.whiteDynamic(context),
-      //               borderRadius: BorderRadius.circular(16.r),
-      //             ),
-      //             child: Center(
-      //               child: Text(
-      //                 trade.categoryName ?? "",
-      //                 style: AppTextStyle.small,
-      //               ),
-      //             ),
-      //           ),
-      //         ),
-      //         Positioned(
-      //           top: 12.h,
-      //           right: 12.w,
-      //           child: CommonShareButton(onTap: () {}),
-      //         ),
-      //         Positioned(
-      //           bottom: 12.h,
-      //           left: 12.w,
-      //           right: 12.w,
-      //           child: Column(
-      //             crossAxisAlignment: CrossAxisAlignment.start,
-      //             children: [
-      //               Row(
-      //                 children: [
-      //                   CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
-      //                   SizedBox(width: 4.w),
-      //                   Text(
-      //                     "3975 trades",
-      //                     style: TextStyle(color: Colors.white, fontSize: 12.sp),
-      //                   ),
-      //                 ],
-      //               ),
-      //               SizedBox(height: 6.h),
-      //               Text(
-      //                 trade.description ?? "",
-      //                 style: AppTextStyle.headingWhite,
-      //               ),
-      //               SizedBox(height: 10.h),
-      //               Row(
-      //                 children: [
-      //                   Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
-      //                   SizedBox(width: 10.w),
-      //                   Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
-      //                 ],
-      //               ),
-      //             ],
-      //           ),
-      //         ),
-      //       ],
-      //     ),
-      //   ),
-      // ),
     );
   }
 
@@ -650,3 +982,314 @@ class PollCard extends StatelessWidget {
     );
   }
 }
+
+// class PollCard extends StatelessWidget {
+//   final TradeModel trade;
+//
+//   const PollCard({super.key, required this.trade});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: () {
+//         debugPrint("CLICK UUID: ${trade.uuid}");
+//         CommonBottomSheet.open(
+//           context: context,
+//           builder: (controller) =>
+//               TradePage(scrollController: controller, tradeUuid: trade.uuid),
+//         );
+//       },
+//       child:
+//       Container(
+//         margin: EdgeInsets.only(bottom: 10.h),
+//         child: ClipRRect(
+//           borderRadius: BorderRadius.circular(30.r),
+//           child: Container(
+//             height: 605.h,
+//             color: Theme.of(context).brightness == Brightness.dark
+//                 ? Colors.black
+//                 : Colors.grey.shade900,
+//             child: Stack(
+//               fit: StackFit.expand,
+//               children: [
+//                 if (trade.image != null && trade.image!.isNotEmpty)
+//                   Image.network(
+//                     trade.image!,
+//                     fit: BoxFit.cover,
+//                     width: double.infinity,
+//                     height: double.infinity,
+//                     loadingBuilder: (context, child, progress) {
+//                       if (progress == null) return child;
+//
+//                       return Container(
+//                         color: Theme.of(context).brightness == Brightness.dark
+//                             ? Colors.black
+//                             : Colors.grey.shade900,
+//                         child: const Center(
+//                           child: CircularProgressIndicator(),
+//                         ),
+//                       );
+//                     },
+//                     errorBuilder: (context, error, stackTrace) {
+//                       return Container(
+//                         color: Theme.of(context).brightness == Brightness.dark
+//                             ? Colors.black
+//                             : Colors.grey.shade900,
+//                       );
+//                     },
+//                   ),
+//
+//                 /// ✅ GRADIENT (ADAPTIVE)
+//                 Container(
+//                   decoration: BoxDecoration(
+//                     gradient: LinearGradient(
+//                       begin: Alignment.topCenter,
+//                       end: Alignment.bottomCenter,
+//                       colors: [
+//                         Colors.transparent,
+//                         Theme.of(context).brightness == Brightness.dark
+//                             ? Colors.black.withOpacity(0.85)
+//                             : Colors.black.withOpacity(0.6), // light me halka
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//
+//                 /// ✅ CATEGORY TAG
+//                 Positioned(
+//                   top: 14.h,
+//                   left: 14.w,
+//                   child: Container(
+//                     height: 36.h,
+//                     padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+//                     decoration: BoxDecoration(
+//                       color: AppColors.whiteDynamic(context),
+//                       borderRadius: BorderRadius.circular(16.r),
+//                     ),
+//                     child: Center(
+//                       child: Text(
+//                         trade.categoryName ?? "",
+//                         style: AppTextStyle.small,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//                 Positioned(
+//                   top: 14.h,
+//                   right:14.w,
+//                   child: CommonShareButton(onTap: () {}),
+//                 ),
+//                 Positioned(
+//                   bottom: 12.h,
+//                   left: 12.w,
+//                   right: 12.w,
+//                   child: Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       Row(
+//                         children: [
+//                           CircleAvatar(
+//                             radius: 12.r,
+//                             backgroundColor: Colors.white,
+//                           ),
+//                           SizedBox(width: 4.w),
+//                           Text(
+//                             "3975 trades",
+//                             style: TextStyle(
+//                               color: Colors.white,
+//                               fontSize: 12.sp,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                       SizedBox(height: 6.h),
+//
+//                       Text(
+//                         trade.description ?? "",
+//                         style: AppTextStyle.headingWhite,
+//                       ),
+//
+//                       SizedBox(height: 10.h),
+//
+//                       Row(
+//                         children: [
+//                           Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+//                           SizedBox(width: 10.w),
+//                           Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+//                         ],
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ),
+//       ),
+//       // child:ClipRRect(
+//       //   borderRadius: BorderRadius.circular(25.r),
+//       //   child: Container(
+//       //     height: 605.h,
+//       //     margin: EdgeInsets.only(bottom: 10.h),
+//       //     decoration: BoxDecoration(borderRadius: BorderRadius.circular(25.r)),
+//       //     child: Stack(
+//       //       children: [
+//       //         if (trade.image != null && trade.image!.isNotEmpty)
+//       //           ClipRRect(
+//       //             borderRadius: BorderRadius.circular(0.r),
+//       //             child: Image.network(
+//       //               trade.image!,
+//       //               height: double.infinity,
+//       //               width: double.infinity,
+//       //               fit: BoxFit.cover,
+//       //               loadingBuilder: (context, child, loadingProgress) {
+//       //                 if (loadingProgress == null) return child;
+//       //                 return Container(
+//       //                   color: Colors.grey.shade800,
+//       //                   child: const Center(
+//       //                     child: CircularProgressIndicator(),
+//       //                   ),
+//       //                 );
+//       //               },
+//       //               errorBuilder: (context, error, stackTrace) {
+//       //                 debugPrint("❌ Image error: $error");
+//       //                 return Container(color: Colors.grey.shade800);
+//       //               },
+//       //             ),
+//       //           ),
+//       //         Container(
+//       //           decoration: BoxDecoration(
+//       //             borderRadius: BorderRadius.circular(16.r),
+//       //             gradient: LinearGradient(
+//       //               begin: Alignment.topCenter,
+//       //               end: Alignment.bottomCenter,
+//       //               colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+//       //             ),
+//       //           ),
+//       //         ),
+//       //         Positioned(
+//       //           top: 12.h,
+//       //           left: 12.w,
+//       //           child: Container(
+//       //             height: 36.h,
+//       //             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+//       //             decoration: BoxDecoration(
+//       //               color: AppColors.whiteDynamic(context),
+//       //               borderRadius: BorderRadius.circular(16.r),
+//       //             ),
+//       //             child: Center(
+//       //               child: Text(
+//       //                 trade.categoryName ?? "",
+//       //                 style: AppTextStyle.small,
+//       //               ),
+//       //             ),
+//       //           ),
+//       //         ),
+//       //         Positioned(
+//       //           top: 12.h,
+//       //           right: 12.w,
+//       //           child: CommonShareButton(onTap: () {}),
+//       //         ),
+//       //         Positioned(
+//       //           bottom: 12.h,
+//       //           left: 12.w,
+//       //           right: 12.w,
+//       //           child: Column(
+//       //             crossAxisAlignment: CrossAxisAlignment.start,
+//       //             children: [
+//       //               Row(
+//       //                 children: [
+//       //                   CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
+//       //                   SizedBox(width: 4.w),
+//       //                   Text(
+//       //                     "3975 trades",
+//       //                     style: TextStyle(color: Colors.white, fontSize: 12.sp),
+//       //                   ),
+//       //                 ],
+//       //               ),
+//       //               SizedBox(height: 6.h),
+//       //               Text(
+//       //                 trade.description ?? "",
+//       //                 style: AppTextStyle.headingWhite,
+//       //               ),
+//       //               SizedBox(height: 10.h),
+//       //               Row(
+//       //                 children: [
+//       //                   Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+//       //                   SizedBox(width: 10.w),
+//       //                   Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+//       //                 ],
+//       //               ),
+//       //             ],
+//       //           ),
+//       //         ),
+//       //       ],
+//       //     ),
+//       //   ),
+//       // ),
+//     );
+//   }
+//
+//   Widget _modernVoteBar(String label, int percent, Color color) {
+//     return Container(
+//       padding: EdgeInsets.all(14.w),
+//       decoration: BoxDecoration(
+//         borderRadius: BorderRadius.circular(20.r),
+//         gradient: const LinearGradient(
+//           colors: [Color(0xff2A2A2A), Color(0xff3A3A3A)],
+//           begin: Alignment.topLeft,
+//           end: Alignment.bottomRight,
+//         ),
+//       ),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Row(
+//             children: [
+//               Text(
+//                 label,
+//                 style: TextStyle(
+//                   color: color,
+//                   fontSize: 14.sp,
+//                   fontWeight: FontWeight.bold,
+//                 ),
+//               ),
+//               const Spacer(),
+//               Text(
+//                 "$percent%",
+//                 style: TextStyle(
+//                   color: Colors.white,
+//                   fontSize: 14.sp,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//               ),
+//             ],
+//           ),
+//           SizedBox(height: 10.h),
+//           ClipRRect(
+//             borderRadius: BorderRadius.circular(20.r),
+//             child: Stack(
+//               children: [
+//                 Container(
+//                   height: 10.h,
+//                   width: double.infinity,
+//                   color: Colors.white,
+//                 ),
+//                 FractionallySizedBox(
+//                   widthFactor: percent / 100,
+//                   child: Container(
+//                     height: 10.h,
+//                     decoration: BoxDecoration(
+//                       color: color,
+//                       borderRadius: BorderRadius.circular(20.r),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }

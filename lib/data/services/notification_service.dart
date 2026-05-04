@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/notification_preferences_model.dart';
 import 'local_storage.dart';
@@ -95,13 +95,11 @@ class NotificationService {
             "❌ NotificationPreferences PUT failed (server status=false): $msg");
         return false;
       }
-
       debugPrint(
           "❌ NotificationPreferences PUT failed (HTTP ${response.statusCode}): ${response.data}");
       return false;
     } on DioException catch (e) {
-      debugPrint(
-          "❌ NotificationPreferences PUT DioException: ${e.message}; "
+      debugPrint("❌ NotificationPreferences PUT DioException: ${e.message}; "
           "code=${e.response?.statusCode}; response=${e.response?.data}");
       return false;
     } catch (e, stack) {

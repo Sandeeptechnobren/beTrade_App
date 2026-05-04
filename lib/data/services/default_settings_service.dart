@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/default_settings_model.dart';
 import 'local_storage.dart';
@@ -31,8 +30,15 @@ class DefaultSettingsService {
       if (response.statusCode == 200) {
         final decoded = response.data;
         if (decoded is Map && decoded['status'] == true) {
-          final data = decoded['data'];
-          if (data is Map) {
+          final raw = decoded['data'];
+          // Backend returns either a single object or a one-element list.
+          Map? data;
+          if (raw is Map) {
+            data = raw;
+          } else if (raw is List && raw.isNotEmpty && raw.first is Map) {
+            data = raw.first as Map;
+          }
+          if (data != null) {
             final parsed = DefaultSettingsModel.fromJson(
               Map<String, dynamic>.from(data),
             );
@@ -40,7 +46,8 @@ class DefaultSettingsService {
                 "✅ DefaultSettings GET success: min=${parsed.minDefaultAmount}, max=${parsed.maxDefaultAmount}");
             return parsed;
           }
-          debugPrint("❌ DefaultSettings GET: 'data' is not a Map: $data");
+          debugPrint(
+              "❌ DefaultSettings GET: 'data' is not a Map or non-empty List: $raw");
           return null;
         }
         final msg = (decoded is Map ? decoded['message'] : null) ??
@@ -48,7 +55,6 @@ class DefaultSettingsService {
         debugPrint("❌ DefaultSettings GET (server status=false): $msg");
         return null;
       }
-
       debugPrint(
           "❌ DefaultSettings GET failed (HTTP ${response.statusCode}): ${response.data}");
       return null;
@@ -78,7 +84,7 @@ class DefaultSettingsService {
       }
 
       final response = await DioClient.instance.put(
-        ApiEndpoints.userDefaultSettingsList,
+        ApiEndpoints.updateUserDefaultSettingsList,
         data: {
           "min_default_amount": amount,
         },
@@ -101,8 +107,7 @@ class DefaultSettingsService {
         }
         final msg = (decoded is Map ? decoded['message'] : null) ??
             "unknown server error";
-        debugPrint(
-            "❌ DefaultSettings PUT failed (server status=false): $msg");
+        debugPrint("❌ DefaultSettings PUT failed (server status=false): $msg");
         return false;
       }
 
@@ -110,8 +115,7 @@ class DefaultSettingsService {
           "❌ DefaultSettings PUT failed (HTTP ${response.statusCode}): ${response.data}");
       return false;
     } on DioException catch (e) {
-      debugPrint(
-          "❌ DefaultSettings PUT DioException: ${e.message}; "
+      debugPrint("❌ DefaultSettings PUT DioException: ${e.message}; "
           "code=${e.response?.statusCode}; response=${e.response?.data}");
       return false;
     } catch (e, stack) {

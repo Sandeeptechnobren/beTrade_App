@@ -27,6 +27,15 @@ class ApiEndpoints {
   static String tradeList(int page) =>
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
 
+  static String tradeQuote(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/quote';
+
+  static String tradeBuy(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/buy';
+
+  static String tradeView(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/view/$uuid';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';
@@ -39,5 +48,8 @@ class ApiEndpoints {
       '${EnvConfig.baseUrl}/notificationPreferences';
 
   static String get userDefaultSettingsList =>
-      '${EnvConfig.baseUrl}/userDefaultSettings/list';
+      '${EnvConfig.baseUrl}/userDefaultSettings/index';
+
+  static String get updateUserDefaultSettingsList =>
+      '${EnvConfig.baseUrl}/userDefaultSettings/update';
 }

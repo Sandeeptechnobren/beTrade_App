@@ -22,26 +22,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "title": "Trade Real \nMoments",
       "desc":
-      "Back your beliefs in politics, sports and more. If outcomes are in your favor, you’ll earn 💰.",
+          "Back your beliefs in politics, sports and more. If outcomes are in your favor, you’ll earn 💰.",
       "image": "assets/images/person3.png",
       "button": "Next",
-      "emoji":"assets/images/Emoji3.png",
+      "emoji": "assets/images/Emoji3.png",
     },
     {
       "title": "Yes or No.\nThat’s it.",
       "desc":
-      "Think 🤔 it’ll happen? Buy Yes. Think it won’t? Buy No. Prices move based on what everyone believes.",
+          "Think 🤔 it’ll happen? Buy Yes. Think it won’t? Buy No. Prices move based on what everyone believes.",
       "image": "assets/images/person2.png",
       "button": "Next",
-    "emoji":"assets/images/IconLogo.png",
+      "emoji": "assets/images/IconLogo.png",
     },
     {
       "title": "Win Real\nRewards",
       "desc":
-      "If your prediction wins, you earn 1 per share. Start small — even 1 is enough 🤑.",
+          "If your prediction wins, you earn 1 per share. Start small — even 1 is enough 🤑.",
       "image": "assets/images/person1.png",
       "button": "Get Started",
-    "emoji":"assets/images/IconLogo.png",
+      "emoji": "assets/images/IconLogo.png",
     },
   ];
   void nextPage() async {
@@ -59,13 +59,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset("assets/images/backgroundthread.png", fit: BoxFit.cover,),
+            child: Image.asset(
+              "assets/images/backgroundthread.png",
+              fit: BoxFit.cover,
+            ),
           ),
           SafeArea(
             child: Column(
@@ -73,11 +77,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Padding(
                   padding: const EdgeInsets.all(15),
                   child: Row(
-                    children: List.generate(data.length, (index) => Expanded(
+                    children: List.generate(
+                      data.length,
+                      (index) => Expanded(
                         child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal:2),
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
                           height: 4,
-                          decoration: BoxDecoration(color: currentIndex == index ?AppColors.primary : Colors.grey,
+                          decoration: BoxDecoration(
+                            color: currentIndex == index
+                                ? AppColors.primary
+                                : Colors.grey,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -88,7 +97,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,
-                    onPageChanged: (index) {setState(() => currentIndex = index);},
+                    onPageChanged: (index) {
+                      setState(() => currentIndex = index);
+                    },
                     itemCount: data.length,
                     itemBuilder: (_, index) {
                       return OnboardingPage(
@@ -120,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             child: Text(
               data[currentIndex]["button"]!,
-              style:AppTextStyle.button,
+              style: AppTextStyle.button,
             ),
           ),
         ),

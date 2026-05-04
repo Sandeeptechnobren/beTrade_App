@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../core/config/api_endpoint..dart';
+import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
@@ -26,7 +26,7 @@ class _EditProfileState extends State<EditProfile> {
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
-  final emailController = TextEditingController();
+  // final emailController = TextEditingController();
 
   String gender = "male";
   File? selectedImage;
@@ -42,7 +42,7 @@ class _EditProfileState extends State<EditProfile> {
   String _originalFirstName = "";
   String _originalLastName = "";
   String _originalPhone = "";
-  String _originalEmail = "";
+  // String _originalEmail = "";
   String _originalGender = "male";
   String _originalCountryName = "";
   bool _hasChanges = false;
@@ -60,13 +60,13 @@ class _EditProfileState extends State<EditProfile> {
       firstNameController.text = profile.firstName;
       lastNameController.text = profile.lastName;
       phoneController.text = profile.phone ?? '';
-      emailController.text = profile.email ?? '';
+      // emailController.text = profile.email ?? '';
       gender = profile.gender ?? "male";
 
       _originalFirstName = profile.firstName;
       _originalLastName = profile.lastName;
       _originalPhone = profile.phone ?? '';
-      _originalEmail = profile.email ?? '';
+      // _originalEmail = profile.email ?? '';
       _originalGender = profile.gender ?? "male";
       _originalCountryName = profile.country ?? "";
     }
@@ -74,7 +74,7 @@ class _EditProfileState extends State<EditProfile> {
     firstNameController.addListener(_recomputeHasChanges);
     lastNameController.addListener(_recomputeHasChanges);
     phoneController.addListener(_recomputeHasChanges);
-    emailController.addListener(_recomputeHasChanges);
+    // emailController.addListener(_recomputeHasChanges);
 
     Future.microtask(() {
       loadAllData();
@@ -86,7 +86,7 @@ class _EditProfileState extends State<EditProfile> {
     final changed = firstNameController.text != _originalFirstName ||
         lastNameController.text != _originalLastName ||
         phoneController.text != _originalPhone ||
-        emailController.text != _originalEmail ||
+        // emailController.text != _originalEmail ||
         gender != _originalGender ||
         countryName != _originalCountryName ||
         selectedImage != null;
@@ -236,12 +236,12 @@ class _EditProfileState extends State<EditProfile> {
                               children: [
                                 _buildField("First Name", firstNameController),
                                 _buildField("Last Name", lastNameController),
-                                _buildField(
-                                  "Email",
-                                  emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-                                buildCountryDropdown(),
+                                // _buildField(
+                                //   "Email",
+                                //   emailController,
+                                //   keyboardType: TextInputType.emailAddress,
+                                // ),
+                                // buildCountryDropdown(),
                                 buildCurrencyDropdown(),
                                 buildLanguageDropdown(),
                               ],
@@ -268,9 +268,9 @@ class _EditProfileState extends State<EditProfile> {
                         firstName: firstNameController.text,
                         lastName: lastNameController.text,
                         phone: phoneController.text,
-                        email: emailController.text,
-                        gender: gender,
-                        country: selectedCountry?.name ?? "",
+                        // email: emailController.text,
+                        // gender: gender,
+                        // country: selectedCountry?.name ?? "",
                         image: selectedImage,
                       );
                       if (!mounted) return;
@@ -337,23 +337,21 @@ class _EditProfileState extends State<EditProfile> {
               items: countries.map((e) {
                 return DropdownMenuItem(
                   value: e,
-                  child:
-                  Row(
+                  child: Row(
                     children: [
                       e.flag != null && e.flag!.startsWith("http")
                           ? ClipOval(
-                        child: Image.network(
-                          e.flag!,
-                          width: 23.4.w,
-                          height: 23.4.h,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(Icons.flag, size: 16),
-                        ),
-                      )
+                              child: Image.network(
+                                e.flag!,
+                                width: 23.4.w,
+                                height: 23.4.h,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    Icon(Icons.flag, size: 16),
+                              ),
+                            )
                           : Icon(Icons.flag, size: 16),
-
                       SizedBox(width: 8),
-
                       Text(e.name ?? 'Unknown'),
                     ],
                   ),

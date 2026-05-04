@@ -2,7 +2,7 @@
 // import 'dart:convert';
 // import 'dart:io';
 // import 'package:http/http.dart' as http;
-// import '../../core/config/api_endpoint..dart';
+// import '../../core/config/api_endpoint.dart';
 // import '../model/profile_model.dart';
 // import 'local_storage.dart';
 //
@@ -76,7 +76,7 @@
 // }
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/profile_model.dart';
 import 'local_storage.dart';
@@ -177,9 +177,9 @@ class ProfileService {
     required String firstName,
     required String lastName,
     required String phone,
-    required String email,
-    required String gender,
-    required String country,
+    // required String email,
+    // required String gender,
+    // required String country,
     File? image,
   }) async {
     try {
@@ -197,18 +197,18 @@ class ProfileService {
         'first_name': firstName,
         'last_name': lastName,
         'phone': phone,
-        'email': email,
-        'gender': gender,
-        'country': country,
+        // 'email': email,
+        // 'gender': gender,
+        // 'country': country,
       };
 
       print(" Update Data:");
       print("   first_name: $firstName");
       print("   last_name: $lastName");
       print("   phone: $phone");
-      print("   email: $email");
-      print("   gender: $gender");
-      print("   country: $country");
+      // print("   email: $email");
+      // print("   gender: $gender");
+      // print("   country: $country");
 
       if (image != null) {
         print("📌 Image: ${image.path}");

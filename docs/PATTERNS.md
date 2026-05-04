@@ -19,7 +19,7 @@ The dominant pattern is a **service class with `static` methods** that bundle th
 ```dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../model/trade_model.dart';
 import 'local_storage.dart';
 
@@ -781,7 +781,7 @@ import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 ```dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../model/trade_model.dart';
 import 'local_storage.dart';
 ```

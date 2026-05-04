@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
 import 'local_storage.dart';
@@ -311,6 +311,11 @@ class AuthService {
           docUploadStatus = int.tryParse(rawStatus) ?? 0;
         } else if (rawStatus is bool) {
           docUploadStatus = rawStatus ? 1 : 0;
+        }
+
+        // Persist so the KYC banner survives app close/reopen.
+        if (isSuccess) {
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
         }
 
         return {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../core/theme/app_colors.dart';
 //
 // class Button extends StatelessWidget {
 //   final String title;
@@ -85,8 +87,8 @@ class Button extends StatelessWidget {
             borderRadius: BorderRadius.circular(25.r),
             color: isPrimary
                 ? ((onPressed == null || isLoading)
-                    ? const Color(0xFF7B2FF7).withOpacity(0.45)
-                    : const Color(0xFF7B2FF7))
+                    ? AppColors.primary.withOpacity(0.45)
+                    : AppColors.primary)
                 : Colors.grey.shade200,
             border: isPrimary ? null : Border.all(color: Colors.grey.shade400),
           ),
