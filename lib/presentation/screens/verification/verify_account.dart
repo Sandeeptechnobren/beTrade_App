@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../../core/config/api_endpoint..dart';
+import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
@@ -191,9 +191,15 @@ class _VerificationFlowState extends State<VerificationFlow> {
   }
 
   Future<void> submitKyc() async {
-    if (isSubmittingKyc || _isDisposed) return;
+    debugPrint("\n========== 🔵 SUBMIT KYC STARTED ==========");
+
+    if (isSubmittingKyc || _isDisposed) {
+      debugPrint("⏭️  Skipped: isSubmittingKyc=$isSubmittingKyc, _isDisposed=$_isDisposed");
+      return;
+    }
 
     if (frontImage == null || backImage == null || selfieImage == null) {
+      debugPrint("❌ Missing images — front=${frontImage != null}, back=${backImage != null}, selfie=${selfieImage != null}");
       _showError("Please upload all images");
       return;
     }
@@ -202,16 +208,23 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
     try {
       final token = LocalStorage.getToken();
+      debugPrint("📌 Token: ${token == null ? "❌ NULL" : "✅ length=${token.length}, prefix=${token.substring(0, token.length > 12 ? 12 : token.length)}…"}");
       if (token == null) {
         _showError("Authentication failed");
         return;
       }
+
+      debugPrint("📌 Source files:");
+      debugPrint("   front:  ${frontImage!.path}  (size=${await frontImage!.length()} bytes)");
+      debugPrint("   back:   ${backImage!.path}  (size=${await backImage!.length()} bytes)");
+      debugPrint("   selfie: ${selfieImage!.path}  (size=${await selfieImage!.length()} bytes)");
 
       final frontFile = await _safeMultipartFile('id_front', frontImage!);
       final backFile = await _safeMultipartFile('id_back', backImage!);
       final selfieFile = await _safeMultipartFile('selfie', selfieImage!);
 
       if (frontFile == null || backFile == null || selfieFile == null) {
+        debugPrint("❌ Multipart conversion failed — front=${frontFile != null}, back=${backFile != null}, selfie=${selfieFile != null}");
         _showError("Failed to prepare files. Please try again.");
         return;
       }
@@ -222,6 +235,16 @@ class _VerificationFlowState extends State<VerificationFlow> {
         'selfie': selfieFile,
       });
 
+      debugPrint("📌 URL: ${ApiEndpoints.kycSubmit}");
+      debugPrint("📌 Method: POST (multipart)");
+      debugPrint("📌 Form fields: ${formData.fields}");
+      debugPrint("📌 Form files (count=${formData.files.length}):");
+      for (final f in formData.files) {
+        debugPrint("   ${f.key} -> filename=${f.value.filename}, length=${f.value.length}, contentType=${f.value.contentType}");
+      }
+
+      debugPrint("⏱️  Sending request...");
+      final stopwatch = Stopwatch()..start();
       final response = await DioClient.multipartInstance.post(
         ApiEndpoints.kycSubmit,
         data: formData,
@@ -232,28 +255,60 @@ class _VerificationFlowState extends State<VerificationFlow> {
           },
         ),
       );
+      stopwatch.stop();
 
-      debugPrint("KYC RESPONSE: ${response.data}");
+      debugPrint("⏱️  Response received in ${stopwatch.elapsedMilliseconds} ms");
+      debugPrint("📌 Response status: ${response.statusCode}");
+      debugPrint("📌 Response headers: ${response.headers.map}");
+      debugPrint("📌 Response data type: ${response.data.runtimeType}");
+      debugPrint("📌 Response body: ${response.data}");
+
+      // Try to surface backend-reported doc_upload_status if it's in the response
+      if (response.data is Map) {
+        final m = response.data as Map;
+        debugPrint("🔍 status field:            ${m['status']}");
+        debugPrint("🔍 message field:           ${m['message']}");
+        debugPrint("🔍 doc_upload_status field: ${m['doc_upload_status']}");
+        if (m['data'] is Map) {
+          final d = m['data'] as Map;
+          debugPrint("🔍 data.doc_upload_status:  ${d['doc_upload_status']}");
+          debugPrint("🔍 data keys:               ${d.keys.toList()}");
+        }
+        if (m['user'] is Map) {
+          final u = m['user'] as Map;
+          debugPrint("🔍 user.doc_upload_status:  ${u['doc_upload_status']}");
+          debugPrint("🔍 user keys:               ${u.keys.toList()}");
+        }
+      }
 
       if (!_isDisposed && mounted) {
         if (response.statusCode == 200) {
-          // Persist the verified status so the KYC banner is hidden on the
-          // next MainScreen load (and across app close/reopen).
           await LocalStorage.setDocUploadStatus(1);
+          debugPrint("✅ Persisted doc_upload_status = 1 locally");
+          debugPrint("==========================================\n");
           _showSuccess("KYC submitted successfully!");
           _safeNavigateToHome();
         } else {
+          debugPrint("❌ Non-200 status, treating as failure");
+          debugPrint("==========================================\n");
           _showError("KYC submission failed. Please try again.");
         }
       }
     } on DioException catch (e) {
-      debugPrint(
-          "KYC DioException: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
+      debugPrint("❌ DioException type:    ${e.type}");
+      debugPrint("❌ DioException message: ${e.message}");
+      debugPrint("❌ Status code:          ${e.response?.statusCode}");
+      debugPrint("❌ Response headers:     ${e.response?.headers.map}");
+      debugPrint("❌ Response data:        ${e.response?.data}");
+      debugPrint("❌ Request path:         ${e.requestOptions.uri}");
+      debugPrint("==========================================\n");
       if (!_isDisposed && mounted) {
         _showError("An error occurred. Please try again.");
       }
-    } catch (e) {
-      debugPrint("KYC ERROR: $e");
+    } catch (e, stack) {
+      debugPrint("❌ Unexpected error: $e");
+      debugPrint("❌ Stack: $stack");
+      debugPrint("==========================================\n");
       if (!_isDisposed && mounted) {
         _showError("An error occurred. Please try again.");
       }
@@ -265,18 +320,30 @@ class _VerificationFlowState extends State<VerificationFlow> {
   }
 
   Future<void> submitStep1() async {
-    if (_isDisposed) return;
+    debugPrint("\n========== 🔵 SUBMIT STEP1 (preferences) ==========");
+    if (_isDisposed) {
+      debugPrint("⏭️  Skipped: _isDisposed=true");
+      return;
+    }
 
     try {
       final token = LocalStorage.getToken();
+      debugPrint("📌 Token: ${token == null ? "❌ NULL" : "✅ length=${token.length}"}");
       if (token == null) return;
 
-      await DioClient.instance.post(
+      final body = {
+        "country_id": selectedCountry?.id,
+        "preferred_language_id": language?.id,
+      };
+      debugPrint("📌 URL:    ${ApiEndpoints.preferences}");
+      debugPrint("📌 Method: POST");
+      debugPrint("📌 Body:   $body");
+      debugPrint("📌 selectedCountry: id=${selectedCountry?.id}, name=${selectedCountry?.name}, currency=${selectedCountry?.currency}");
+      debugPrint("📌 language:        id=${language?.id}, name=${language?.name}");
+
+      final response = await DioClient.instance.post(
         ApiEndpoints.preferences,
-        data: {
-          "country_id": selectedCountry?.id,
-          "preferred_language_id": language?.id,
-        },
+        data: body,
         options: Options(
           headers: {
             "Accept": "application/json",
@@ -286,11 +353,20 @@ class _VerificationFlowState extends State<VerificationFlow> {
           sendTimeout: const Duration(seconds: 30),
         ),
       );
+
+      debugPrint("📌 Response status: ${response.statusCode}");
+      debugPrint("📌 Response body:   ${response.data}");
+      debugPrint("====================================================\n");
     } on DioException catch (e) {
-      debugPrint(
-          "submitStep1 DioException: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
-    } catch (e) {
-      debugPrint("API Error: $e");
+      debugPrint("❌ submitStep1 DioException type:    ${e.type}");
+      debugPrint("❌ submitStep1 DioException message: ${e.message}");
+      debugPrint("❌ Status code:                      ${e.response?.statusCode}");
+      debugPrint("❌ Response data:                    ${e.response?.data}");
+      debugPrint("====================================================\n");
+    } catch (e, stack) {
+      debugPrint("❌ submitStep1 unexpected error: $e");
+      debugPrint("❌ Stack: $stack");
+      debugPrint("====================================================\n");
     }
   }
 
