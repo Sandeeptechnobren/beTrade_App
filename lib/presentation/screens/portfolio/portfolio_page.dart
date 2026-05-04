@@ -1,11 +1,14 @@
+import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
 import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart'
     hide DepositPage;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:betrade/presentation/widget/icon_container.dart';
 import 'package:betrade/presentation/widget/rounded_tab_indicator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
@@ -19,6 +22,18 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch real balance + transactions on first paint so the
+    // hardcoded `0.00` is replaced before the user sees it.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<WalletProvider>().fetchBalance();
+      context.read<WalletProvider>().fetchTransactions();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -99,23 +114,37 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                 ],
                               ),
                               SizedBox(height:0.h),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "0.00",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 30.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  Text(
-                                    "GHS",
-                                    style:TextStyle(fontFamily: "SFProRounded",fontSize: 14.sp,color: Colors.white,fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                              Consumer<WalletProvider>(
+                                builder: (context, wallet, _) {
+                                  final display = wallet.isLoadingBalance &&
+                                          wallet.balance == 0
+                                      ? '...'
+                                      : wallet.balance.toStringAsFixed(2);
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        display,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 30.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      Text(
+                                        wallet.currency,
+                                        style: TextStyle(
+                                          fontFamily: "SFProRounded",
+                                          fontSize: 14.sp,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                               SizedBox(height: 20.h),
                               Row(

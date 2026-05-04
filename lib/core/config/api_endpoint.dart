@@ -44,6 +44,21 @@ class ApiEndpoints {
   static String positionForMarket(String marketUuid) =>
       '${EnvConfig.baseUrl}/positions/$marketUuid';
 
+  static String get wallet => '${EnvConfig.baseUrl}/wallet';
+
+  static String walletTransactions({String? type, int page = 1}) {
+    final qp = <String, String>{'page': page.toString()};
+    if (type != null && type.isNotEmpty) qp['type'] = type;
+    final qs = qp.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '${EnvConfig.baseUrl}/wallet/transactions?$qs';
+  }
+
+  static String get walletDeposit => '${EnvConfig.baseUrl}/wallet/deposit';
+
+  static String get walletWithdraw => '${EnvConfig.baseUrl}/wallet/withdraw';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';
