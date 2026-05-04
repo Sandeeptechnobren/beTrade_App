@@ -36,6 +36,14 @@ class ApiEndpoints {
   static String tradeView(String uuid) =>
       '${EnvConfig.baseUrl}/trade/view/$uuid';
 
+  static String tradeChart(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/chart';
+
+  static String get positions => '${EnvConfig.baseUrl}/positions';
+
+  static String positionForMarket(String marketUuid) =>
+      '${EnvConfig.baseUrl}/positions/$marketUuid';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';
