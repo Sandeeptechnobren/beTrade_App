@@ -72,9 +72,21 @@ class _ProfilePageState extends State<ProfilePage> {
         builder: (context, provider, child) {
           final profile = provider.profile;
           // print("EMAIL: ${profile?.email}");
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
+          return RefreshIndicator(
+            color: AppColors.primary,
+            backgroundColor: AppColors.whiteDynamic(context),
+            onRefresh: () async {
+              await provider.fetchProfile();
+            },
+            child: SingleChildScrollView(
+              // AlwaysScrollable required for RefreshIndicator to fire
+              // even when content fits on one screen. Replaces the
+              // previous BouncingScrollPhysics (which doesn't support
+              // overscroll-triggered refresh).
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: Column(
               children: [
                 SizedBox(height: 20.h),
                 Container(
@@ -271,6 +283,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(height: 20.h),
               ],
+            ),
             ),
           );
         },
