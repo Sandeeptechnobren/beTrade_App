@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/default_settings_service.dart';
 
 class DefaultAmountProvider extends ChangeNotifier {
-  int _defaultAmount = 25;
+  late int  _defaultAmount;
   bool _hasLoaded = false;
 
   int get defaultAmount => _defaultAmount;
