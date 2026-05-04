@@ -1,7 +1,9 @@
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../data/provider/wallet_provider.dart';
 import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
 
@@ -172,16 +174,74 @@ class _DepositPageState extends State<WithdrawPage> {
             ),
           ),
         ),
-        _button("Confirm", () async {
-          final parentContext = context;
-          Navigator.pop(context);
-          await Future.delayed(const Duration(milliseconds: 200));
-          if (mounted) {
-            withdrawalSuccessDialog(parentContext);
-          }
-        }),
+        Consumer<WalletProvider>(
+          builder: (context, wallet, _) {
+            return _button(
+              wallet.isSubmittingWithdraw ? 'Submitting...' : 'Confirm',
+              wallet.isSubmittingWithdraw ? () {} : _submitWithdraw,
+            );
+          },
+        ),
       ],
     );
+  }
+
+  /// Submit the withdrawal intent via WalletProvider.
+  /// Backend locks the wallet, validates balance, debits immediately
+  /// (so no double-spend), creates a pending Transaction. We surface
+  /// INSUFFICIENT_FUNDS specifically since it's the most common error.
+  Future<void> _submitWithdraw() async {
+    final wallet = context.read<WalletProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final parentContext = context;
+
+    final amount = double.tryParse(amountController.text.trim()) ?? 0;
+    if (amount <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please enter an amount.')),
+      );
+      return;
+    }
+
+    // Build a destination string from the form fields. For card path,
+    // use the masked account number; for momo, use provider + phone.
+    String destination;
+    String? msisdn;
+    if (paymentMethod == 'card') {
+      final acct = accountNumberController.text.trim();
+      destination = acct.isEmpty ? 'card' : 'card:$acct';
+    } else {
+      msisdn = phone.text.trim();
+      final providerLabel = provider.isEmpty ? 'momo' : provider;
+      destination = msisdn.isEmpty
+          ? providerLabel
+          : '$providerLabel:$msisdn';
+    }
+
+    final ok = await wallet.submitWithdraw(
+      amountGhs: amount,
+      destination: destination,
+      msisdn: msisdn,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      Navigator.pop(context);
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      withdrawalSuccessDialog(parentContext);
+    } else {
+      // Show typed-error message; INSUFFICIENT_FUNDS is mapped by the
+      // backend to a user-readable string already.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
+          ),
+        ),
+      );
+    }
   }
 
   Widget cardUI() {
