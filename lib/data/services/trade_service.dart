@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/trade_model.dart';
 import 'local_storage.dart';

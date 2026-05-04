@@ -2,7 +2,7 @@
 // import 'dart:convert';
 // import 'dart:io';
 // import 'package:http/http.dart' as http;
-// import '../../core/config/api_endpoint..dart';
+// import '../../core/config/api_endpoint.dart';
 // import '../model/profile_model.dart';
 // import 'local_storage.dart';
 //
@@ -76,7 +76,7 @@
 // }
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/profile_model.dart';
 import 'local_storage.dart';

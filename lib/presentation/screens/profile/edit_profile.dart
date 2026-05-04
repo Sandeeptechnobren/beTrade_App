@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../core/config/api_endpoint..dart';
+import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';

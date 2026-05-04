@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import 'local_storage.dart';
 

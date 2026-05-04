@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/notification_preferences_model.dart';
 import 'local_storage.dart';

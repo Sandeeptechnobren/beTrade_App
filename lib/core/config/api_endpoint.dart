@@ -48,10 +48,8 @@ class ApiEndpoints {
       '${EnvConfig.baseUrl}/notificationPreferences';
 
   static String get userDefaultSettingsList =>
-      '${EnvConfig.baseUrl}/userDefaultSettings/list';
+      '${EnvConfig.baseUrl}/userDefaultSettings/index';
 
   static String get updateUserDefaultSettingsList =>
       '${EnvConfig.baseUrl}/userDefaultSettings/update';
-
-
 }
