@@ -39,15 +39,12 @@ class _MainScreenState extends State<MainScreen> {
   bool _isDialogShowing = false;
 
   int _docUploadStatus = 0;
+  bool _welcomeSkipped = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Prefer the persisted value (survives app close/reopen) over the
-    // widget param. The OTP flow saves doc_upload_status to LocalStorage
-    // on login; KYC submit saves 1 on completion. Splash auto-login
-    // therefore always reads the user's true KYC state from disk.
     final stored = LocalStorage.getDocUploadStatus();
     _docUploadStatus = stored ?? widget.docUploadStatus;
     _startTokenChecker();
@@ -286,11 +283,11 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
-    // No flag-tracking here anymore — the banner is driven directly by
-    // the persisted `_docUploadStatus`. Whether the user dismissed the
-    // popup via Skip, Verify-then-cancel, or back gesture is irrelevant:
-    // if they're still unverified, the banner stays visible (and
-    // continues to stay visible across app close/reopen via LocalStorage).
+    if (mounted && _docUploadStatus == 0) {
+      setState(() {
+        _welcomeSkipped = true;
+      });
+    }
   }
 
   @override
@@ -301,7 +298,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showKycBanner = _docUploadStatus == 0;
+    final showKycBanner = _welcomeSkipped && _docUploadStatus == 0;
 
     return Scaffold(
       body: IndexedStack(
