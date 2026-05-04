@@ -391,6 +391,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../data/provider/signIn_provider.dart';
+import '../../../data/services/local_storage.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phone;
@@ -522,6 +523,7 @@ class _OTPScreenState extends State<OTPScreen> {
       if (parsed['success'] == true) {
         final rawStatus = result['doc_upload_status'];
         final docUploadStatus = rawStatus is int ? rawStatus : 0;
+        await LocalStorage.setDocUploadStatus(docUploadStatus);
         _navigateToHome(docUploadStatus);
       } else {
         _showMessage(parsed['message']);

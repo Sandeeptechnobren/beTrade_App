@@ -19,6 +19,7 @@ class LocalStorage {
   }
   static Future clearToken() async {
     await _prefs.remove("token");
+    await _prefs.remove("doc_upload_status");
   }
   static Future setOnboardingDone() async {
     await _prefs.setBool("onboardingDone", true);
