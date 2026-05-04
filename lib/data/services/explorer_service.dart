@@ -39,6 +39,7 @@
 // }
 
 import 'package:dio/dio.dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/trade_model.dart';
 import 'local_storage.dart';
@@ -48,7 +49,7 @@ class ExploreService {
     try {
       String? token = LocalStorage.getToken();
       final response = await DioClient.instance.get(
-        "https://api.buildacademy.io/projects/betrade/public/api/trade/explore?search=$query",
+        ApiEndpoints.searchTrades(query),
         options: Options(
           headers: {
             "Authorization": "Bearer $token",

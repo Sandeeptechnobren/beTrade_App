@@ -33,6 +33,9 @@ class ApiEndpoints {
   static String tradeBuy(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/buy';
 
+  static String tradeView(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/view/$uuid';
+
   static String get languages => '${EnvConfig.baseUrl}/languages';
 
   static String get kycSubmit => '${EnvConfig.baseUrl}/kyc/submit';
@@ -49,4 +52,6 @@ class ApiEndpoints {
 
   static String get updateUserDefaultSettingsList =>
       '${EnvConfig.baseUrl}/userDefaultSettings/update';
+
+
 }
