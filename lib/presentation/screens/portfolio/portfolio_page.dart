@@ -1,4 +1,7 @@
+import 'package:betrade/data/model/position_model.dart';
+import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
+import 'package:betrade/presentation/screens/portfolio/position_detail_page.dart';
 import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
 import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart'
     hide DepositPage;
@@ -25,13 +28,25 @@ class _PortfolioPageState extends State<PortfolioPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch real balance + transactions on first paint so the
-    // hardcoded `0.00` is replaced before the user sees it.
+    // Fetch real balance + transactions + open positions on first
+    // paint. WalletProvider replaces the hardcoded "0.00" balance card,
+    // PositionsProvider populates the Open Positions list below.
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<WalletProvider>().fetchBalance();
       context.read<WalletProvider>().fetchTransactions();
+      context.read<PositionsProvider>().fetchOpenPositions();
     });
+  }
+
+  /// Pull-to-refresh handler — re-fetches both wallet + positions.
+  Future<void> _refreshAll() async {
+    final wallet = context.read<WalletProvider>();
+    final positions = context.read<PositionsProvider>();
+    await Future.wait([
+      wallet.fetchBalance(),
+      positions.fetchOpenPositions(),
+    ]);
   }
 
   @override
@@ -218,22 +233,195 @@ class _PortfolioPageState extends State<PortfolioPage> {
   }
 
   Widget _openPositions() {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Consumer<PositionsProvider>(
+      builder: (context, provider, _) {
+        // First load — show a spinner so users don't see the empty
+        // state flash before data arrives.
+        if (provider.isLoadingOpen && provider.openPositions.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (provider.openError != null && provider.openPositions.isEmpty) {
+          return _positionsErrorState(provider);
+        }
+        if (provider.openPositions.isEmpty) {
+          return _emptyOpenPositions();
+        }
+        return RefreshIndicator(
+          onRefresh: _refreshAll,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            itemCount: provider.openPositions.length,
+            separatorBuilder: (_, __) => SizedBox(height: 10.h),
+            itemBuilder: (_, i) => _positionCard(provider.openPositions[i]),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Single open position card — tap navigates to PositionDetailPage.
+  Widget _positionCard(PositionModel p) {
+    final isProfit = p.unrealisedPnlGhs >= 0;
+    final accent = p.isYes ? const Color(0xff1B5E20) : Colors.red;
+    final pnlColor = isProfit ? const Color(0xff1B5E20) : Colors.red;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14.r),
+      onTap: () {
+        if (p.marketUuid == null) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PositionDetailPage(
+              marketUuid: p.marketUuid!,
+              marketTitleHint: p.marketDescription,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: AppColors.inputFieldBgDynamic(context),
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title row: market description (truncated)
+            Text(
+              (p.marketDescription ?? '').isEmpty
+                  ? 'Market'
+                  : p.marketDescription!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            // Side chip + shares
+            Row(
+              children: [
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Text(
+                    p.isYes ? 'BUY YES' : 'BUY NO',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  '${p.shares.toStringAsFixed(2)} shares',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            // Avg / current price subtitle
+            Text(
+              'Avg ${p.avgCostGhs.toStringAsFixed(4)} · '
+              'Now ${p.currentPrice.toStringAsFixed(4)}',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            // Value + P&L row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Value ${p.marketValueGhs.toStringAsFixed(2)} GHS',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${isProfit ? '+' : ''}'
+                  '${p.unrealisedPnlGhs.toStringAsFixed(2)} GHS '
+                  '(${isProfit ? '+' : ''}'
+                  '${p.unrealisedPnlPct.toStringAsFixed(1)}%)',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                    color: pnlColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Empty state — same look as the previous placeholder but driven
+  /// by real data (only shown when /api/positions returns []).
+  Widget _emptyOpenPositions() {
+    return RefreshIndicator(
+      onRefresh: _refreshAll,
+      child: ListView(
         children: [
           SizedBox(height: 40.h),
           Image.asset("assets/images/no_open_position.png"),
           SizedBox(height: 12.h),
-          Text(
-            "No Open Positions",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+          Center(
+            child: Text(
+              "No Open Positions",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+            ),
           ),
           SizedBox(height: 6.h),
           Text(
             "When you trade on a market, your\nactive positions will appear here.",
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _positionsErrorState(PositionsProvider provider) {
+    return RefreshIndicator(
+      onRefresh: _refreshAll,
+      child: ListView(
+        children: [
+          SizedBox(height: 60.h),
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Column(
+                children: [
+                  Text(
+                    provider.openError ?? 'Could not load positions.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13.sp),
+                  ),
+                  SizedBox(height: 12.h),
+                  TextButton(
+                    onPressed: () => provider.fetchOpenPositions(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
