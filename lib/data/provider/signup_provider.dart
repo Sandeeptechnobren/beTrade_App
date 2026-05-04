@@ -144,12 +144,12 @@ class SignupProvider extends ChangeNotifier {
     try {
       // Verify file exists before proceeding
       if (!await profileImage!.exists()) {
-        print("❌ Profile image does not exist at path: ${profileImage!.path}");
+        debugPrint("❌ Profile image does not exist at path: ${profileImage!.path}");
         return false;
       }
 
-      print("✅ Profile image exists at: ${profileImage!.path}");
-      print("✅ File size: ${await profileImage!.length()} bytes");
+      debugPrint("✅ Profile image exists at: ${profileImage!.path}");
+      debugPrint("✅ File size: ${await profileImage!.length()} bytes");
 
       bool success = await _service.completeSignup(
         phone: phone,
@@ -162,7 +162,7 @@ class SignupProvider extends ChangeNotifier {
 
       return success;
     } catch (e) {
-      print("❌ Error in completeSignup: $e");
+      debugPrint("❌ Error in completeSignup: $e");
       return false;
     } finally {
       isLoading = false;

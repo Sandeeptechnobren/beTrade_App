@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:betrade/presentation/auth/auth_screen.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
@@ -16,13 +17,15 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_)  async{
       if (!mounted) return;
       precacheImage(const AssetImage("assets/images/splash.png"), context);
       precacheImage(const AssetImage("assets/images/IconLogo.png"), context);
       _navigateUser();
     });
   }
+
+
 
   Future<void> _navigateUser() async {
     await Future.delayed(const Duration(milliseconds: 300));

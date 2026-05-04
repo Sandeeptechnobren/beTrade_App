@@ -2,7 +2,7 @@ import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../../../data/provider/theam_provider.dart';
+import '../../../data/provider/theme_provider.dart';
 import 'auth_bottom_sheet.dart';
 
 class AuthScreen extends StatelessWidget {

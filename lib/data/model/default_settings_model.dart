@@ -1,16 +1,3 @@
-/// DTO for the `userDefaultSettings/list` response.
-///
-/// Backend shape:
-/// ```
-/// {
-///   "user_id": 14,
-///   "min_default_amount": 100,
-///   "max_default_amount": 1000
-/// }
-/// ```
-///
-/// `min_default_amount` is the user's pre-fill / "Default Amount".
-/// `max_default_amount` is the upper limit (displayed disabled in the UI).
 class DefaultSettingsModel {
   final int? userId;
   final int minDefaultAmount;

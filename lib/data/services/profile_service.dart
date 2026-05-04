@@ -74,14 +74,17 @@
 //     }
 //   }
 // }
+
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/profile_model.dart';
 import 'local_storage.dart';
 
 class ProfileService {
+
   static Future<ProfileModel?> getProfile() async {
     try {
       print("\n========== 🔵 GET PROFILE STARTED ==========");
@@ -106,69 +109,69 @@ class ProfileService {
         ),
       );
 
-      print("📌 Response Status Code: ${response.statusCode}");
-      print("📌 Response Body: ${response.data}");
+      debugPrint("📌 Response Status Code: ${response.statusCode}");
+      debugPrint("📌 Response Body: ${response.data}");
 
       if (response.statusCode == 200) {
         final dynamic raw = response.data;
         if (raw is! Map) {
-          print("❌ Response is not a Map");
+          debugPrint("❌ Response is not a Map");
           return null;
         }
         final Map<String, dynamic> data = Map<String, dynamic>.from(raw);
-        print("📌 Parsed JSON Keys: ${data.keys}");
+        debugPrint("📌 Parsed JSON Keys: ${data.keys}");
 
         ProfileModel? profile;
 
         // Check if response has 'data' key
         if (data.containsKey('data') && data['data'] != null) {
-          print("✅ Using data['data'] structure");
+          debugPrint("✅ Using data['data'] structure");
           profile = ProfileModel.fromJson(
               Map<String, dynamic>.from(data['data'] as Map));
         } else if (data.containsKey('user') && data['user'] != null) {
-          print("✅ Using data['user'] structure");
+          debugPrint("✅ Using data['user'] structure");
           profile = ProfileModel.fromJson(
               Map<String, dynamic>.from(data['user'] as Map));
         } else {
-          print("✅ Using direct data structure");
+          debugPrint("✅ Using direct data structure");
           profile = ProfileModel.fromJson(data);
         }
 
         if (profile != null) {
-          print("\n✅✅✅ PROFILE DATA SUCCESSFULLY LOADED ✅✅✅");
-          print("👤 First Name: '${profile.firstName}'");
-          print("👤 Last Name: '${profile.lastName}'");
-          print("🖼️ Avatar URL: '${profile.avatar}'");
-          print("📞 Phone: '${profile.phone}'");
-          print("⚧ Gender: '${profile.gender}'");
-          print("🌍 Country: '${profile.country}'");
-          print("💵 Currency: '${profile.currency}'");
-          print("🔤 Language: '${profile.language}'");
-          print("==========================================\n");
+          debugPrint("\n✅✅✅ PROFILE DATA SUCCESSFULLY LOADED ✅✅✅");
+          debugPrint("👤 First Name: '${profile.firstName}'");
+          debugPrint("👤 Last Name: '${profile.lastName}'");
+          debugPrint("🖼️ Avatar URL: '${profile.avatar}'");
+          debugPrint("📞 Phone: '${profile.phone}'");
+          debugPrint("⚧ Gender: '${profile.gender}'");
+          debugPrint("🌍 Country: '${profile.country}'");
+          debugPrint("💵 Currency: '${profile.currency}'");
+          debugPrint("🔤 Language: '${profile.language}'");
+          debugPrint("==========================================\n");
         } else {
-          print("❌ Profile is null after parsing!");
+          debugPrint("❌ Profile is null after parsing!");
         }
 
         return profile;
       } else {
-        print("❌ Unknown error! Status Code: ${response.statusCode}");
+        debugPrint("❌ Unknown error! Status Code: ${response.statusCode}");
         return null;
       }
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401) {
-        print("❌ Unauthorized! Token may be expired.");
-        print("🔄 Clearing token...");
+        debugPrint("❌ Unauthorized! Token may be expired.");
+        debugPrint("🔄 Clearing token...");
         await LocalStorage.clearToken();
       } else if (code == 404) {
-        print("❌ API Endpoint not found! Check URL: ${ApiEndpoints.profile}");
+        debugPrint("❌ API Endpoint not found! Check URL: ${ApiEndpoints.profile}");
       } else {
-        print(
+        debugPrint(
             "❌ DioException in getProfile: ${e.message}; code=$code; response=${e.response?.data}");
       }
       return null;
     } catch (e) {
-      print("❌ EXCEPTION in getProfile: $e");
+      debugPrint("❌ EXCEPTION in getProfile: $e");
       return null;
     }
   }
@@ -183,13 +186,13 @@ class ProfileService {
     File? image,
   }) async {
     try {
-      print("\n========== 🔵 UPDATE PROFILE STARTED ==========");
+      debugPrint("\n========== 🔵 UPDATE PROFILE STARTED ==========");
 
       String? token = LocalStorage.getToken();
-      print("📌 Token Status: ${token != null ? "✅ Present" : "❌ Missing"}");
+      debugPrint("📌 Token Status: ${token != null ? "✅ Present" : "❌ Missing"}");
 
       if (token == null || token.isEmpty) {
-        print("❌ No token found!");
+        debugPrint("❌ No token found!");
         return false;
       }
 
@@ -202,19 +205,19 @@ class ProfileService {
         // 'country': country,
       };
 
-      print(" Update Data:");
-      print("   first_name: $firstName");
-      print("   last_name: $lastName");
-      print("   phone: $phone");
+      debugPrint(" Update Data:");
+      debugPrint("   first_name: $firstName");
+      debugPrint("   last_name: $lastName");
+      debugPrint("   phone: $phone");
       // print("   email: $email");
       // print("   gender: $gender");
       // print("   country: $country");
 
       if (image != null) {
-        print("📌 Image: ${image.path}");
+        debugPrint("📌 Image: ${image.path}");
         fields['avatar'] = await MultipartFile.fromFile(image.path);
       } else {
-        print("📌 Image: Not changed");
+        debugPrint("📌 Image: Not changed");
       }
 
       final formData = FormData.fromMap(fields);
@@ -230,24 +233,24 @@ class ProfileService {
         ),
       );
 
-      print("📌 Response Status: ${response.statusCode}");
-      print("📌 Response Body: ${response.data}");
+      debugPrint("📌 Response Status: ${response.statusCode}");
+      debugPrint("📌 Response Body: ${response.data}");
 
       if (response.statusCode == 200) {
-        print("✅ Profile updated successfully!");
-        print("==========================================\n");
+        debugPrint("✅ Profile updated successfully!");
+        debugPrint("==========================================\n");
         return true;
       } else {
-        print("❌ Update failed! Status: ${response.statusCode}");
-        print("==========================================\n");
+        debugPrint("❌ Update failed! Status: ${response.statusCode}");
+        debugPrint("==========================================\n");
         return false;
       }
     } on DioException catch (e) {
-      print(
+      debugPrint(
           "❌ DioException in updateProfile: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
       return false;
     } catch (e) {
-      print("❌ EXCEPTION in updateProfile: $e");
+      debugPrint("❌ EXCEPTION in updateProfile: $e");
       return false;
     }
   }

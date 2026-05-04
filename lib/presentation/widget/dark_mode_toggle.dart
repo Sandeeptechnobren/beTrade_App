@@ -2,7 +2,7 @@
 // import 'package:flutter/material.dart';
 // import 'package:flutter_screenutil/flutter_screenutil.dart';
 // import 'package:provider/provider.dart';
-// import '../../data/provider/theam_provider.dart';
+// import '../../data/provider/theme_provider.dart';
 //
 // class DarkModeToggle extends StatelessWidget {
 //   final bool showText;
@@ -71,7 +71,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../../data/provider/theam_provider.dart';
+import '../../data/provider/theme_provider.dart';
 
 class DarkModeToggle extends StatelessWidget {
   final bool showText;

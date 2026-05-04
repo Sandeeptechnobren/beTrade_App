@@ -58,33 +58,33 @@ class ProfileProvider extends ChangeNotifier {
   String? errorMessage;
 
   Future<void> fetchProfile() async {
-    print("\n========== 🔵 FETCH PROFILE CALLED ==========");
+    debugPrint("\n========== 🔵 FETCH PROFILE CALLED ==========");
 
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
-    print("📌 Loading state: true");
+    debugPrint("📌 Loading state: true");
 
     final result = await ProfileService.getProfile();
 
     if (result != null) {
       profile = result;
       errorMessage = null;
-      print("✅ Profile saved to provider");
-      print("   Name: ${profile!.firstName} ${profile!.lastName}");
-      print("   Avatar: ${profile!.avatar}");
+      debugPrint("✅ Profile saved to provider");
+      debugPrint("   Name: ${profile!.firstName} ${profile!.lastName}");
+      debugPrint("   Avatar: ${profile!.avatar}");
     } else {
       profile = null;
       errorMessage = "Failed to load profile data";
-      print("❌ Failed to load profile - result is null");
+      debugPrint("❌ Failed to load profile - result is null");
     }
 
     isLoading = false;
     notifyListeners();
 
-    print("📌 Loading state: false");
-    print("========== 🔵 FETCH PROFILE COMPLETED ==========\n");
+    debugPrint("📌 Loading state: false");
+    debugPrint("========== 🔵 FETCH PROFILE COMPLETED ==========\n");
   }
 
   Future<bool> updateProfile({
@@ -96,7 +96,7 @@ class ProfileProvider extends ChangeNotifier {
     // required String country,
     File? image,
   }) async {
-    print("\n========== 🔵 UPDATE PROFILE CALLED ==========");
+    debugPrint("\n========== 🔵 UPDATE PROFILE CALLED ==========");
 
     isLoading = true;
     notifyListeners();
@@ -112,16 +112,16 @@ class ProfileProvider extends ChangeNotifier {
     );
 
     if (success) {
-      print("✅ Update successful, fetching fresh profile...");
+      debugPrint("✅ Update successful, fetching fresh profile...");
       await fetchProfile();
     } else {
-      print("❌ Update failed");
+      debugPrint("❌ Update failed");
     }
 
     isLoading = false;
     notifyListeners();
 
-    print("========== 🔵 UPDATE PROFILE COMPLETED ==========\n");
+    debugPrint("========== 🔵 UPDATE PROFILE COMPLETED ==========\n");
     return success;
   }
 
@@ -129,6 +129,6 @@ class ProfileProvider extends ChangeNotifier {
     profile = null;
     errorMessage = null;
     notifyListeners();
-    print("🔄 Profile cleared from provider");
+    debugPrint("🔄 Profile cleared from provider");
   }
 }

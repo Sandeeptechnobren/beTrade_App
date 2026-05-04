@@ -582,8 +582,8 @@ class CountryProvider with ChangeNotifier {
       _filtered = List.from(_countries);
     } else {
       _filtered = _countries.where((country) {
-        final name = country.name ?? '';
-        final code = country.phoneCode ?? '';
+        final name = country.name;
+        final code = country.phoneCode;
         return name.toLowerCase().contains(term.toLowerCase()) ||
             code.contains(term);
       }).toList();
