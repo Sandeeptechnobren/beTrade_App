@@ -61,6 +61,7 @@ class PositionsProvider extends ChangeNotifier {
 
     final detail = await PositionsService.getForMarket(marketUuid);
 
+
     if (detail != null) {
       _detailCache[marketUuid] = detail;
     } else {

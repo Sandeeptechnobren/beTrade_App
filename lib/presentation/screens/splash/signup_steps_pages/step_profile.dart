@@ -1857,45 +1857,47 @@ class _StepProfileState extends State<StepProfile> {
   Widget build(BuildContext context) {
     if (_isDisposed) return const SizedBox();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Add Profile Picture",
-          style: AppTextStyle.heading.copyWith(
-            color: AppColors.textPrimaryDynamic(context),
-          ),
-        ),
-        SizedBox(height: 20.h),
-        GestureDetector(
-          onTap: _openOptionsSheet,
-          child: Container(
-            height: 300.h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.inputFieldBgDynamic(context),
-              borderRadius: BorderRadius.circular(15.r),
-              border: Border.all(
-                color: AppColors.borderDynamic(context),
-              ),
-            ),
-            child: _selectedImage == null
-                ? Icon(
-              Icons.add_a_photo,
-              size: 40.sp,
-              color: AppColors.textSecondaryDynamic(context),
-            )
-                : ClipRRect(
-              borderRadius: BorderRadius.circular(15.r),
-              child: Image.file(
-                _selectedImage!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.error),
-              ),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Add Profile Picture",
+            style: AppTextStyle.heading.copyWith(
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ),
-        ),
-      ],
+          SizedBox(height: 20.h),
+          GestureDetector(
+            onTap: _openOptionsSheet,
+            child: Container(
+              height: 300.h,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.inputFieldBgDynamic(context),
+                borderRadius: BorderRadius.circular(15.r),
+                border: Border.all(
+                  color: AppColors.borderDynamic(context),
+                ),
+              ),
+              child: _selectedImage == null
+                  ? Icon(
+                Icons.add_a_photo,
+                size: 40.sp,
+                color: AppColors.textSecondaryDynamic(context),
+              )
+                  : ClipRRect(
+                borderRadius: BorderRadius.circular(15.r),
+                child: Image.file(
+                  _selectedImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.error),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

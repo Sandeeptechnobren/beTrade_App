@@ -58,8 +58,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
         body: SafeArea(
           child: Column(
             children: [
-              Expanded(
+              RefreshIndicator(
+                onRefresh: _refreshAll,
                 child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     child: Column(

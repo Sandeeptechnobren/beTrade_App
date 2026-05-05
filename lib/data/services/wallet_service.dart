@@ -27,9 +27,11 @@ class WalletService {
       if (response.statusCode == 200 && response.data is Map) {
         final body = response.data as Map;
         if (body['status'] == true && body['data'] is Map) {
+          print(response.data);
           return Map<String, dynamic>.from(body['data'] as Map);
         }
       }
+
       return null;
     } on DioException catch (e) {
       print('WalletService.getBalance DioException: ${e.message}; '

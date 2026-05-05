@@ -4,6 +4,7 @@ import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
+import 'package:betrade/presentation/screens/splash/signup_screen.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
