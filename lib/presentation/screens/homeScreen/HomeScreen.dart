@@ -1,8 +1,4 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/data/model/buy_response.dart';
-import 'package:betrade/data/model/quote_model.dart';
-import 'package:betrade/data/services/home_service.dart';
-import 'package:betrade/data/services/trade_buy_service.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -16,7 +12,6 @@ import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
-import '../../widget/purple_button.dart';
 import '../profile/default_settings_page.dart';
 import '../trade/trade_page.dart';
 
@@ -361,77 +356,24 @@ class PollCard extends StatefulWidget {
 }
 
 class _PollCardState extends State<PollCard> {
-  bool isSending = false;
-  bool _isPlacingOrder = false;
-  // Inline error shown inside the quote popup (instead of a snackbar)
-  // when the buy attempt is rejected by the backend. Reset on every
-  // dialog open and on every retry tap.
-  String? _buyError;
-
-  /// Map typed backend buy-error codes to human-readable text.
-  /// Mirrors `buy_bottom_sheet._formatError` so the swipe-buy path
-  /// surfaces the same wording as the tap-buy path.
-  String _formatBuyError(BuyResponse result) {
-    final code = result.code;
-    final message = result.message;
-    switch (code) {
-      case 'INSUFFICIENT_FUNDS':
-        return 'Not enough wallet balance. Top up to continue.';
-      case 'KYC_REQUIRED':
-        return 'KYC verification is required before you can trade.';
-      case 'MARKET_CLOSED':
-        return 'This market is closed or has been resolved.';
-      case 'BELOW_MIN_COST':
-        return 'Trade amount is below the minimum allowed.';
-      case 'ABOVE_MAX_COST':
-        return 'Trade amount exceeds the maximum allowed.';
-      case 'UNKNOWN_OUTCOME':
-        return 'Could not match the selected outcome. Please reopen the market.';
-      default:
-        return message ?? 'Trade failed. Please try again.';
-    }
+  /// Swipe and tap both open the same `TradePage` bottom sheet — the
+  /// popup-based swipe-quote flow has been removed in favor of one
+  /// consistent UX. The swipe direction is forwarded as the initial
+  /// outcome so the YES/NO toggle is pre-selected.
+  void _handleSwipe(String outcome) {
+    if (!_ensureReadyToTrade()) return;
+    _openTradeSheet(initialOutcome: outcome);
   }
 
-  Future<void> _handleSwipe(String outcome) async {
-    if (isSending) return;
-    if (!_ensureReadyToTrade()) return;
-    final defaultAmount =
-        context.read<DefaultAmountProvider>().defaultAmount;
-
-    setState(() => isSending = true);
-    debugPrint("💰 Sending amount: $defaultAmount");
-
-    final response = await HomeService.getQuote(
-      uuid: widget.trade.uuid ?? "",
-      outcome: outcome,
-      amount: defaultAmount,
+  void _openTradeSheet({String initialOutcome = 'yes'}) {
+    CommonBottomSheet.open(
+      context: context,
+      builder: (controller) => TradePage(
+        scrollController: controller,
+        tradeUuid: widget.trade.uuid ?? '',
+        initialOutcome: initialOutcome,
+      ),
     );
-
-    if (!mounted) return;
-    setState(() => isSending = false);
-
-    final message = response.message ?? "";
-    if (message.contains("greater than 0")) {
-      _showSnack("Default amount must be greater than 0");
-      return;
-    }
-
-    if (!response.success) {
-      if (response.code == "MARKET_CLOSED") {
-        _showSnack("Market is closed or already resolved");
-      } else {
-        _showSnack(response.message ?? "Error occurred");
-      }
-      return;
-    }
-
-    debugPrint("✅ Quote received for $outcome");
-    final quote = response.quote;
-    if (quote == null) {
-      _showSnack("Something went wrong");
-      return;
-    }
-    _showQuotePopup(quote, outcome);
   }
 
   void _showSnack(String message) {
@@ -460,384 +402,6 @@ class _PollCardState extends State<PollCard> {
     }
     return true;
   }
-  String _formatNum(dynamic v, int decimals) {
-    if (v is num) return v.toStringAsFixed(decimals);
-    return v?.toString() ?? '0';
-  }
-
-  Widget _quoteRow(String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showQuotePopup(QuoteModel quote, String outcome) {
-    if (!mounted) return;
-    // Reset inline error from any previous swipe so the dialog opens
-    // clean.
-    _buyError = null;
-
-    final avg = quote.avgPricePerShare;
-    final newP = quote.newPriceAfterFill;
-    final impactPct = avg > 0 ? ((newP - avg) / avg) * 100 : 0.0;
-    final sign = impactPct >= 0 ? '+' : '';
-    final priceImpact =
-        "${_formatNum(avg, 3)} → ${_formatNum(newP, 3)} "
-        "($sign${impactPct.toStringAsFixed(2)}%)";
-
-    final isYes = outcome.toLowerCase() == 'yes';
-    final outcomeColor = isYes ? Colors.green : Colors.red;
-    final costAmount = quote.costGhs;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          bool isPlacingOrder = _isPlacingOrder;
-
-          Future<void> onTradePressed() async {
-            if (isPlacingOrder) return;
-            setDialogState(() {
-              _isPlacingOrder = true;
-              isPlacingOrder = true;
-              _buyError = null; // clear any prior error on retry
-            });
-
-            // Capture the dialog navigator before any await so we don't
-            // touch the dialog's BuildContext after the gap.
-            final dialogNavigator = Navigator.of(ctx);
-
-            final response = await HomeService.buyTrade(
-              uuid: widget.trade.uuid ?? "",
-              outcome: outcome,
-              amount: costAmount,
-              idempotencyKey: TradeBuyService.generateIdempotencyKey(),
-            );
-
-            _isPlacingOrder = false;
-            if (!mounted) return;
-
-            if (!response.success) {
-              setDialogState(() {
-                isPlacingOrder = false;
-                _buyError = _formatBuyError(response);
-              });
-              return;
-            }
-
-            // Success — close the quote dialog and open the confirmation.
-            dialogNavigator.pop();
-            _showTradeSuccessPopup(response, outcome);
-          }
-
-          return Dialog(
-            backgroundColor: AppColors.cardBackgroundDynamic(context),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-            insetPadding: EdgeInsets.all(20.w),
-            child: Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header — title + outcome chip
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Trade Quote",
-                        style: AppTextStyle.subHeading.copyWith(
-                          color: AppColors.textPrimaryDynamic(context),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: outcomeColor,
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                          outcome.toUpperCase(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Hero summary
-                  Text(
-                    "You'll receive ${_formatNum(quote.shares, 2)} shares",
-                    style: AppTextStyle.heading.copyWith(
-                      color: AppColors.textPrimaryDynamic(context),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    "at GH₵ ${_formatNum(quote.avgPricePerShare, 5)} / share",
-                    style: TextStyle(fontSize: 13.sp, color: Colors.grey),
-                  ),
-                  SizedBox(height: 16.h),
-                  Divider(color: Colors.grey.shade300, height: 1),
-                  SizedBox(height: 12.h),
-
-                  // Detail rows
-                  _quoteRow(
-                    "Amount paid",
-                    "GH₵ ${_formatNum(quote.costGhs, 2)}",
-                  ),
-                  _quoteRow(
-                    "Max payout",
-                    "GH₵ ${_formatNum(quote.maxPayoutGhs, 2)}",
-                  ),
-                  _quoteRow(
-                    "Potential profit",
-                    "+GH₵ ${_formatNum(quote.potentialProfitGhs, 2)}",
-                    valueColor: Colors.green,
-                  ),
-                  _quoteRow(
-                    "Fee",
-                    "GH₵ ${_formatNum(quote.feeGhs, 2)}",
-                  ),
-                  _quoteRow("Price impact", priceImpact),
-
-                  // Inline error (replaces the previous snackbar) — shown
-                  // when the backend rejects the buy (insufficient funds,
-                  // market closed, KYC required, etc.).
-                  if (_buyError != null) ...[
-                    SizedBox(height: 12.h),
-                    Container(
-                      padding: EdgeInsets.all(12.w),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(color: Colors.red.shade300),
-                      ),
-                      child: Text(
-                        _buyError!,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: Colors.red.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  SizedBox(height: 20.h),
-
-                  Row(
-                    children: [
-                      /// CLOSE BUTTON
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: isPlacingOrder
-                              ? null
-                              : () => Navigator.pop(ctx),
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: 15.h),
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              side: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                              borderRadius: BorderRadius.circular(30.r),
-                            ),
-                          ),
-                          child: Text(
-                            "Close",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(width: 10.w),
-
-                      /// TRADE BUTTON
-                      Expanded(
-                        child: Button(
-                          title: 'Trade',
-                          isLoading: isPlacingOrder,
-                          onPressed: onTradePressed,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showTradeSuccessPopup(BuyResponse response, String outcome) {
-    if (!mounted) return;
-
-    final order = response.order;
-    final quote = response.quote;
-    final walletBalance = response.walletBalance;
-
-    final isYes = outcome.toLowerCase() == 'yes';
-    final outcomeColor = isYes ? Colors.green : Colors.red;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: AppColors.cardBackgroundDynamic(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        insetPadding: EdgeInsets.all(20.w),
-        child: Padding(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle,
-                          color: Colors.green, size: 22.sp),
-                      SizedBox(width: 8.w),
-                      Text(
-                        "Order Filled",
-                        style: AppTextStyle.subHeading.copyWith(
-                          color: AppColors.textPrimaryDynamic(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: outcomeColor,
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                      outcome.toUpperCase(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-
-              // Hero summary — shares purchased
-              Text(
-                "You bought ${_formatNum(order?.shares ?? quote?.shares ?? 0, 2)} shares",
-                style: AppTextStyle.heading.copyWith(
-                  color: AppColors.textPrimaryDynamic(context),
-                ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                "at GH₵ ${_formatNum(order?.avgFillPrice ?? quote?.avgPricePerShare ?? 0, 5)} / share",
-                style: TextStyle(fontSize: 13.sp, color: Colors.grey),
-              ),
-              SizedBox(height: 16.h),
-              Divider(color: Colors.grey.shade300, height: 1),
-              SizedBox(height: 12.h),
-
-              // Detail rows
-              _quoteRow(
-                "Amount paid",
-                "GH₵ ${_formatNum(order?.totalCostGhs ?? quote?.costGhs ?? 0, 2)}",
-              ),
-              _quoteRow(
-                "Max payout",
-                "GH₵ ${_formatNum(quote?.maxPayoutGhs ?? 0, 2)}",
-              ),
-              _quoteRow(
-                "Potential profit",
-                "+GH₵ ${_formatNum(quote?.potentialProfitGhs ?? 0, 2)}",
-                valueColor: Colors.green,
-              ),
-              _quoteRow(
-                "Fee",
-                "GH₵ ${_formatNum(order?.feeGhs ?? quote?.feeGhs ?? 0, 2)}",
-              ),
-              if (walletBalance != null)
-                _quoteRow(
-                  "Wallet balance",
-                  "GH₵ ${_formatNum(walletBalance, 2)}",
-                ),
-
-              SizedBox(height: 20.h),
-
-              /// CLOSE BUTTON (only)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(vertical: 15.h),
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(30.r),
-                    ),
-                  ),
-                  child: Text(
-                    "Close",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final trade = widget.trade;
@@ -970,14 +534,6 @@ class _PollCardState extends State<PollCard> {
                     ],
                   ),
                 ),
-                /// 🔥 Optional: Loading Overlay
-                if (isSending)
-                  Container(
-                    color: Colors.black.withOpacity(0.5),
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Colors.deepPurple,),
-                    ),
-                  ),
               ],
             ),
           ),
