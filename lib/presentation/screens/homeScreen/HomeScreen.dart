@@ -363,6 +363,34 @@ class PollCard extends StatefulWidget {
 class _PollCardState extends State<PollCard> {
   bool isSending = false;
   bool _isPlacingOrder = false;
+  // Inline error shown inside the quote popup (instead of a snackbar)
+  // when the buy attempt is rejected by the backend. Reset on every
+  // dialog open and on every retry tap.
+  String? _buyError;
+
+  /// Map typed backend buy-error codes to human-readable text.
+  /// Mirrors `buy_bottom_sheet._formatError` so the swipe-buy path
+  /// surfaces the same wording as the tap-buy path.
+  String _formatBuyError(BuyResponse result) {
+    final code = result.code;
+    final message = result.message;
+    switch (code) {
+      case 'INSUFFICIENT_FUNDS':
+        return 'Not enough wallet balance. Top up to continue.';
+      case 'KYC_REQUIRED':
+        return 'KYC verification is required before you can trade.';
+      case 'MARKET_CLOSED':
+        return 'This market is closed or has been resolved.';
+      case 'BELOW_MIN_COST':
+        return 'Trade amount is below the minimum allowed.';
+      case 'ABOVE_MAX_COST':
+        return 'Trade amount exceeds the maximum allowed.';
+      case 'UNKNOWN_OUTCOME':
+        return 'Could not match the selected outcome. Please reopen the market.';
+      default:
+        return message ?? 'Trade failed. Please try again.';
+    }
+  }
 
   Future<void> _handleSwipe(String outcome) async {
     if (isSending) return;
@@ -461,6 +489,9 @@ class _PollCardState extends State<PollCard> {
 
   void _showQuotePopup(QuoteModel quote, String outcome) {
     if (!mounted) return;
+    // Reset inline error from any previous swipe so the dialog opens
+    // clean.
+    _buyError = null;
 
     final avg = quote.avgPricePerShare;
     final newP = quote.newPriceAfterFill;
@@ -485,6 +516,7 @@ class _PollCardState extends State<PollCard> {
             setDialogState(() {
               _isPlacingOrder = true;
               isPlacingOrder = true;
+              _buyError = null; // clear any prior error on retry
             });
 
             // Capture the dialog navigator before any await so we don't
@@ -502,8 +534,10 @@ class _PollCardState extends State<PollCard> {
             if (!mounted) return;
 
             if (!response.success) {
-              setDialogState(() => isPlacingOrder = false);
-              _showSnack(response.message ?? "Trade failed");
+              setDialogState(() {
+                isPlacingOrder = false;
+                _buyError = _formatBuyError(response);
+              });
               return;
             }
 
@@ -591,6 +625,28 @@ class _PollCardState extends State<PollCard> {
                     "GH₵ ${_formatNum(quote.feeGhs, 2)}",
                   ),
                   _quoteRow("Price impact", priceImpact),
+
+                  // Inline error (replaces the previous snackbar) — shown
+                  // when the backend rejects the buy (insufficient funds,
+                  // market closed, KYC required, etc.).
+                  if (_buyError != null) ...[
+                    SizedBox(height: 12.h),
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(color: Colors.red.shade300),
+                      ),
+                      child: Text(
+                        _buyError!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
 
                   SizedBox(height: 20.h),
 
