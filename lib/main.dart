@@ -2,6 +2,7 @@ import 'package:betrade/data/provider/category_provider.dart';
 import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
+import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/screens/splash/signup_screen.dart';
@@ -88,6 +89,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => TradeProvider()),
+        ChangeNotifierProvider(create: (_) => TradeDetailProvider()),
         ChangeNotifierProvider(create: (_) => ExploreProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DefaultAmountProvider()),

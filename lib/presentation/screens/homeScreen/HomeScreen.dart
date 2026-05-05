@@ -1,5 +1,8 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/data/model/buy_response.dart';
+import 'package:betrade/data/model/quote_model.dart';
 import 'package:betrade/data/services/home_service.dart';
+import 'package:betrade/data/services/trade_buy_service.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -14,6 +17,7 @@ import '../../../data/provider/trade_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
 import '../../widget/purple_button.dart';
+import '../profile/default_settings_page.dart';
 import '../trade/trade_page.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -362,19 +366,9 @@ class _PollCardState extends State<PollCard> {
 
   Future<void> _handleSwipe(String outcome) async {
     if (isSending) return;
-    final provider = context.read<DefaultAmountProvider>();
-
-
-
-    if (!provider.hasLoaded) {
-      _showSnack("Loading default amount, please wait...");
-      return;
-    }
-    if (provider.defaultAmount <= 0) {
-      _showSnack("Please set default amount greater than 0");
-      return;
-    }
-    final defaultAmount = provider.defaultAmount;
+    if (!_ensureReadyToTrade()) return;
+    final defaultAmount =
+        context.read<DefaultAmountProvider>().defaultAmount;
 
     setState(() => isSending = true);
     debugPrint("💰 Sending amount: $defaultAmount");
@@ -388,34 +382,28 @@ class _PollCardState extends State<PollCard> {
     if (!mounted) return;
     setState(() => isSending = false);
 
-    if (response == null) {
-      _showSnack("Something went wrong");
-      debugPrint("❌ Quote failed");
-      return;
-    }
-    // ✅ custom validation snackbar
-    final message = response["message"]?.toString() ?? "";
-
+    final message = response.message ?? "";
     if (message.contains("greater than 0")) {
       _showSnack("Default amount must be greater than 0");
       return;
     }
 
-    debugPrint("✅ Quote received for $outcome");
-    if (response["status"] == false) {
-      if (response["code"] == "MARKET_CLOSED") {
+    if (!response.success) {
+      if (response.code == "MARKET_CLOSED") {
         _showSnack("Market is closed or already resolved");
       } else {
-        _showSnack(response["message"] ?? "Error occurred");
+        _showSnack(response.message ?? "Error occurred");
       }
       return;
     }
 
-
-    final data = response['data'];
-    if (data is Map) {
-      _showQuotePopup(Map<String, dynamic>.from(data), outcome);
+    debugPrint("✅ Quote received for $outcome");
+    final quote = response.quote;
+    if (quote == null) {
+      _showSnack("Something went wrong");
+      return;
     }
+    _showQuotePopup(quote, outcome);
   }
 
   void _showSnack(String message) {
@@ -425,6 +413,23 @@ class _PollCardState extends State<PollCard> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  bool _ensureReadyToTrade() {
+    final provider = context.read<DefaultAmountProvider>();
+    if (!provider.hasLoaded) {
+      _showSnack("Loading default amount, please wait...");
+      return false;
+    }
+    if (provider.defaultAmount <= 0) {
+      CommonBottomSheet.open(
+        context: context,
+        builder: (controller) =>
+            DefaultSettingsPage(scrollController: controller),
+      );
+      return false;
+    }
+    return true;
   }
   String _formatNum(dynamic v, int decimals) {
     if (v is num) return v.toStringAsFixed(decimals);
@@ -454,11 +459,11 @@ class _PollCardState extends State<PollCard> {
     );
   }
 
-  void _showQuotePopup(Map<String, dynamic> data, String outcome) {
+  void _showQuotePopup(QuoteModel quote, String outcome) {
     if (!mounted) return;
 
-    final avg = (data['avg_price_per_share'] as num?)?.toDouble() ?? 0.0;
-    final newP = (data['new_price_after_fill'] as num?)?.toDouble() ?? 0.0;
+    final avg = quote.avgPricePerShare;
+    final newP = quote.newPriceAfterFill;
     final impactPct = avg > 0 ? ((newP - avg) / avg) * 100 : 0.0;
     final sign = impactPct >= 0 ? '+' : '';
     final priceImpact =
@@ -467,7 +472,7 @@ class _PollCardState extends State<PollCard> {
 
     final isYes = outcome.toLowerCase() == 'yes';
     final outcomeColor = isYes ? Colors.green : Colors.red;
-    final costAmount = (data['cost_ghs'] as num?) ?? 0;
+    final costAmount = quote.costGhs;
 
     showDialog(
       context: context,
@@ -490,31 +495,21 @@ class _PollCardState extends State<PollCard> {
               uuid: widget.trade.uuid ?? "",
               outcome: outcome,
               amount: costAmount,
+              idempotencyKey: TradeBuyService.generateIdempotencyKey(),
             );
 
             _isPlacingOrder = false;
             if (!mounted) return;
 
-            if (response == null) {
+            if (!response.success) {
               setDialogState(() => isPlacingOrder = false);
-              _showSnack("Trade failed — please try again");
-              return;
-            }
-            if (response['status'] != true) {
-              setDialogState(() => isPlacingOrder = false);
-              _showSnack(response['message']?.toString() ?? "Trade failed");
+              _showSnack(response.message ?? "Trade failed");
               return;
             }
 
             // Success — close the quote dialog and open the confirmation.
             dialogNavigator.pop();
-            final responseData = response['data'];
-            if (responseData is Map) {
-              _showTradeSuccessPopup(
-                Map<String, dynamic>.from(responseData),
-                outcome,
-              );
-            }
+            _showTradeSuccessPopup(response, outcome);
           }
 
           return Dialog(
@@ -563,14 +558,14 @@ class _PollCardState extends State<PollCard> {
 
                   // Hero summary
                   Text(
-                    "You'll receive ${_formatNum(data['shares'], 2)} shares",
+                    "You'll receive ${_formatNum(quote.shares, 2)} shares",
                     style: AppTextStyle.heading.copyWith(
                       color: AppColors.textPrimaryDynamic(context),
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    "at GH₵ ${_formatNum(data['avg_price_per_share'], 5)} / share",
+                    "at GH₵ ${_formatNum(quote.avgPricePerShare, 5)} / share",
                     style: TextStyle(fontSize: 13.sp, color: Colors.grey),
                   ),
                   SizedBox(height: 16.h),
@@ -580,20 +575,20 @@ class _PollCardState extends State<PollCard> {
                   // Detail rows
                   _quoteRow(
                     "Amount paid",
-                    "GH₵ ${_formatNum(data['cost_ghs'], 2)}",
+                    "GH₵ ${_formatNum(quote.costGhs, 2)}",
                   ),
                   _quoteRow(
                     "Max payout",
-                    "GH₵ ${_formatNum(data['max_payout_ghs'], 2)}",
+                    "GH₵ ${_formatNum(quote.maxPayoutGhs, 2)}",
                   ),
                   _quoteRow(
                     "Potential profit",
-                    "+GH₵ ${_formatNum(data['potential_profit_ghs'], 2)}",
+                    "+GH₵ ${_formatNum(quote.potentialProfitGhs, 2)}",
                     valueColor: Colors.green,
                   ),
                   _quoteRow(
                     "Fee",
-                    "GH₵ ${_formatNum(data['fee_ghs'], 2)}",
+                    "GH₵ ${_formatNum(quote.feeGhs, 2)}",
                   ),
                   _quoteRow("Price impact", priceImpact),
 
@@ -650,16 +645,12 @@ class _PollCardState extends State<PollCard> {
     );
   }
 
-  void _showTradeSuccessPopup(Map<String, dynamic> data, String outcome) {
+  void _showTradeSuccessPopup(BuyResponse response, String outcome) {
     if (!mounted) return;
 
-    final order = (data['order'] is Map)
-        ? Map<String, dynamic>.from(data['order'])
-        : <String, dynamic>{};
-    final quote = (data['quote'] is Map)
-        ? Map<String, dynamic>.from(data['quote'])
-        : <String, dynamic>{};
-    final walletBalance = data['wallet_balance'];
+    final order = response.order;
+    final quote = response.quote;
+    final walletBalance = response.walletBalance;
 
     final isYes = outcome.toLowerCase() == 'yes';
     final outcomeColor = isYes ? Colors.green : Colors.red;
@@ -719,14 +710,14 @@ class _PollCardState extends State<PollCard> {
 
               // Hero summary — shares purchased
               Text(
-                "You bought ${_formatNum(order['shares'] ?? quote['shares'], 2)} shares",
+                "You bought ${_formatNum(order?.shares ?? quote?.shares ?? 0, 2)} shares",
                 style: AppTextStyle.heading.copyWith(
                   color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
               SizedBox(height: 4.h),
               Text(
-                "at GH₵ ${_formatNum(order['avg_fill_price'] ?? quote['avg_price_per_share'], 5)} / share",
+                "at GH₵ ${_formatNum(order?.avgFillPrice ?? quote?.avgPricePerShare ?? 0, 5)} / share",
                 style: TextStyle(fontSize: 13.sp, color: Colors.grey),
               ),
               SizedBox(height: 16.h),
@@ -736,20 +727,20 @@ class _PollCardState extends State<PollCard> {
               // Detail rows
               _quoteRow(
                 "Amount paid",
-                "GH₵ ${_formatNum(order['total_cost_ghs'] ?? quote['cost_ghs'], 2)}",
+                "GH₵ ${_formatNum(order?.totalCostGhs ?? quote?.costGhs ?? 0, 2)}",
               ),
               _quoteRow(
                 "Max payout",
-                "GH₵ ${_formatNum(quote['max_payout_ghs'], 2)}",
+                "GH₵ ${_formatNum(quote?.maxPayoutGhs ?? 0, 2)}",
               ),
               _quoteRow(
                 "Potential profit",
-                "+GH₵ ${_formatNum(quote['potential_profit_ghs'], 2)}",
+                "+GH₵ ${_formatNum(quote?.potentialProfitGhs ?? 0, 2)}",
                 valueColor: Colors.green,
               ),
               _quoteRow(
                 "Fee",
-                "GH₵ ${_formatNum(order['fee_ghs'] ?? quote['fee_ghs'], 2)}",
+                "GH₵ ${_formatNum(order?.feeGhs ?? quote?.feeGhs ?? 0, 2)}",
               ),
               if (walletBalance != null)
                 _quoteRow(
@@ -797,6 +788,7 @@ class _PollCardState extends State<PollCard> {
     return GestureDetector(
       onTap: () {
         debugPrint("CLICK UUID: ${trade.uuid}");
+        if (!_ensureReadyToTrade()) return;
         CommonBottomSheet.open(
           context: context,
           builder: (controller) => TradePage(

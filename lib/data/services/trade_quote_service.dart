@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../model/quote_model.dart';
 import 'local_storage.dart';
 
 /// Read-only LMSR pricing for the trade detail screen.
@@ -9,14 +10,8 @@ import 'local_storage.dart';
 /// in the UI before calling.
 class TradeQuoteService {
   /// POST /api/trade/{uuid}/quote
-  /// Returns the `data` map from the response, or null on failure.
-  ///
-  /// The shape on success:
-  /// {
-  ///   outcome_slug, cost_ghs, shares, avg_price_per_share,
-  ///   new_price_after_fill, max_payout_ghs, potential_profit_ghs, fee_ghs
-  /// }
-  static Future<Map<String, dynamic>?> quote({
+  /// Returns a typed [QuoteModel] from the response `data`, or null on failure.
+  static Future<QuoteModel?> quote({
     required String marketUuid,
     required String outcomeSlug,
     required double costGhs,
@@ -41,7 +36,9 @@ class TradeQuoteService {
       if (response.statusCode == 200 && response.data is Map) {
         final body = response.data as Map;
         if (body['status'] == true && body['data'] is Map) {
-          return Map<String, dynamic>.from(body['data'] as Map);
+          return QuoteModel.fromJson(
+            Map<String, dynamic>.from(body['data'] as Map),
+          );
         }
       }
       return null;

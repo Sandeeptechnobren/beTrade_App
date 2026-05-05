@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../data/services/trade_details_service.dart';
+import 'package:provider/provider.dart';
+import '../../../data/model/quote_model.dart';
+import '../../../data/provider/trade_detail_provider.dart';
+import '../../../data/services/trade_quote_service.dart';
 import '../../widget/buy_bottom_sheet.dart';
 import '../../widget/common_header.dart';
 
@@ -24,28 +29,34 @@ class _TradePageState extends State<TradePage> {
   TextEditingController amountController = TextEditingController();
   double amount = 0;
 
-  Map<String, dynamic>? tradeData;
-  bool isLoading = true;
+  // Server-quoted values (LMSR). Null until the first successful fetch
+  // for the current (amount, outcome). When null the UI falls back to
+  // a naive local approximation so the user sees something while typing.
+  QuoteModel? _serverQuote;
+  Timer? _quoteDebounce;
+  int _quoteRequestId = 0;
 
   @override
   void initState() {
     super.initState();
-    fetchTradeDetail();
+    // Kick off fetch synchronously so the first build sees
+    // provider.isLoading == true and shows the spinner instead of
+    // flashing "No Data Found" for one frame.
+    context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
   }
 
-  void fetchTradeDetail() async {
-    final data = await TradeDetailService.getTradeDetail(widget.tradeUuid);
-
-    setState(() {
-      tradeData = data;
-      isLoading = false;
-    });
+  @override
+  void dispose() {
+    _quoteDebounce?.cancel();
+    amountController.dispose();
+    super.dispose();
   }
 
   void updateAmount(String value) {
     setState(() {
       amount = double.tryParse(value) ?? 0;
     });
+    _scheduleQuoteFetch();
   }
 
   void addQuickAmount(double value) {
@@ -53,26 +64,54 @@ class _TradePageState extends State<TradePage> {
       amount += value;
       amountController.text = amount.toStringAsFixed(0);
     });
+    _scheduleQuoteFetch();
+  }
+
+  void _selectOutcome(bool yes) {
+    if (isYesSelected == yes) return;
+    setState(() => isYesSelected = yes);
+    _scheduleQuoteFetch();
+  }
+
+  /// Debounce 400ms after the latest amount/outcome change before
+  /// hitting the server quote endpoint. Backend throttles at 60/min so
+  /// we keep the cadence well under that.
+  void _scheduleQuoteFetch() {
+    _quoteDebounce?.cancel();
+    if (amount <= 0) {
+      setState(() => _serverQuote = null);
+      return;
+    }
+    _quoteDebounce = Timer(const Duration(milliseconds: 400), _fetchQuote);
+  }
+
+  Future<void> _fetchQuote() async {
+    if (!mounted || amount <= 0) return;
+    final myRequestId = ++_quoteRequestId;
+
+    final result = await TradeQuoteService.quote(
+      marketUuid: widget.tradeUuid,
+      outcomeSlug: isYesSelected ? 'yes' : 'no',
+      costGhs: amount,
+    );
+
+    // Drop stale result if the user has changed inputs since this call
+    // started — the latest request will land its own setState.
+    if (!mounted || _quoteRequestId != myRequestId) return;
+
+    setState(() => _serverQuote = result);
   }
 
   bool get isEnabled => amount > 0;
-
-  double get price =>
-      double.tryParse("${tradeData?["current_price_per_share"]}") ?? 0;
-
-  double get shares => price > 0 ? amount / price : 0;
-
-  double get payout => shares * price;
-
-  double get profit => payout - amount;
 
   /// Show the confirm-and-buy bottom sheet for the current
   /// (outcome, amount). Refreshes trade detail on success so the
   /// price ticker, total volume etc. update with the user's own fill.
   Future<void> _openBuySheet(BuildContext context) async {
-    // Capture the messenger BEFORE the await so we don't use
-    // BuildContext across an async gap (lint: use_build_context_synchronously).
+    // Capture context-dependent objects BEFORE the await so we don't
+    // touch BuildContext across an async gap.
     final messenger = ScaffoldMessenger.of(context);
+    final detailProvider = context.read<TradeDetailProvider>();
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -85,13 +124,13 @@ class _TradePageState extends State<TradePage> {
         marketUuid: widget.tradeUuid,
         outcomeSlug: isYesSelected ? 'yes' : 'no',
         costGhs: amount,
-        marketTitle: tradeData?['title']?.toString(),
+        marketTitle: detailProvider.detail?.title,
       ),
     );
 
     if (result == true && mounted) {
       // Refresh detail so the new price + volume reflect this fill.
-      fetchTradeDetail();
+      detailProvider.fetch(widget.tradeUuid);
       messenger.showSnackBar(
         const SnackBar(content: Text('Order filled.')),
       );
@@ -100,12 +139,24 @@ class _TradePageState extends State<TradePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    final provider = context.watch<TradeDetailProvider>();
+    if (provider.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (tradeData == null) {
+    final detail = provider.detail;
+    if (detail == null) {
       return const Scaffold(body: Center(child: Text("No Data Found")));
     }
+
+    // Prefer server quote (LMSR-aware, includes slippage + fees);
+    // fall back to a naive local estimate while the quote is in
+    // flight or before the user has typed an amount.
+    final localPrice = detail.currentPricePerShare;
+    final localShares = localPrice > 0 ? amount / localPrice : 0.0;
+    final price = _serverQuote?.avgPricePerShare ?? localPrice;
+    final shares = _serverQuote?.shares ?? localShares;
+    final payout = _serverQuote?.maxPayoutGhs ?? (localShares * localPrice);
+    final profit = _serverQuote?.potentialProfitGhs ?? (payout - amount);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -158,7 +209,7 @@ class _TradePageState extends State<TradePage> {
                     child: Row(
                       children: [
                         GestureDetector(
-                          onTap: () => setState(() => isYesSelected = true),
+                          onTap: () => _selectOutcome(true),
                           child: Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 16.w,
@@ -174,7 +225,7 @@ class _TradePageState extends State<TradePage> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => setState(() => isYesSelected = false),
+                          onTap: () => _selectOutcome(false),
                           child: Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 16.w,
@@ -217,7 +268,7 @@ class _TradePageState extends State<TradePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Market • ${tradeData?["category_name"] ?? ""}",
+                            "Market • ${detail.categoryName}",
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: Colors.white,
@@ -225,7 +276,7 @@ class _TradePageState extends State<TradePage> {
                           ),
                           SizedBox(height: 6.h),
                           Text(
-                            "${tradeData!["description"]}",
+                            detail.description,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14.sp,
