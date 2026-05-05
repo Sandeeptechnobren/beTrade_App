@@ -15,6 +15,7 @@ class HomeService {
 
     try {
       final token = LocalStorage.getToken();
+      print(token);
       if (token == null || token.isEmpty) {
         debugPrint("❌ No auth token");
         return null;

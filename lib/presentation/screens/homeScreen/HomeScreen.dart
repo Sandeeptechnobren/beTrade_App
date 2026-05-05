@@ -364,8 +364,6 @@ class _PollCardState extends State<PollCard> {
     if (isSending) return;
     final provider = context.read<DefaultAmountProvider>();
 
-
-
     if (!provider.hasLoaded) {
       _showSnack("Loading default amount, please wait...");
       return;

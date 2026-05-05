@@ -163,7 +163,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
   ///   { id, type, amount, fee, status, reference_id, created_at }
   Widget _txRow(Map<String, dynamic> tx) {
     final type = tx['type']?.toString() ?? '';
-    final amountRaw = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+    final amountRaw = double.tryParse(tx['amount'].toString()) ?? 0.0;
     final status = tx['status']?.toString() ?? '';
     final reference = tx['reference_id']?.toString() ?? '';
 
