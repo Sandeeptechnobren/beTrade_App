@@ -9,14 +9,20 @@ import '../../../data/provider/trade_detail_provider.dart';
 import '../../../data/services/trade_quote_service.dart';
 import '../../widget/buy_bottom_sheet.dart';
 import '../../widget/common_header.dart';
+import 'trade_details_page.dart';
 
 class TradePage extends StatefulWidget {
   final String tradeUuid;
   final ScrollController scrollController;
+  /// Pre-selects the YES/NO toggle when this page is opened from a
+  /// home-card swipe. Accepts `'yes'` (default) or `'no'`.
+  final String initialOutcome;
+
   const TradePage({
     super.key,
     required this.scrollController,
     required this.tradeUuid,
+    this.initialOutcome = 'yes',
   });
 
   @override
@@ -24,7 +30,7 @@ class TradePage extends StatefulWidget {
 }
 
 class _TradePageState extends State<TradePage> {
-  bool isYesSelected = true;
+  late bool isYesSelected;
 
   TextEditingController amountController = TextEditingController();
   double amount = 0;
@@ -39,10 +45,19 @@ class _TradePageState extends State<TradePage> {
   @override
   void initState() {
     super.initState();
+    isYesSelected = widget.initialOutcome.toLowerCase() != 'no';
     // Kick off fetch synchronously so the first build sees
     // provider.isLoading == true and shows the spinner instead of
     // flashing "No Data Found" for one frame.
     context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
+  }
+
+  void _openDetails() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TradeDetailsPage(tradeUuid: widget.tradeUuid),
+      ),
+    );
   }
 
   @override
@@ -253,37 +268,40 @@ class _TradePageState extends State<TradePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      height: 96.h,
-                      padding: EdgeInsets.all(16.w),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.r),
-                        image: DecorationImage(
-                          image: AssetImage("assets/images/splash.png"),
-                          fit: BoxFit.cover,
+                    GestureDetector(
+                      onTap: _openDetails,
+                      child: Container(
+                        width: double.infinity,
+                        height: 96.h,
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16.r),
+                          image: DecorationImage(
+                            image: AssetImage("assets/images/splash.png"),
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Market • ${detail.categoryName}",
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.white,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Market • ${detail.categoryName}",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            detail.description,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w500,
+                            SizedBox(height: 6.h),
+                            Text(
+                              detail.description,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 20.h),
