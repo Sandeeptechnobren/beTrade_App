@@ -5,24 +5,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../data/model/quote_model.dart';
+import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
 import '../../../data/services/trade_quote_service.dart';
 import '../../widget/buy_bottom_sheet.dart';
+import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_header.dart';
 import 'trade_details_page.dart';
 
 class TradePage extends StatefulWidget {
   final String tradeUuid;
   final ScrollController scrollController;
+
   /// Pre-selects the YES/NO toggle when this page is opened from a
   /// home-card swipe. Accepts `'yes'` (default) or `'no'`.
   final String initialOutcome;
+
+  /// Swipe-path quick-trade mode: pre-fill the cost from
+  /// `DefaultAmountProvider.defaultAmount` and replace the editable
+  /// amount field + quick-amount chips with a read-only display so the
+  /// user can confirm-and-buy in one tap. Tap-path callers leave this
+  /// `false` to keep the manual entry UX.
+  final bool useDefaultAmount;
 
   const TradePage({
     super.key,
     required this.scrollController,
     required this.tradeUuid,
     this.initialOutcome = 'yes',
+    this.useDefaultAmount = false,
   });
 
   @override
@@ -46,16 +57,35 @@ class _TradePageState extends State<TradePage> {
   void initState() {
     super.initState();
     isYesSelected = widget.initialOutcome.toLowerCase() != 'no';
+
+    // Swipe-path: pre-fill the cost with the user's default amount and
+    // schedule the first server quote so the figures populate without
+    // any further tap. Tap-path leaves amount = 0 so the user types it.
+    if (widget.useDefaultAmount) {
+      final defaultAmt = context.read<DefaultAmountProvider>().defaultAmount;
+      amount = defaultAmt.toDouble();
+      amountController.text = defaultAmt.toString();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scheduleQuoteFetch();
+      });
+    }
+
     // Kick off fetch synchronously so the first build sees
     // provider.isLoading == true and shows the spinner instead of
     // flashing "No Data Found" for one frame.
     context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
   }
 
+  /// Opens the Details page as a bottom sheet stacked on top of this
+  /// `TradePage` sheet. Tapping back inside the Details sheet pops it
+  /// and returns the user here with their amount intact — same pattern
+  /// the rest of the app uses for nested sheets.
   void _openDetails() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TradeDetailsPage(tradeUuid: widget.tradeUuid),
+    CommonBottomSheet.open(
+      context: context,
+      builder: (controller) => TradeDetailsPage(
+        tradeUuid: widget.tradeUuid,
+        scrollController: controller,
       ),
     );
   }
@@ -307,51 +337,91 @@ class _TradePageState extends State<TradePage> {
                     SizedBox(height: 20.h),
                     Text("Amount"),
                     SizedBox(height: 8.h),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      onChanged: updateAmount,
-                      decoration: InputDecoration(
-                        hintText: "0.00",
-                        filled: true,
-                        fillColor:AppColors.inputFieldBgDynamic(context),
-                        contentPadding: EdgeInsets.symmetric(
+                    if (widget.useDefaultAmount) ...[
+                      // Read-only amount display — swipe-path uses the
+                      // user's default amount; the manual input field
+                      // and quick chips are intentionally hidden so
+                      // this is a confirm-and-buy interaction.
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16.w,
                           vertical: 14.h,
                         ),
-                        border: OutlineInputBorder(
+                        decoration: BoxDecoration(
+                          color: AppColors.inputFieldBgDynamic(context),
                           borderRadius: BorderRadius.circular(12.r),
-                          borderSide: BorderSide.none,
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [10, 20, 50, 100].map((e) {
-                        return GestureDetector(
-                          onTap: () => addQuickAmount(e.toDouble()),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 5.h,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Text(
-                              "$e GHS",
+                        child: Row(
+                          children: [
+                            Text(
+                              "${amount.toStringAsFixed(0)} GHS",
                               style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
                                 fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    AppColors.textPrimaryDynamic(context),
                               ),
                             ),
+                            const Spacer(),
+                            Text(
+                              "Default amount",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        onChanged: updateAmount,
+                        decoration: InputDecoration(
+                          hintText: "0.00",
+                          filled: true,
+                          fillColor:
+                              AppColors.inputFieldBgDynamic(context),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 14.h,
                           ),
-                        );
-                      }).toList(),
-                    ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [10, 20, 50, 100].map((e) {
+                          return GestureDetector(
+                            onTap: () => addQuickAmount(e.toDouble()),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 5.h,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Text(
+                                "$e GHS",
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16.sp,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
 
                     SizedBox(height: 20.h),
                     Container(

@@ -23,7 +23,17 @@ import '../../../data/provider/trade_detail_provider.dart';
 /// for the complete list.
 class TradeDetailsPage extends StatefulWidget {
   final String tradeUuid;
-  const TradeDetailsPage({super.key, required this.tradeUuid});
+
+  /// Provided by `CommonBottomSheet` so the inner scrollview drives
+  /// drag-to-resize on the sheet. Match the same contract used by
+  /// `TradePage`.
+  final ScrollController scrollController;
+
+  const TradeDetailsPage({
+    super.key,
+    required this.tradeUuid,
+    required this.scrollController,
+  });
 
   @override
   State<TradeDetailsPage> createState() => _TradeDetailsPageState();
@@ -40,38 +50,52 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
-      appBar: AppBar(
-        backgroundColor: AppColors.cardBackgroundDynamic(context),
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            size: 18.sp,
-            color: AppColors.textPrimaryDynamic(context),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            const Divider(height: 1),
+            Expanded(
+              child: provider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : detail == null
+                      ? const Center(child: Text("No data found"))
+                      : _isInfoTab
+                          ? _buildInfoTab(detail)
+                          : _buildChartTab(detail),
+            ),
+          ],
         ),
-        title: Text(
-          "Details",
-          style: AppTextStyle.heading.copyWith(
-            color: AppColors.textPrimaryDynamic(context),
+      ),
+    );
+  }
+
+  /// Custom in-sheet header to mirror `TradePage`'s pattern (no
+  /// `AppBar` inside a bottom sheet — the `Scaffold/AppBar` chrome
+  /// looks wrong in a draggable container).
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(8.w, 4.h, 16.w, 8.h),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              size: 18.sp,
+              color: AppColors.textPrimaryDynamic(context),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-        ),
-        centerTitle: false,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.w),
-            child: _buildTabSwitcher(),
+          Text(
+            "Details",
+            style: AppTextStyle.heading.copyWith(
+              color: AppColors.textPrimaryDynamic(context),
+            ),
           ),
+          const Spacer(),
+          _buildTabSwitcher(),
         ],
       ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : detail == null
-              ? const Center(child: Text("No data found"))
-              : _isInfoTab
-                  ? _buildInfoTab(detail)
-                  : _buildChartTab(detail),
     );
   }
 
@@ -129,6 +153,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
   Widget _buildInfoTab(TradeDetailModel detail) {
     return SingleChildScrollView(
+      controller: widget.scrollController,
       padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
