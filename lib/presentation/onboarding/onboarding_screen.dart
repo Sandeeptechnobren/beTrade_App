@@ -3,7 +3,6 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/services/local_storage.dart';
-import '../auth/auth_bottom_sheet.dart';
 import '../auth/auth_screen.dart';
 import 'onboarding_page.dart';
 

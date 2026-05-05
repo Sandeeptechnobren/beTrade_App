@@ -344,30 +344,32 @@ class _StepNameState extends State<StepName> {
   Widget build(BuildContext context) {
     if (_isDisposed) return const SizedBox();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "What's Your Name?",
-          style: _getTitleStyle(),
-        ),
-        SizedBox(height: 20.h),
-        _inputField(
-          controller: _firstNameController,
-          hint: "First Name",
-        ),
-        SizedBox(height: 15.h),
-        _inputField(
-          controller: _lastNameController,
-          hint: "Last Name",
-        ),
-        SizedBox(height: 15.h),
-        _inputField(
-          controller: _emailController,
-          hint: "Email",
-          keyboardType: TextInputType.emailAddress,
-        ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "What's Your Name?",
+            style: _getTitleStyle(),
+          ),
+          SizedBox(height: 20.h),
+          _inputField(
+            controller: _firstNameController,
+            hint: "First Name",
+          ),
+          SizedBox(height: 15.h),
+          _inputField(
+            controller: _lastNameController,
+            hint: "Last Name",
+          ),
+          SizedBox(height: 15.h),
+          _inputField(
+            controller: _emailController,
+            hint: "Email",
+            keyboardType: TextInputType.emailAddress,
+          ),
+        ],
+      ),
     );
   }
 

@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sync the user's default amount from `/userDefaultSettings/list` so
       // the swipe action sends the correct cost_ghs even if the user
       // hasn't opened Default Settings yet this session.
-      // context.read<DefaultAmountProvider>().loadFromBackend();
+      context.read<DefaultAmountProvider>().loadFromBackend();
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -362,11 +362,21 @@ class _PollCardState extends State<PollCard> {
 
   Future<void> _handleSwipe(String outcome) async {
     if (isSending) return;
+    final provider = context.read<DefaultAmountProvider>();
+
+
+
+    if (!provider.hasLoaded) {
+      _showSnack("Loading default amount, please wait...");
+      return;
+    }
+    if (provider.defaultAmount <= 0) {
+      _showSnack("Please set default amount greater than 0");
+      return;
+    }
+    final defaultAmount = provider.defaultAmount;
 
     setState(() => isSending = true);
-    final defaultAmount =
-        context.read<DefaultAmountProvider>().defaultAmount;
-
     debugPrint("💰 Sending amount: $defaultAmount");
 
     final response = await HomeService.getQuote(
@@ -383,6 +393,14 @@ class _PollCardState extends State<PollCard> {
       debugPrint("❌ Quote failed");
       return;
     }
+    // ✅ custom validation snackbar
+    final message = response["message"]?.toString() ?? "";
+
+    if (message.contains("greater than 0")) {
+      _showSnack("Default amount must be greater than 0");
+      return;
+    }
+
     debugPrint("✅ Quote received for $outcome");
     if (response["status"] == false) {
       if (response["code"] == "MARKET_CLOSED") {

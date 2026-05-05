@@ -51,7 +51,10 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
   }
 
   void _populateFromSettings(DefaultSettingsModel? settings) {
-    if (settings == null) return;
+    if (settings == null) {
+      _showSnack("Failed to load default settings");
+      return;
+    }
     _maxDefaultAmountController.text = settings.maxDefaultAmount.toString();
     _defaultAmountController.text = settings.minDefaultAmount.toString();
     context
@@ -68,7 +71,7 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     final maxVal = int.tryParse(_maxDefaultAmountController.text.trim()) ?? 0;
 
     if (defaultVal <= 0) {
-      _showSnack("Please enter a valid default amount");
+      _showSnack("Default amount must be greater than 0");
       return;
     }
     if (maxVal > 0 && defaultVal > maxVal) {
@@ -84,6 +87,7 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     if (ok) {
       context.read<DefaultAmountProvider>().setDefaultAmount(defaultVal);
       _showSnack("Default amount updated");
+      Navigator.pop(context);
     } else {
       _showSnack("Failed to save default amount");
     }

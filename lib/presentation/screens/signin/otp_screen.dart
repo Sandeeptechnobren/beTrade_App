@@ -387,7 +387,6 @@ import 'package:betrade/presentation/widget/leading_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:pinput/pinput.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
@@ -409,8 +408,8 @@ class _OTPScreenState extends State<OTPScreen> {
   Timer? _timer;
   bool isOtpComplete = false;
   final int otpLength = 6;
-  late final TextEditingController _otpController;
-  late final FocusNode _otpFocusNode;
+  late List<TextEditingController> _controllers;
+  late List<FocusNode> _focusNodes;
   bool _isDisposed = false;
   bool _isVerifying = false;
   bool _isResending = false;
@@ -418,8 +417,8 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   void initState() {
     super.initState();
-    _otpController = TextEditingController();
-    _otpFocusNode = FocusNode();
+    _controllers = List.generate(otpLength, (_) => TextEditingController());
+    _focusNodes = List.generate(otpLength, (_) => FocusNode());
     _startTimer();
   }
 
@@ -567,80 +566,142 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   void _clearOtpFields() {
-    _otpController.clear();
-    if (!_isDisposed && mounted) {
-      _otpFocusNode.requestFocus();
-      setState(() {
-        isOtpComplete = false;
-      });
+    for (var controller in _controllers) {
+      controller.clear();
     }
-  }
-
-  String _getOtp() => _otpController.text;
-
-  void _onOtpChanged(String value) {
-    if (_isDisposed || !mounted) return;
+    _focusNodes.first.requestFocus();
     setState(() {
-      isOtpComplete = value.length == otpLength;
+      isOtpComplete = false;
     });
   }
+
+  String _getOtp() {
+    return _controllers.map((e) => e.text).join();
+  }
+
+  void _checkOtpComplete() {
+    if (_isDisposed) return;
+    final otp = _getOtp();
+    setState(() {
+      isOtpComplete = otp.length == otpLength;
+    });
+  }
+  void _onOtpChanged(String value, int index) {
+    if (_isDisposed || !mounted) return;
+    if (value.isNotEmpty) {
+      _controllers[index].text = value.substring(value.length - 1);
+      _controllers[index].selection = TextSelection.fromPosition(
+        const TextPosition(offset: 1),
+      );
+
+      if (index < otpLength - 1) {
+        FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+      } else {
+        FocusScope.of(context).unfocus();
+      }
+    }
+    if (value.isEmpty && index > 0) {
+      FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
+      _controllers[index - 1].selection =
+          TextSelection.fromPosition(
+            TextPosition(
+              offset: _controllers[index - 1].text.length,
+            ),
+          );
+    }
+
+    _checkOtpComplete();
+  }
+  //
+  // void _onOtpChanged(String value, int index) {
+  //   if (_isDisposed) return;
+  //
+  //   if (value.length == 1) {
+  //     if (index < otpLength - 1) {
+  //       _focusNodes[index + 1].requestFocus();
+  //     } else {
+  //       _focusNodes[index].unfocus();
+  //     }
+  //   } else if (value.isEmpty) {
+  //     if (index > 0) {
+  //       _focusNodes[index - 1].requestFocus();
+  //     }
+  //   }
+  //   _checkOtpComplete();
+  // }
 
   @override
   void dispose() {
     _isDisposed = true;
     _timer?.cancel();
-    _otpController.dispose();
-    _otpFocusNode.dispose();
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    for (var focusNode in _focusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
   }
+  Widget _otpBox(int index) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: 50.w,
+      height: 65.h,
+      child: TextField(
+        textInputAction: TextInputAction.next,
+        autofocus: index == 0,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+        ],
+        controller: _controllers[index],
+        focusNode: _focusNodes[index],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 1,
+        style: TextStyle(
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDynamic(context),
+        ),
+        decoration: InputDecoration(
+          hintText: "0",
+          hintStyle: TextStyle(
+            color: isDarkMode ? Colors.grey.shade600 : Colors.grey,
+            fontWeight: FontWeight.w400,
+          ),
+          counterText: "",
+          filled: true,
+          fillColor: isDarkMode
+              ? const Color(0xFF2C2C2E)
+              : Colors.grey.shade100,
+          contentPadding: EdgeInsets.zero,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: BorderSide(
+              color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: const BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
+            ),
+          ),
+        ),
+        onChanged: (value) => _onOtpChanged(value, index),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isButtonEnabled = isOtpComplete && !_isVerifying && !_isDisposed;
-
-    final defaultPinTheme = PinTheme(
-      width: 50.w,
-      height: 65.h,
-      textStyle: TextStyle(
-        fontSize: 18.sp,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimaryDynamic(context),
-      ),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFF2C2C2E)
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
-        ),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFF2C2C2E)
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: AppColors.primary,
-          width: 1.5,
-        ),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFF2C2C2E)
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.4),
-        ),
-      ),
-    );
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -665,26 +726,11 @@ class _OTPScreenState extends State<OTPScreen> {
               ),
             ),
             SizedBox(height: 20.h),
-            Center(
-              child: Pinput(
-                length: otpLength,
-                controller: _otpController,
-                focusNode: _otpFocusNode,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-                submittedPinTheme: submittedPinTheme,
-                separatorBuilder: (_) => SizedBox(width: 8.w),
-                hapticFeedbackType: HapticFeedbackType.lightImpact,
-                pinAnimationType: PinAnimationType.fade,
-                onChanged: _onOtpChanged,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(otpLength, (index) => _otpBox(index)),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height:10.h),
             Row(
               children: [
                 Text(

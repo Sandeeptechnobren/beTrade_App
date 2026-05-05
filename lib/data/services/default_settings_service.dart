@@ -86,7 +86,7 @@ class DefaultSettingsService {
       final response = await DioClient.instance.put(
         ApiEndpoints.updateUserDefaultSettingsList,
         data: {
-          "min_default_amount": amount,
+          "default_amount": amount,
         },
         options: Options(
           headers: {
