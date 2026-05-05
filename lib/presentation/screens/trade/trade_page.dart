@@ -63,7 +63,7 @@ class _TradePageState extends State<TradePage> {
     // any further tap. Tap-path leaves amount = 0 so the user types it.
     if (widget.useDefaultAmount) {
       final defaultAmt = context.read<DefaultAmountProvider>().defaultAmount;
-      amount = defaultAmt.toDouble();
+      amount = defaultAmt!.toDouble();
       amountController.text = defaultAmt.toString();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scheduleQuoteFetch();
@@ -73,7 +73,11 @@ class _TradePageState extends State<TradePage> {
     // Kick off fetch synchronously so the first build sees
     // provider.isLoading == true and shows the spinner instead of
     // flashing "No Data Found" for one frame.
-    context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // context.read<TradeDetailProvider>().fetch();
+      context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
+    });
   }
 
   /// Opens the Details page as a bottom sheet stacked on top of this
@@ -81,6 +85,7 @@ class _TradePageState extends State<TradePage> {
   /// and returns the user here with their amount intact — same pattern
   /// the rest of the app uses for nested sheets.
   void _openDetails() {
+    Navigator.pop(context);
     CommonBottomSheet.open(
       context: context,
       builder: (controller) => TradeDetailsPage(
@@ -239,13 +244,14 @@ class _TradePageState extends State<TradePage> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal:0.w, vertical:0.h),
+              padding: EdgeInsets.symmetric(horizontal: 0.w,vertical: 0.h),
               child: Row(
                 children: [
                   CommonHeader(title: "New Trade",showDivider: false,),
                   const Spacer(),
                   Container(
                     height: 36.h,
+                    margin: EdgeInsets.only(right: 5.w),
                     padding: EdgeInsets.all(4.w),
                     decoration: BoxDecoration(
                         color: AppColors.inputFieldBgDynamic(context),
@@ -433,14 +439,14 @@ class _TradePageState extends State<TradePage> {
                       child: Column(
                         children: [
                           buildRow("Shares", shares.toStringAsFixed(2)),
-                          buildRow("Price per Share", "₹$price"),
+                          buildRow("Price per Share", "₵$price"),
                           buildRow(
                             "Max Payout",
-                            "₹${payout.toStringAsFixed(2)}",
+                            "₵${payout.toStringAsFixed(2)}",
                           ),
                           buildRow(
                             "Potential Profit",
-                            "₹${profit.toStringAsFixed(2)}",
+                            "₵${profit.toStringAsFixed(2)}",
                             isProfit: true,
                           ),
                         ],
@@ -466,7 +472,7 @@ class _TradePageState extends State<TradePage> {
           Text(
             value,
             style: TextStyle(
-              color: isProfit ? Colors.green : Colors.black,
+              color: isProfit ? Colors.green : AppColors.textSecondaryDynamic(context),
               fontWeight: FontWeight.w500,
             ),
           ),

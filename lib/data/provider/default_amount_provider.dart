@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../services/default_settings_service.dart';
 
 class DefaultAmountProvider extends ChangeNotifier {
-  int _defaultAmount = 0;
-  bool _hasLoaded = false;
+  int? _defaultAmount;
+  int? get defaultAmount => _defaultAmount;
 
-  int get defaultAmount => _defaultAmount;
+  bool _hasLoaded = false;
   bool get hasLoaded => _hasLoaded;
 
   /// Fetches the user's default amount from `/userDefaultSettings/list`

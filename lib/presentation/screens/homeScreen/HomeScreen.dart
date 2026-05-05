@@ -401,7 +401,7 @@ class _PollCardState extends State<PollCard> {
     //   _showSnack("Loading default amount, please wait...");
     //   return false;
     // }
-    if (provider.defaultAmount == 0 || provider.defaultAmount == null) {
+    if (provider.defaultAmount == 0) {
       _showSnack("Default amount is null/0");
       CommonBottomSheet.open(
         context: context,
