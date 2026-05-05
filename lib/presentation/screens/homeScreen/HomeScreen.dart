@@ -356,22 +356,32 @@ class PollCard extends StatefulWidget {
 }
 
 class _PollCardState extends State<PollCard> {
-  /// Swipe and tap both open the same `TradePage` bottom sheet — the
-  /// popup-based swipe-quote flow has been removed in favor of one
-  /// consistent UX. The swipe direction is forwarded as the initial
-  /// outcome so the YES/NO toggle is pre-selected.
+  /// Swipe and tap both open the same `TradePage` bottom sheet (one
+  /// consistent UX) but they differ in how the cost is set:
+  ///
+  ///   * Swipe → pre-fills `amount` from `DefaultAmountProvider` and
+  ///     hides the input field + quick chips (`useDefaultAmount: true`).
+  ///     The user just confirms with Buy.
+  ///   * Tap → leaves `amount = 0`; user types it in the input field.
+  ///
+  /// Swipe direction is forwarded as `initialOutcome` so the YES/NO
+  /// toggle is pre-selected.
   void _handleSwipe(String outcome) {
     if (!_ensureReadyToTrade()) return;
-    _openTradeSheet(initialOutcome: outcome);
+    _openTradeSheet(initialOutcome: outcome, useDefaultAmount: true);
   }
 
-  void _openTradeSheet({String initialOutcome = 'yes'}) {
+  void _openTradeSheet({
+    String initialOutcome = 'yes',
+    bool useDefaultAmount = false,
+  }) {
     CommonBottomSheet.open(
       context: context,
       builder: (controller) => TradePage(
         scrollController: controller,
         tradeUuid: widget.trade.uuid ?? '',
         initialOutcome: initialOutcome,
+        useDefaultAmount: useDefaultAmount,
       ),
     );
   }
