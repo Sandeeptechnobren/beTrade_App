@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_style.dart';
+import '../../../../data/provider/wallet_provider.dart';
 import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
 class DepositPage extends StatefulWidget {
@@ -185,14 +187,60 @@ class _DepositPageState extends State<DepositPage> {
         SizedBox(height: 20.h),
         paymentMethod == "card" ? cardUI() : momoUI(),
         const Spacer(),
-        _button("Confirm", () async {
-          Navigator.pop(context);
-          await Future.delayed(const Duration(milliseconds: 200));
-          showSuccessDialog(context);
-        }),
+        Consumer<WalletProvider>(
+          builder: (context, wallet, _) {
+            return _button(
+              wallet.isSubmittingDeposit ? 'Submitting...' : 'Confirm',
+              wallet.isSubmittingDeposit ? () {} : _submitDeposit,
+            );
+          },
+        ),
       ],
     );
   }
+
+  /// Submit the deposit intent via WalletProvider.
+  /// Shows success dialog on success, snackbar with backend message
+  /// on failure (e.g. BELOW_MIN_AMOUNT, ABOVE_MAX_AMOUNT).
+  Future<void> _submitDeposit() async {
+    final wallet = context.read<WalletProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final amount = double.tryParse(amountController.text.trim()) ?? 0;
+    if (amount <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please enter an amount.')),
+      );
+      return;
+    }
+
+    final method = paymentMethod == 'card' ? 'card' : 'mobile_money';
+    final msisdn = paymentMethod == 'momo' ? phone.text.trim() : null;
+
+    final ok = await wallet.submitDeposit(
+      amountGhs: amount,
+      method: method,
+      msisdn: msisdn,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      Navigator.pop(context);
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      showSuccessDialog(context);
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            wallet.lastSubmitMessage ?? 'Could not submit deposit.',
+          ),
+        ),
+      );
+    }
+  }
+
   Widget cardUI() {
     return Column(
       children: [

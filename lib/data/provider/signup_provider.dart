@@ -75,7 +75,6 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import '../services/auth_service.dart';
 
 class SignupProvider extends ChangeNotifier {
@@ -85,6 +84,7 @@ class SignupProvider extends ChangeNotifier {
   String gender = "";
   String firstName = "";
   String lastName = "";
+  String email = "";
   File? profileImage;
   bool isLoading = false;
 
@@ -103,9 +103,10 @@ class SignupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setName(String f, String l) {
+  void setName(String f, String l, String e) {
     firstName = f;
     lastName = l;
+    email = e;
     notifyListeners();
   }
 
@@ -142,24 +143,25 @@ class SignupProvider extends ChangeNotifier {
     try {
       // Verify file exists before proceeding
       if (!await profileImage!.exists()) {
-        print("❌ Profile image does not exist at path: ${profileImage!.path}");
+        debugPrint("❌ Profile image does not exist at path: ${profileImage!.path}");
         return false;
       }
 
-      print("✅ Profile image exists at: ${profileImage!.path}");
-      print("✅ File size: ${await profileImage!.length()} bytes");
+      debugPrint("✅ Profile image exists at: ${profileImage!.path}");
+      debugPrint("✅ File size: ${await profileImage!.length()} bytes");
 
       bool success = await _service.completeSignup(
         phone: phone,
         gender: gender,
         firstName: firstName,
         lastName: lastName,
+        email: email,
         image: profileImage!,
       );
 
       return success;
     } catch (e) {
-      print("❌ Error in completeSignup: $e");
+      debugPrint("❌ Error in completeSignup: $e");
       return false;
     } finally {
       isLoading = false;

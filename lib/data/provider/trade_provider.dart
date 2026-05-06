@@ -144,9 +144,12 @@ class TradeProvider extends ChangeNotifier {
       hasMore = true;
       notifyListeners();
 
-      _allTrades = await TradeService.getTrades();
+      _allTrades = await TradeService.getTrades(page: 1);
 
-      _applyPagination(reset: true);
+      // If page 1 came back empty, there's nothing more to fetch.
+      if (_allTrades.isEmpty) hasMore = false;
+
+      _applyPagination();
     } catch (e) {
       error = e.toString();
     } finally {
@@ -155,20 +158,30 @@ class TradeProvider extends ChangeNotifier {
     }
   }
 
-  // LOAD MORE
-  void loadMore() {
+  // LOAD MORE — actually fetches the next server page now.
+  Future<void> loadMore() async {
     if (isPaginationLoading || !hasMore) return;
 
     isPaginationLoading = true;
     notifyListeners();
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      currentPage++;
-      _applyPagination();
+    try {
+      final nextPage = currentPage + 1;
+      final newTrades = await TradeService.getTrades(page: nextPage);
 
+      if (newTrades.isEmpty) {
+        hasMore = false;
+      } else {
+        currentPage = nextPage;
+        _allTrades.addAll(newTrades);
+        _applyPagination();
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
       isPaginationLoading = false;
       notifyListeners();
-    });
+    }
   }
 
   //  APPLY FILTER
@@ -188,9 +201,10 @@ class TradeProvider extends ChangeNotifier {
       currentPage = 1;
       hasMore = true;
 
-      _allTrades = await TradeService.getTrades();
+      _allTrades = await TradeService.getTrades(page: 1);
+      if (_allTrades.isEmpty) hasMore = false;
 
-      _applyPagination(reset: true);
+      _applyPagination();
     } catch (e) {
       error = e.toString();
     } finally {
@@ -199,15 +213,11 @@ class TradeProvider extends ChangeNotifier {
     }
   }
 
-  // PAGINATION LOGIC
-  void _applyPagination({bool reset = false}) {
-    List<TradeModel> filtered = _applyLocalFilter(_allTrades);
-    int end = currentPage * limit;
-    if (end >= filtered.length) {
-      end = filtered.length;
-      hasMore = false;
-    }
-    trades = filtered.sublist(0, end);
+  // Apply the current category/sort/date filter to whatever has been
+  // fetched so far. Server pagination owns "is there more?", so this no
+  // longer slices by page — it just exposes the filtered union.
+  void _applyPagination() {
+    trades = _applyLocalFilter(_allTrades);
   }
 
   // FILTER (same tera logic)

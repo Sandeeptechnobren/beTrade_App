@@ -1,15 +1,50 @@
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+
 class WalletHistoryPage extends StatefulWidget {
   const WalletHistoryPage({super.key});
   @override
   State<WalletHistoryPage> createState() => _WalletHistoryPageState();
 }
+
 class _WalletHistoryPageState extends State<WalletHistoryPage> {
-  String selectedType = "Deposits";
+  // UI label → backend `type` enum value. Null = no filter (all rows).
+  static const Map<String, String?> _filterMap = {
+    'All': null,
+    'Deposits': 'deposit',
+    'Withdrawals': 'withdraw',
+    'Trades': 'trade',
+    'Payouts': 'payout',
+  };
+
+  String selectedType = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context
+          .read<WalletProvider>()
+          .fetchTransactions(type: _filterMap[selectedType]);
+    });
+  }
+
+  void _onFilterChanged(String value) {
+    setState(() {
+      selectedType = value;
+    });
+    context
+        .read<WalletProvider>()
+        .fetchTransactions(type: _filterMap[value]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,34 +52,27 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(0,0,16.w,0),
+              padding: EdgeInsets.fromLTRB(0, 0, 16.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-               CommonHeader(title: "Wallet History",showDivider: false,),
+                  CommonHeader(title: 'Wallet History', showDivider: false),
                   PopupMenuButton<String>(
-                    onSelected: (value) {
-                      setState(() {
-                        selectedType = value;
-                      });
-                    },
+                    onSelected: _onFilterChanged,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.r),
                     ),
                     color: Colors.white,
                     elevation: 8,
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: "Deposits",
+                    itemBuilder: (context) => _filterMap.keys
+                        .map(
+                          (label) => PopupMenuItem(
+                        value: label,
                         padding: EdgeInsets.zero,
-                        child: _menuItem("Deposits"),
+                        child: _menuItem(label),
                       ),
-                      PopupMenuItem(
-                        value: "Withdrawals",
-                        padding: EdgeInsets.zero,
-                        child: _menuItem("Withdrawals"),
-                      ),
-                    ],
+                    )
+                        .toList(),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 14.w,
@@ -66,30 +94,49 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                 ],
               ),
             ),
-            Divider(),
+            const Divider(),
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                children: [
-                  SizedBox(height: 10.h),
-                  Text("Today", style: AppTextStyle.body),
-                  SizedBox(height: 10.h),
-                  _item(
-                    "Mobile Money",
-                    "0543762061 • MTN",
-                    selectedType == "Deposits" ? "+10 GHS" : "-50 GHS",
-                    selectedType == "Deposits",
-                  ),
-                  SizedBox(height: 16.h),
-                  Text("Dec 10, 2024", style: AppTextStyle.body),
-                  SizedBox(height: 10.h),
-                  _item(
-                    "Debit/Credit Card",
-                    "•••• 4567",
-                    selectedType == "Deposits" ? "+25 GHS" : "-100 GHS",
-                    selectedType == "Deposits",
-                  ),
-                ],
+              child: Consumer<WalletProvider>(
+                builder: (context, wallet, _) {
+                  if (wallet.isLoadingTransactions) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (wallet.transactionsError != null) {
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.w),
+                        child: Text(
+                          wallet.transactionsError!,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyle.body,
+                        ),
+                      ),
+                    );
+                  }
+                  if (wallet.transactions.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.w),
+                        child: Text(
+                          'No $selectedType yet.',
+                          style: AppTextStyle.body,
+                        ),
+                      ),
+                    );
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () =>
+                        wallet.fetchTransactions(type: _filterMap[selectedType]),
+                    child: ListView.separated(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 12.h),
+                      itemCount: wallet.transactions.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 10.h),
+                      itemBuilder: (context, i) =>
+                          _txRow(wallet.transactions[i]),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -97,6 +144,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
       ),
     );
   }
+
   Widget _menuItem(String text) {
     final isSelected = selectedType == text;
     return Container(
@@ -109,9 +157,31 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
       child: Text(text, style: AppTextStyle.body),
     );
   }
-  Widget _item(String title, String subtitle, String amount, bool isDeposit) {
+
+  /// Render one Transaction row from the WalletProvider list.
+  /// Backend shape:
+  ///   { id, type, amount, fee, status, reference_id, created_at }
+  Widget _txRow(Map<String, dynamic> tx) {
+    final type = tx['type']?.toString() ?? '';
+    final amountRaw = double.tryParse(tx['amount'].toString()) ?? 0.0;
+    final status = tx['status']?.toString() ?? '';
+    final reference = tx['reference_id']?.toString() ?? '';
+
+    // Inflows: deposit, payout, and positive 'trade' amounts (sells).
+    // Outflows: withdraw, and negative 'trade' amounts (buys).
+    final isInflow = amountRaw > 0;
+
+    final displayTitle = _titleFor(type);
+    final displaySubtitle = status.isNotEmpty && reference.isNotEmpty
+        ? '${status[0].toUpperCase()}${status.substring(1)} • $reference'
+        : (status.isNotEmpty
+        ? '${status[0].toUpperCase()}${status.substring(1)}'
+        : reference);
+
+    final sign = isInflow ? '+' : '';
+    final amountStr = '$sign${amountRaw.toStringAsFixed(2)} GHS';
+
     return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: AppColors.inputFieldBgDynamic(context),
@@ -124,14 +194,14 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
             width: 40.w,
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: isDeposit
+              color: isInflow
                   ? Colors.green.withOpacity(0.1)
                   : Colors.red.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isDeposit ? Icons.arrow_downward : Icons.arrow_upward,
-              color: isDeposit ? Colors.green : Colors.red,
+              isInflow ? Icons.arrow_downward : Icons.arrow_upward,
+              color: isInflow ? Colors.green : Colors.red,
               size: 18.sp,
             ),
           ),
@@ -140,15 +210,16 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyle.body),
-                Text(subtitle, style: AppTextStyle.small),
+                Text(displayTitle, style: AppTextStyle.body),
+                if (displaySubtitle.isNotEmpty)
+                  Text(displaySubtitle, style: AppTextStyle.small),
               ],
             ),
           ),
           Text(
-            amount,
+            amountStr,
             style: TextStyle(
-              color: isDeposit ? Colors.green : Colors.red,
+              color: isInflow ? Colors.green : Colors.red,
               fontWeight: FontWeight.bold,
               fontSize: 16.sp,
             ),
@@ -156,5 +227,21 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
         ],
       ),
     );
+  }
+
+  /// Map the backend `type` enum value to a friendly title.
+  String _titleFor(String type) {
+    switch (type) {
+      case 'deposit':
+        return 'Deposit';
+      case 'withdraw':
+        return 'Withdrawal';
+      case 'trade':
+        return 'Trade';
+      case 'payout':
+        return 'Payout';
+      default:
+        return type.isEmpty ? 'Transaction' : type;
+    }
   }
 }

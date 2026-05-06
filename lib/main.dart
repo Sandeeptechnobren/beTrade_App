@@ -1,7 +1,14 @@
 import 'package:betrade/data/provider/category_provider.dart';
+import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
+import 'package:betrade/data/provider/positions_provider.dart';
+import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
+import 'package:betrade/data/provider/wallet_provider.dart';
+import 'package:betrade/presentation/screens/splash/signup_screen.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,48 +18,60 @@ import 'dart:async';
 import 'data/provider/bottom_nav_provider.dart';
 import 'data/provider/country_provider.dart';
 import 'data/provider/profile_provider.dart';
-import 'data/provider/signIn_provider.dart';
-import 'data/provider/signUp_provider.dart';
-import 'data/provider/theam_provider.dart';
+import 'data/provider/signin_provider.dart';
+import 'data/provider/signup_provider.dart';
+import 'data/provider/theme_provider.dart';
 import 'data/services/local_storage.dart';
+import 'data/services/notification_services.dart';
+import 'firebase_options.dart';
+
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint("Background message: ${message.messageId}");
+}
 
 Future<void> main() async {
-  // Step 1: Initialize binding FIRST
-  WidgetsFlutterBinding.ensureInitialized();
-  // Step 2: Setup error handlers
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint("Flutter Error: ${details.exception}");
-  };
-  // Local storage
-  try {
-    await LocalStorage.init();
-    debugPrint("LocalStorage initialized");
-  } catch (e) {
-    debugPrint(" LocalStorage Error: $e");
-  }
-  // Environment variables (CRITICAL - MUST LOAD FIRST)
-  try {
-    await dotenv.load(fileName: ".env");
-    if (dotenv.env['API_BASE_URL'] == null) {
-      debugPrint("API_BASE_URL missing, using default");
-      // Note: dotenv.env is read-only, create a config class instead
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ FIRST
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+
+  runZonedGuarded(() async {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint("Flutter Error: ${details.exception}");
+    };
+
+    await NotificationService.init();
+
+    try {
+      await LocalStorage.init();
+      debugPrint("LocalStorage initialized");
+    } catch (e) {
+      debugPrint(" LocalStorage Error: $e");
     }
-  } catch (e) {
-    debugPrint("ENV Load Error: $e");
-    // Set fallback in a separate config
-  }
-  // Orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  // Step 4: NOW start the app (ALL dependencies ready)
-  runZonedGuarded(() {
+
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      debugPrint("ENV Load Error: $e");
+    }
+
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     runApp(const MyApp());
   }, (error, stack) {
     debugPrint(" Async Error: $error");
-    debugPrint(" Stack: $stack");
   });
 }
 
@@ -70,8 +89,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => TradeProvider()),
+        ChangeNotifierProvider(create: (_) => TradeDetailProvider()),
         ChangeNotifierProvider(create: (_) => ExploreProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => DefaultAmountProvider()),
+        ChangeNotifierProvider(create: (_) => WalletProvider()),
+        ChangeNotifierProvider(create: (_) => PositionsProvider()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
@@ -81,6 +104,7 @@ class MyApp extends StatelessWidget {
           return Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
               return MaterialApp(
+                navigatorKey: navigatorKey,
                 title: 'BeTrade',
                 debugShowCheckedModeBanner: false,
                 themeMode: themeProvider.themeMode,
@@ -103,3 +127,50 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
+// Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+//   await Firebase.initializeApp(
+//     options: DefaultFirebaseOptions.currentPlatform,
+//   );
+//   debugPrint("Background message: ${message.messageId}");
+// }
+//
+// Future<void> main() async {
+//   WidgetsFlutterBinding.ensureInitialized(); // ✅ FIRST
+//
+//   await Firebase.initializeApp(
+//     options: DefaultFirebaseOptions.currentPlatform,
+//   );
+//
+//   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+//
+//   runZonedGuarded(() async {
+//     FlutterError.onError = (FlutterErrorDetails details) {
+//       FlutterError.presentError(details);
+//       debugPrint("Flutter Error: ${details.exception}");
+//     };
+//
+//     try {
+//       await LocalStorage.init();
+//       debugPrint("LocalStorage initialized");
+//     } catch (e) {
+//       debugPrint(" LocalStorage Error: $e");
+//     }
+//
+//     try {
+//       await dotenv.load(fileName: ".env");
+//     } catch (e) {
+//       debugPrint("ENV Load Error: $e");
+//     }
+//
+//     await SystemChrome.setPreferredOrientations([
+//       DeviceOrientation.portraitUp,
+//       DeviceOrientation.portraitDown,
+//     ]);
+//
+//     runApp(const MyApp());
+//   }, (error, stack) {
+//     debugPrint(" Async Error: $error");
+//   });
+// }

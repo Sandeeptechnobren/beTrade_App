@@ -77,7 +77,6 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
 
-      // 👇 YEH ADD KARNA HAI
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(1),
         child: Container(

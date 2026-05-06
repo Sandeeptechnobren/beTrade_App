@@ -46,7 +46,7 @@
 // //
 // // import 'package:dio/dio.dart';
 // // import 'package:flutter/material.dart';
-// // import '../../core/config/api_endpoint..dart';
+// // import '../../core/config/api_endpoint.dart';
 // // import '../../core/network/dio_client.dart';
 // // import '../model/country_model.dart';
 // //
@@ -170,7 +170,7 @@
 //
 // import 'package:dio/dio.dart';
 // import 'package:flutter/material.dart';
-// import '../../core/config/api_endpoint..dart';
+// import '../../core/config/api_endpoint.dart';
 // import '../../core/network/dio_client.dart';
 // import '../model/country_model.dart';
 //
@@ -310,7 +310,7 @@
 
 // import 'package:dio/dio.dart';
 // import 'package:flutter/material.dart';
-// import '../../core/config/api_endpoint..dart';
+// import '../../core/config/api_endpoint.dart';
 // import '../../core/network/dio_client.dart';
 // import '../model/country_model.dart';
 //
@@ -456,7 +456,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import '../../core/config/api_endpoint..dart';
+import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/country_model.dart';
 
@@ -582,8 +582,8 @@ class CountryProvider with ChangeNotifier {
       _filtered = List.from(_countries);
     } else {
       _filtered = _countries.where((country) {
-        final name = country.name ?? '';
-        final code = country.phoneCode ?? '';
+        final name = country.name;
+        final code = country.phoneCode;
         return name.toLowerCase().contains(term.toLowerCase()) ||
             code.contains(term);
       }).toList();

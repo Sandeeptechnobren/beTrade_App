@@ -243,7 +243,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class StepName extends StatefulWidget {
-  final Function(String firstName, String lastName) onChanged;
+  final Function(String firstName, String lastName, String email) onChanged;
   final Function(bool) onValidationChanged;
 
   const StepName({
@@ -259,15 +259,21 @@ class StepName extends StatefulWidget {
 class _StepNameState extends State<StepName> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   bool _isDisposed = false;
   String _firstName = "";
   String _lastName = "";
+  String _email = "";
+
+  static final RegExp _emailRegex =
+      RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
 
   @override
   void initState() {
     super.initState();
     _firstNameController.addListener(_onFirstNameChanged);
     _lastNameController.addListener(_onLastNameChanged);
+    _emailController.addListener(_onEmailChanged);
   }
 
   @override
@@ -275,8 +281,10 @@ class _StepNameState extends State<StepName> {
     _isDisposed = true;
     _firstNameController.removeListener(_onFirstNameChanged);
     _lastNameController.removeListener(_onLastNameChanged);
+    _emailController.removeListener(_onEmailChanged);
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -292,14 +300,22 @@ class _StepNameState extends State<StepName> {
     _validate();
   }
 
+  void _onEmailChanged() {
+    if (_isDisposed || !mounted) return;
+    _email = _emailController.text;
+    _validate();
+  }
+
   void _validate() {
     if (_isDisposed || !mounted) return;
 
-    final isValid = _firstName.trim().isNotEmpty && _lastName.trim().isNotEmpty;
+    final isValid = _firstName.trim().isNotEmpty &&
+        _lastName.trim().isNotEmpty &&
+        _emailRegex.hasMatch(_email.trim());
 
     try {
       widget.onValidationChanged(isValid);
-      widget.onChanged(_firstName, _lastName);
+      widget.onChanged(_firstName, _lastName, _email);
     } catch (e) {
       debugPrint("❌ Name validation error: $e");
     }
@@ -328,30 +344,39 @@ class _StepNameState extends State<StepName> {
   Widget build(BuildContext context) {
     if (_isDisposed) return const SizedBox();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "What's Your Name?",
-          style: _getTitleStyle(),
-        ),
-        SizedBox(height: 20.h),
-        _inputField(
-          controller: _firstNameController,
-          hint: "First Name",
-        ),
-        SizedBox(height: 15.h),
-        _inputField(
-          controller: _lastNameController,
-          hint: "Last Name",
-        ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "What's Your Name?",
+            style: _getTitleStyle(),
+          ),
+          SizedBox(height: 20.h),
+          _inputField(
+            controller: _firstNameController,
+            hint: "First Name",
+          ),
+          SizedBox(height: 15.h),
+          _inputField(
+            controller: _lastNameController,
+            hint: "Last Name",
+          ),
+          SizedBox(height: 15.h),
+          _inputField(
+            controller: _emailController,
+            hint: "Email",
+            keyboardType: TextInputType.emailAddress,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _inputField({
     required TextEditingController controller,
     required String hint,
+    TextInputType? keyboardType,
   }) {
     final isDarkMode = _isDarkMode(context);
 
@@ -367,6 +392,7 @@ class _StepNameState extends State<StepName> {
       ),
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
         style: TextStyle(
           color: AppColors.textPrimaryDynamic(context),
           fontSize: 14.sp,

@@ -1346,6 +1346,7 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1388,25 +1389,6 @@ class _StepProfileState extends State<StepProfile> {
       setState(fn);
     }
   }
-  //
-  // // Helper method to copy image to app's temporary directory
-  // Future<File> _copyImageToTempDirectory(File originalImage) async {
-  //   try {
-  //     final Directory tempDir = await getTemporaryDirectory();
-  //     final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-  //     final String fileName = 'profile_image_$timestamp.jpg';
-  //     final String tempPath = '${tempDir.path}/$fileName';
-  //
-  //     final File tempFile = await originalImage.copy(tempPath);
-  //     print("✅ Image copied to: ${tempFile.path}");
-  //     print("✅ File exists: ${await tempFile.exists()}");
-  //
-  //     return tempFile;
-  //   } catch (e) {
-  //     print("❌ Error copying image: $e");
-  //     return originalImage; // Return original if copy fails
-  //   }
-  // }
 
   Future<File> _copyImageToTempDirectory(File originalImage, {bool isCamera = false}) async {
     try {
@@ -1547,6 +1529,47 @@ class _StepProfileState extends State<StepProfile> {
     } catch (e) {
       debugPrint("❌ Camera error: $e");
       if (mounted) _showError("Failed to capture image");
+    } finally {
+      if (!_isDisposed && mounted) _isProcessing = false;
+    }
+  }
+
+  Future<void> _pickAvatar(String assetPath) async {
+    if (_isDisposed || !mounted || _isProcessing) return;
+    _isProcessing = true;
+
+    try {
+      // Close the avatar sheet immediately for a snappy feel.
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context);
+      }
+
+      // 1. Copy the bundled asset bytes to a temp file.
+      final byteData = await rootBundle.load(assetPath);
+      final tempDir = await getTemporaryDirectory();
+      final srcPath =
+          '${tempDir.path}/avatar_src_${DateTime.now().millisecondsSinceEpoch}.png';
+      final srcFile = await File(srcPath).writeAsBytes(
+        byteData.buffer
+            .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+      );
+
+      if (_isDisposed || !mounted) return;
+
+      // 2. Run it through the same JPEG compression pipeline as
+      //    camera / gallery so completeSignup uploads a consistent format.
+      final File compressedFile = await _compressAndSaveImage(srcFile);
+
+      if (_isDisposed || !mounted) return;
+
+      // 3. Mark visual selection and propagate to the parent.
+      _safeSetState(() {
+        _selectedAvatar = assetPath;
+      });
+      _updateImage(compressedFile);
+    } catch (e) {
+      debugPrint("❌ Avatar picker error: $e");
+      if (mounted) _showError("Failed to set avatar");
     } finally {
       if (!_isDisposed && mounted) _isProcessing = false;
     }
@@ -1819,14 +1842,7 @@ class _StepProfileState extends State<StepProfile> {
                 final isSelected = _selectedAvatar == avatarPath;
 
                 return GestureDetector(
-                  onTap: () {
-                    if (_isDisposed || !mounted) return;
-
-                    _safeSetState(() {
-                      _selectedAvatar = avatarPath;
-                    });
-                    Navigator.pop(context);
-                  },
+                  onTap: () => _pickAvatar(avatarPath),
                   child: _safeAvatarImage(avatarPath, isSelected),
                 );
               },
@@ -1841,45 +1857,47 @@ class _StepProfileState extends State<StepProfile> {
   Widget build(BuildContext context) {
     if (_isDisposed) return const SizedBox();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Add Profile Picture",
-          style: AppTextStyle.heading.copyWith(
-            color: AppColors.textPrimaryDynamic(context),
-          ),
-        ),
-        SizedBox(height: 20.h),
-        GestureDetector(
-          onTap: _openOptionsSheet,
-          child: Container(
-            height: 300.h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.inputFieldBgDynamic(context),
-              borderRadius: BorderRadius.circular(15.r),
-              border: Border.all(
-                color: AppColors.borderDynamic(context),
-              ),
-            ),
-            child: _selectedImage == null
-                ? Icon(
-              Icons.add_a_photo,
-              size: 40.sp,
-              color: AppColors.textSecondaryDynamic(context),
-            )
-                : ClipRRect(
-              borderRadius: BorderRadius.circular(15.r),
-              child: Image.file(
-                _selectedImage!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.error),
-              ),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Add Profile Picture",
+            style: AppTextStyle.heading.copyWith(
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ),
-        ),
-      ],
+          SizedBox(height: 20.h),
+          GestureDetector(
+            onTap: _openOptionsSheet,
+            child: Container(
+              height: 300.h,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.inputFieldBgDynamic(context),
+                borderRadius: BorderRadius.circular(15.r),
+                border: Border.all(
+                  color: AppColors.borderDynamic(context),
+                ),
+              ),
+              child: _selectedImage == null
+                  ? Icon(
+                Icons.add_a_photo,
+                size: 40.sp,
+                color: AppColors.textSecondaryDynamic(context),
+              )
+                  : ClipRRect(
+                borderRadius: BorderRadius.circular(15.r),
+                child: Image.file(
+                  _selectedImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.error),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

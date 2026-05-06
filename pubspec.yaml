@@ -25,6 +25,13 @@ dependencies:
   path_provider: ^2.1.5
   http_parser: ^4.1.2
   flutter_image_compress: ^2.4.0
+  lucide_icons: ^0.257.0
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.0.0
+
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -33,7 +40,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
     - assets/logo/

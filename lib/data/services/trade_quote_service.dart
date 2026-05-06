@@ -1,0 +1,59 @@
+import 'package:dio/dio.dart';
+import '../../core/config/api_endpoint.dart';
+import '../../core/network/dio_client.dart';
+import '../model/quote_model.dart';
+import 'local_storage.dart';
+
+/// Read-only LMSR pricing for the trade detail screen.
+/// Powers the live "you'll receive X shares" calc as the user types
+/// in the cost field. Backend throttles this at 60/min so debounce
+/// in the UI before calling.
+class TradeQuoteService {
+  /// POST /api/trade/{uuid}/quote
+  /// Returns a typed [QuoteModel] from the response `data`, or null on failure.
+  static Future<QuoteModel?> quote({
+    required String marketUuid,
+    required String outcomeSlug,
+    required double costGhs,
+  }) async {
+    try {
+      final token = LocalStorage.getToken();
+      final response = await DioClient.instance.post(
+        ApiEndpoints.tradeQuote(marketUuid),
+        data: {
+          'outcome_slug': outcomeSlug,
+          'cost_ghs': costGhs,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final body = response.data as Map;
+        if (body['status'] == true && body['data'] is Map) {
+          return QuoteModel.fromJson(
+            Map<String, dynamic>.from(body['data'] as Map),
+          );
+        }
+      }
+      return null;
+    } on DioException catch (e) {
+      // Typed error codes from the backend (INSUFFICIENT_FUNDS,
+      // MARKET_CLOSED, KYC_REQUIRED, BELOW_MIN_COST, ABOVE_MAX_COST,
+      // UNKNOWN_OUTCOME) live in e.response.data — propagating those
+      // belongs in the next PR (the Buy bottom sheet that consumes
+      // them). Quote-only callers don't need them.
+      print('TradeQuoteService DioException: ${e.message}; '
+          'response=${e.response?.data}');
+      return null;
+    } catch (e) {
+      print('TradeQuoteService error: $e');
+      return null;
+    }
+  }
+}

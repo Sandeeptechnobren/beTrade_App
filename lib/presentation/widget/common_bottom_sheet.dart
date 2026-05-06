@@ -5,11 +5,16 @@ class CommonBottomSheet {
   static void open({
     required BuildContext context,
     required Widget Function(ScrollController controller) builder,
+    double initialChildSize = 0.9,
+    double minChildSize = 0.7,
+    double maxChildSize = 0.95,
+    Color? barrierColor,
   }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: barrierColor,
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
@@ -23,9 +28,9 @@ class CommonBottomSheet {
             child: Container(
               color: Colors.white,
               child: DraggableScrollableSheet(
-                initialChildSize: 0.9,
-                minChildSize: 0.7,
-                maxChildSize: 0.95,
+                initialChildSize: initialChildSize,
+                minChildSize: minChildSize,
+                maxChildSize: maxChildSize,
                 expand: false,
                 builder: (context, controller) {
                   return builder(controller);

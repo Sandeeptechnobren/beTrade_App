@@ -28,9 +28,9 @@
 //
 
 
-import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../../../core/network/dio_client.dart';
 import '../../../data/model/country_model.dart';
 
 class CountryService {
@@ -39,20 +39,22 @@ class CountryService {
 
   static Future<List<CountryModel>> fetchCountries() async {
     try {
-      final response = await http.get(Uri.parse(url)).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw Exception("Connection timeout. Please check your internet.");
-        },
+      final response = await DioClient.instance.get(
+        url,
+        options: Options(
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
       );
 
       if (response.statusCode != 200) {
         debugPrint(" API Error: ${response.statusCode}");
         return [];
       }
-      final dynamic data = _safeJsonDecode(response.body);
+
+      final dynamic data = response.data;
       if (data == null) {
-        debugPrint("Failed to decode JSON");
+        debugPrint("Response data is null");
         return [];
       }
 
@@ -60,7 +62,16 @@ class CountryService {
 
       debugPrint(" Loaded ${countries.length} countries");
       return countries;
-
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        debugPrint("Connection timeout. Please check your internet.");
+      } else {
+        debugPrint(
+            "fetchCountries DioException: ${e.message}; response=${e.response?.data}");
+      }
+      return [];
     } catch (e, stackTrace) {
       debugPrint("fetchCountries error: $e");
       debugPrint("StackTrace: $stackTrace");
@@ -68,17 +79,9 @@ class CountryService {
     }
   }
 
-  static dynamic _safeJsonDecode(String body) {
-    try {
-      return jsonDecode(body);
-    } catch (e) {
-      debugPrint(" JSON decode error: $e");
-      return null;
-    }
-  }
   static List<CountryModel> _safeParseCountries(dynamic data) {
     try {
-      if (data is! Map<String, dynamic>) {
+      if (data is! Map) {
         debugPrint(" Response is not a Map");
         return [];
       }
@@ -102,7 +105,6 @@ class CountryService {
       }
 
       return countries;
-
     } catch (e) {
       debugPrint(" Parse countries error: $e");
       return [];

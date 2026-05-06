@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../core/theme/app_colors.dart';
 //
 // class Button extends StatelessWidget {
 //   final String title;
@@ -83,7 +85,11 @@ class Button extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25.r),
-            color: isPrimary ? const Color(0xFF7B2FF7) : Colors.grey.shade200,
+            color: isPrimary
+                ? ((onPressed == null || isLoading)
+                    ? AppColors.primary.withOpacity(0.45)
+                    : AppColors.primary)
+                : Colors.grey.shade200,
             border: isPrimary ? null : Border.all(color: Colors.grey.shade400),
           ),
           child: Center(

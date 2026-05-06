@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
-import '../../../data/provider/signIn_provider.dart';
+import '../../../data/provider/signin_provider.dart';
 import 'country_picker_sheet.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -919,3 +919,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     );
   }
 }
+
+
+
+//  The market will resolve when a verified funding event, acquisition, or predefined milestone occurs.
+//
+// • Resolution will occur within 72 hours after confirmation from an approved resolution source.
+// • If conflicting information exists, the platform administrators may review additional sources before finalizing the result.
+// • Once a market is resolved:
+// Trading will be permanently closed
+// Final prices will be locked
+// Payouts or ownership allocations will be executed according to the outcome
