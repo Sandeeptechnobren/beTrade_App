@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "449412029388",
+    "project_id": "betrade-f6201",
+    "storage_bucket": "betrade-f6201.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:449412029388:android:c3c6327ef4012f26081b69",
+        "android_client_info": {
+          "package_name": "com.build.betrade"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTscZW9M70oWei-QupacaHdfMjxg1AVMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
