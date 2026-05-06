@@ -66,6 +66,7 @@ class ApiEndpoints {
   static String get preferences => '${EnvConfig.baseUrl}/profile/preferences';
 
   static String get countries => '${EnvConfig.baseUrl}/countries';
+  static String get saveFcmToken => '${EnvConfig.baseUrl}/fcm/save-token';
 
   static String get notificationPreferences =>
       '${EnvConfig.baseUrl}/notificationPreferences';
