@@ -13,7 +13,7 @@ import '../../widget/purple_button.dart';
 class DefaultSettingsPage extends StatefulWidget {
   const DefaultSettingsPage({
     super.key,
-    required ScrollController scrollController,
+    ScrollController? scrollController,
   });
   @override
   State<DefaultSettingsPage> createState() => _DefaultSettingsPageState();
@@ -52,7 +52,7 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
 
   void _populateFromSettings(DefaultSettingsModel? settings) {
     if (settings == null) {
-      _showSnack("Failed to load default settings");
+      _showSnack("Set default Amount");
       return;
     }
     _maxDefaultAmountController.text = settings.maxDefaultAmount.toString();

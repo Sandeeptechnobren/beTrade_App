@@ -67,11 +67,11 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     itemBuilder: (context) => _filterMap.keys
                         .map(
                           (label) => PopupMenuItem(
-                            value: label,
-                            padding: EdgeInsets.zero,
-                            child: _menuItem(label),
-                          ),
-                        )
+                        value: label,
+                        padding: EdgeInsets.zero,
+                        child: _menuItem(label),
+                      ),
+                    )
                         .toList(),
                     child: Container(
                       padding: EdgeInsets.symmetric(
@@ -163,7 +163,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
   ///   { id, type, amount, fee, status, reference_id, created_at }
   Widget _txRow(Map<String, dynamic> tx) {
     final type = tx['type']?.toString() ?? '';
-    final amountRaw = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+    final amountRaw = double.tryParse(tx['amount'].toString()) ?? 0.0;
     final status = tx['status']?.toString() ?? '';
     final reference = tx['reference_id']?.toString() ?? '';
 
@@ -175,8 +175,8 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
     final displaySubtitle = status.isNotEmpty && reference.isNotEmpty
         ? '${status[0].toUpperCase()}${status.substring(1)} • $reference'
         : (status.isNotEmpty
-            ? '${status[0].toUpperCase()}${status.substring(1)}'
-            : reference);
+        ? '${status[0].toUpperCase()}${status.substring(1)}'
+        : reference);
 
     final sign = isInflow ? '+' : '';
     final amountStr = '$sign${amountRaw.toStringAsFixed(2)} GHS';

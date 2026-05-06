@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:betrade/core/theme/app_colors.dart';
+import 'package:betrade/presentation/screens/profile/default_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -16,16 +17,7 @@ import 'trade_details_page.dart';
 class TradePage extends StatefulWidget {
   final String tradeUuid;
   final ScrollController scrollController;
-
-  /// Pre-selects the YES/NO toggle when this page is opened from a
-  /// home-card swipe. Accepts `'yes'` (default) or `'no'`.
   final String initialOutcome;
-
-  /// Swipe-path quick-trade mode: pre-fill the cost from
-  /// `DefaultAmountProvider.defaultAmount` and replace the editable
-  /// amount field + quick-amount chips with a read-only display so the
-  /// user can confirm-and-buy in one tap. Tap-path callers leave this
-  /// `false` to keep the manual entry UX.
   final bool useDefaultAmount;
 
   const TradePage({
@@ -53,37 +45,77 @@ class _TradePageState extends State<TradePage> {
   Timer? _quoteDebounce;
   int _quoteRequestId = 0;
 
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   isYesSelected = widget.initialOutcome.toLowerCase() != 'no';
+  //
+  //   // Swipe-path: pre-fill the cost with the user's default amount and
+  //   // schedule the first server quote so the figures populate without
+  //   // any further tap. Tap-path leaves amount = 0 so the user types it.
+  //   if (widget.useDefaultAmount) {
+  //     final defaultAmt = context.read<DefaultAmountProvider>().defaultAmount;
+  //     amount = defaultAmt!.toDouble();
+  //     amountController.text = defaultAmt.toString();
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       if (mounted) _scheduleQuoteFetch();
+  //     });
+  //   }
+  //
+  //   // Kick off fetch synchronously so the first build sees
+  //   // provider.isLoading == true and shows the spinner instead of
+  //   // flashing "No Data Found" for one frame.
+  //
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     // context.read<TradeDetailProvider>().fetch();
+  //     context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
+  //   });
+  // }
+
+
   @override
   void initState() {
     super.initState();
+
     isYesSelected = widget.initialOutcome.toLowerCase() != 'no';
 
-    // Swipe-path: pre-fill the cost with the user's default amount and
-    // schedule the first server quote so the figures populate without
-    // any further tap. Tap-path leaves amount = 0 so the user types it.
     if (widget.useDefaultAmount) {
-      final defaultAmt = context.read<DefaultAmountProvider>().defaultAmount;
-      amount = defaultAmt!.toDouble();
+      final defaultAmt =
+          context.read<DefaultAmountProvider>().defaultAmount;
+
+      if (defaultAmt == null || defaultAmt <= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please set a valid default amount first"),
+            ),
+          );
+
+          CommonBottomSheet.open(
+            context: context,
+            builder: (controller) =>
+                DefaultSettingsPage(scrollController: controller),
+          );
+
+          });
+        return;
+      }
+
+      amount = defaultAmt.toDouble();
       amountController.text = defaultAmt.toString();
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scheduleQuoteFetch();
       });
     }
 
-    // Kick off fetch synchronously so the first build sees
-    // provider.isLoading == true and shows the spinner instead of
-    // flashing "No Data Found" for one frame.
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // context.read<TradeDetailProvider>().fetch();
       context.read<TradeDetailProvider>().fetch(widget.tradeUuid);
     });
   }
 
-  /// Opens the Details page as a bottom sheet stacked on top of this
-  /// `TradePage` sheet. Tapping back inside the Details sheet pops it
-  /// and returns the user here with their amount intact — same pattern
-  /// the rest of the app uses for nested sheets.
   void _openDetails() {
     Navigator.pop(context);
     CommonBottomSheet.open(
@@ -132,7 +164,7 @@ class _TradePageState extends State<TradePage> {
       setState(() => _serverQuote = null);
       return;
     }
-    _quoteDebounce = Timer(const Duration(milliseconds: 400), _fetchQuote);
+    _quoteDebounce = Timer(const Duration(milliseconds: 200), _fetchQuote);
   }
 
   Future<void> _fetchQuote() async {
@@ -195,7 +227,7 @@ class _TradePageState extends State<TradePage> {
     }
     final detail = provider.detail;
     if (detail == null) {
-      return const Scaffold(body: Center(child: Text("No Data Found")));
+      return const Scaffold(body: Center(child: Text("No Data Found",textAlign: TextAlign.center,)));
     }
 
     // Prefer server quote (LMSR-aware, includes slippage + fees);
