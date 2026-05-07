@@ -51,19 +51,19 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAJjApV_FyfxhC4H8iOa4gOvY09AVoiQ_w',
-    appId: '1:795194194311:android:7209f202a79a905ea73b22',
-    messagingSenderId: '795194194311',
-    projectId: 'betrade-4efd1',
-    storageBucket: 'betrade-4efd1.firebasestorage.app',
+    apiKey: 'AIzaSyD6IPTdXK_Rbzv571JuRc_r2nMC1HyicXM',
+    appId: '1:577626610829:android:ce408e8d2bf8b6a79dd6c4',
+    messagingSenderId: '577626610829',
+    projectId: 'betrade-new',
+    storageBucket: 'betrade-new.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAkB_Y3Oq-xxxbLnpri1KCr63-GUszfpEQ',
-    appId: '1:795194194311:ios:8f7cf0e14c9b197fa73b22',
-    messagingSenderId: '795194194311',
-    projectId: 'betrade-4efd1',
-    storageBucket: 'betrade-4efd1.firebasestorage.app',
+    apiKey: 'AIzaSyBNClXQ4whn4HdYcBWmEWYzuWXzVvMEF20',
+    appId: '1:577626610829:ios:ad98598875b8e3839dd6c4',
+    messagingSenderId: '577626610829',
+    projectId: 'betrade-new',
+    storageBucket: 'betrade-new.firebasestorage.app',
     iosBundleId: 'com.build.betrade',
   );
 
