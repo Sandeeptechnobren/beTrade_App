@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
@@ -301,9 +302,17 @@ class AuthService {
           }
         }
 
+        try {
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            await saveFcmToken(fcmToken);
+          }
+        } catch (e) {
+          print("FCM TOKEN ERROR: $e");
+        }
+
         final user = data['user'];
-        final rawStatus =
-            user is Map ? user['doc_upload_status'] : null;
+        final rawStatus = user is Map ? user['doc_upload_status'] : null;
         int docUploadStatus = 0;
         if (rawStatus is int) {
           docUploadStatus = rawStatus;
@@ -337,6 +346,39 @@ class AuthService {
       }
       print("VERIFY LOGIN OTP ERROR: $e");
       return {"success": false, "message": "Server error"};
+    }
+  }
+
+  Future<bool> saveFcmToken(String token) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.saveFcmToken,
+        data: {
+          "token": token,
+        },
+      );
+      print(token);
+
+      print("FCM SAVE STATUS: ${response.statusCode}");
+      print("FCM SAVE RESPONSE: ${response.data}");
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        if (data is Map) {
+          return data['status'] == true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      if (e is DioException) {
+        print("FCM SAVE ERROR: ${e.message}");
+        print("FCM SAVE RESPONSE: ${e.response?.data}");
+      } else {
+        print("FCM SAVE ERROR: $e");
+      }
+      return false;
     }
   }
 }

@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../model/trade_detail_model.dart';
 import 'local_storage.dart';
 
 class TradeDetailService {
-  static Future<Map<String, dynamic>?> getTradeDetail(String uuid) async {
+  static Future<TradeDetailModel?> getTradeDetail(String uuid) async {
     try {
       String? token = LocalStorage.getToken();
       final url = ApiEndpoints.tradeView(uuid);
@@ -25,7 +26,9 @@ class TradeDetailService {
       if (response.statusCode == 200) {
         final json = response.data;
         if (json is Map && json["data"] is Map) {
-          return Map<String, dynamic>.from(json["data"] as Map);
+          return TradeDetailModel.fromJson(
+            Map<String, dynamic>.from(json["data"] as Map),
+          );
         }
       } else {
         print(" API ERROR");

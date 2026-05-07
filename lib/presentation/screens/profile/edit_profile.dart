@@ -26,7 +26,7 @@ class _EditProfileState extends State<EditProfile> {
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
-  // final emailController = TextEditingController();
+  final emailController = TextEditingController();
 
   String gender = "male";
   File? selectedImage;
@@ -75,6 +75,9 @@ class _EditProfileState extends State<EditProfile> {
     lastNameController.addListener(_recomputeHasChanges);
     phoneController.addListener(_recomputeHasChanges);
     // emailController.addListener(_recomputeHasChanges);
+    if (profile != null) {
+      emailController.text = profile.email ?? '';
+    }
 
     Future.microtask(() {
       loadAllData();
@@ -236,11 +239,12 @@ class _EditProfileState extends State<EditProfile> {
                               children: [
                                 _buildField("First Name", firstNameController),
                                 _buildField("Last Name", lastNameController),
-                                // _buildField(
-                                //   "Email",
-                                //   emailController,
-                                //   keyboardType: TextInputType.emailAddress,
-                                // ),
+                                _buildField(
+                                  "Email",
+                                  emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  enabled: false,
+                                ),
                                 // buildCountryDropdown(),
                                 buildCurrencyDropdown(),
                                 buildLanguageDropdown(),
@@ -291,6 +295,7 @@ class _EditProfileState extends State<EditProfile> {
     String title,
     TextEditingController controller, {
     TextInputType? keyboardType,
+        bool enabled = true,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
@@ -307,6 +312,7 @@ class _EditProfileState extends State<EditProfile> {
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
+              enabled: enabled,
               decoration: InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(14.w),

@@ -5,7 +5,7 @@ import '../model/trade_model.dart';
 import 'local_storage.dart';
 
 class TradeService {
-  static Future<List<TradeModel>> getTrades() async {
+  static Future<List<TradeModel>> getTrades({int page = 1}) async {
     try {
       String? token = LocalStorage.getToken();
       // final response = await http.get(
@@ -18,7 +18,7 @@ class TradeService {
       //   },
       // );
       final response = await DioClient.instance.get(
-        ApiEndpoints.tradeList(1),
+        ApiEndpoints.tradeList(page),
         options: Options(
           headers: {
             "Authorization": "Bearer $token",

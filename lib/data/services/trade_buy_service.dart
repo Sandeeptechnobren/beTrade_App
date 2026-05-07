@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../model/buy_response.dart';
 import 'local_storage.dart';
 
 /// Place an order against the LMSR trade engine.
@@ -28,7 +29,7 @@ class TradeBuyService {
   /// the backend short-circuits to the original Order without
   /// re-charging the wallet. Use [generateIdempotencyKey] from this
   /// class.
-  static Future<Map<String, dynamic>> buy({
+  static Future<BuyResponse> buy({
     required String marketUuid,
     required String outcomeSlug,
     required double costGhs,
@@ -53,20 +54,12 @@ class TradeBuyService {
       );
 
       final body = response.data;
-      if (response.statusCode == 200 && body is Map && body['status'] == true) {
-        return {
-          'success': true,
-          'message': body['message']?.toString() ?? 'Order filled.',
-          'data': body['data'] is Map
-              ? Map<String, dynamic>.from(body['data'] as Map)
-              : null,
-        };
+      if (response.statusCode == 200 && body is Map) {
+        return BuyResponse.fromJson(Map<String, dynamic>.from(body));
       }
-      return {
-        'success': false,
-        'message':
-            (body is Map ? body['message']?.toString() : null) ?? 'Buy failed.',
-      };
+      return BuyResponse.networkFailure(
+        body is Map ? body['message']?.toString() : null,
+      );
     } on DioException catch (e) {
       // Backend ships typed error codes in the response body for the
       // 402 / 403 / 409 / 422 paths (see TradeController::errorFor).
@@ -77,21 +70,14 @@ class TradeBuyService {
       //   BELOW/ABOVE_*COST  → in-line cost validation hint
       //   UNKNOWN_OUTCOME    → developer bug; show generic
       final body = e.response?.data;
-      final code = body is Map ? body['code']?.toString() : null;
-      final message = body is Map ? body['message']?.toString() : null;
-      print('TradeBuyService DioException: code=$code message=$message; '
-          'response=$body');
-      return {
-        'success': false,
-        'code': code,
-        'message': message ?? e.message ?? 'Buy failed.',
-      };
+      print('TradeBuyService DioException: ${e.message}; response=$body');
+      if (body is Map) {
+        return BuyResponse.fromJson(Map<String, dynamic>.from(body));
+      }
+      return BuyResponse.networkFailure(e.message);
     } catch (e) {
       print('TradeBuyService error: $e');
-      return {
-        'success': false,
-        'message': 'Buy failed. Please try again.',
-      };
+      return BuyResponse.networkFailure();
     }
   }
 

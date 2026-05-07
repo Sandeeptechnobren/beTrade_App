@@ -3,10 +3,12 @@ import 'package:flutter/cupertino.dart';
 
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../model/buy_response.dart';
+import '../model/quote_response.dart';
 import 'local_storage.dart';
 
 class HomeService {
-  static Future<Map<String, dynamic>?> getQuote({
+  static Future<QuoteResponse> getQuote({
     required String uuid,
     required String outcome,
     required int amount,
@@ -18,7 +20,7 @@ class HomeService {
       print(token);
       if (token == null || token.isEmpty) {
         debugPrint("❌ No auth token");
-        return null;
+        return QuoteResponse.networkFailure('Not signed in.');
       }
 
       final response = await DioClient.instance.post(
@@ -37,33 +39,39 @@ class HomeService {
 
       debugPrint("🔵 Quote response: ${response.data}");
 
-      if (response.statusCode == 200 &&
-          response.data['status'] == true) {
-        return response.data; // ✅ RETURN FULL DATA
+      if (response.data is Map) {
+        return QuoteResponse.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
       }
-
-      return response.data;
+      return QuoteResponse.networkFailure();
     } on DioException catch (e) {
       debugPrint("❌ Dio error: ${e.response?.data}");
-      return e.response?.data;
+      final body = e.response?.data;
+      if (body is Map) {
+        return QuoteResponse.fromJson(Map<String, dynamic>.from(body));
+      }
+      return QuoteResponse.networkFailure(e.message);
     } catch (e) {
       debugPrint("❌ Exception: $e");
-      return null;
+      return QuoteResponse.networkFailure();
     }
   }
 
-  static Future<Map<String, dynamic>?> buyTrade({
+  static Future<BuyResponse> buyTrade({
     required String uuid,
     required String outcome,
     required num amount,
+    required String idempotencyKey,
   }) async {
-    debugPrint("🔵 Buy POST → uuid=$uuid, outcome=$outcome, amount=$amount");
+    debugPrint("🔵 Buy POST → uuid=$uuid, outcome=$outcome, amount=$amount, "
+        "idempotencyKey=$idempotencyKey");
 
     try {
       final token = LocalStorage.getToken();
       if (token == null || token.isEmpty) {
         debugPrint("❌ No auth token");
-        return null;
+        return BuyResponse.networkFailure('Not signed in.');
       }
 
       final response = await DioClient.instance.post(
@@ -71,6 +79,7 @@ class HomeService {
         data: {
           "outcome_slug": outcome,
           "cost_ghs": amount,
+          "idempotency_key": idempotencyKey,
         },
         options: Options(
           headers: {
@@ -82,24 +91,22 @@ class HomeService {
 
       debugPrint("🔵 Buy response: ${response.data}");
 
-      if (response.statusCode == 200 &&
-          response.data is Map &&
-          response.data['status'] == true) {
-        return Map<String, dynamic>.from(response.data);
-      }
-
       if (response.data is Map) {
-        return Map<String, dynamic>.from(response.data);
+        return BuyResponse.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
       }
-      return null;
+      return BuyResponse.networkFailure();
     } on DioException catch (e) {
       debugPrint("❌ Buy Dio error: ${e.response?.data}");
       final data = e.response?.data;
-      if (data is Map) return Map<String, dynamic>.from(data);
-      return null;
+      if (data is Map) {
+        return BuyResponse.fromJson(Map<String, dynamic>.from(data));
+      }
+      return BuyResponse.networkFailure(e.message);
     } catch (e) {
       debugPrint("❌ Buy exception: $e");
-      return null;
+      return BuyResponse.networkFailure();
     }
   }
 }

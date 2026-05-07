@@ -381,7 +381,6 @@
 //   }
 // }
 
-
 import 'dart:async';
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
@@ -469,9 +468,7 @@ class _OTPScreenState extends State<OTPScreen> {
   void _showMessage(String message, {bool isError = true}) {
     if (_isDisposed || !mounted) return;
 
-    final isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -493,13 +490,12 @@ class _OTPScreenState extends State<OTPScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                MainScreen(
-                  showWelcomePopup: true,
-                  docUploadStatus: docUploadStatus,
-                ),
+            builder: (_) => MainScreen(
+              showWelcomePopup: true,
+              docUploadStatus: docUploadStatus,
+            ),
           ),
-              (route) => false,
+          (route) => false,
         );
       }
     });
@@ -590,56 +586,13 @@ class _OTPScreenState extends State<OTPScreen> {
       isOtpComplete = otp.length == otpLength;
     });
   }
-
-  // void _onOtpChanged(String value, int index) {
-  //   if (_isDisposed || !mounted) return;
-  //   if (value.isNotEmpty) {
-  //     _controllers[index].text = value.substring(value.length - 1);
-  //     _controllers[index].selection = TextSelection.fromPosition(
-  //       const TextPosition(offset: 1),
-  //     );
-  //
-  //     if (index < otpLength - 1) {
-  //       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-  //     } else {
-  //       FocusScope.of(context).unfocus();
-  //     }
-  //   }
-  //   if (value.isEmpty && index > 0) {
-  //     FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-  //     _controllers[index - 1].selection =
-  //         TextSelection.fromPosition(
-  //           TextPosition(
-  //             offset: _controllers[index - 1].text.length,
-  //           ),
-  //         );
-  //   }
-  //
-  //   _checkOtpComplete();
-  // }
-
-
   void _onOtpChanged(String value, int index) {
     if (_isDisposed || !mounted) return;
-
-    /// 🔹 CASE 1: Paste पूरा OTP (e.g. 123456)
-    if (value.length > 1) {
-      for (int i = 0; i < otpLength; i++) {
-        if (i < value.length) {
-          _controllers[i].text = value[i];
-        } else {
-          _controllers[i].clear();
-        }
-      }
-
-      FocusScope.of(context).unfocus(); // keyboard close
-      _checkOtpComplete();
-      return;
-    }
-
-    /// 🔹 CASE 2: Normal typing (single digit)
     if (value.isNotEmpty) {
-      _controllers[index].text = value;
+      _controllers[index].text = value.substring(value.length - 1);
+      _controllers[index].selection = TextSelection.fromPosition(
+        const TextPosition(offset: 1),
+      );
 
       if (index < otpLength - 1) {
         FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
@@ -647,36 +600,35 @@ class _OTPScreenState extends State<OTPScreen> {
         FocusScope.of(context).unfocus();
       }
     }
-
-    /// 🔹 CASE 3: Backspace
     if (value.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-
-      _controllers[index - 1].selection = TextSelection.fromPosition(
-        TextPosition(offset: _controllers[index - 1].text.length),
-      );
+      _controllers[index - 1].selection =
+          TextSelection.fromPosition(
+            TextPosition(
+              offset: _controllers[index - 1].text.length,
+            ),
+          );
     }
 
     _checkOtpComplete();
   }
-
-//
-// void _onOtpChanged(String value, int index) {
-//   if (_isDisposed) return;
-//
-//   if (value.length == 1) {
-//     if (index < otpLength - 1) {
-//       _focusNodes[index + 1].requestFocus();
-//     } else {
-//       _focusNodes[index].unfocus();
-//     }
-//   } else if (value.isEmpty) {
-//     if (index > 0) {
-//       _focusNodes[index - 1].requestFocus();
-//     }
-//   }
-//   _checkOtpComplete();
-// }
+  //
+  // void _onOtpChanged(String value, int index) {
+  //   if (_isDisposed) return;
+  //
+  //   if (value.length == 1) {
+  //     if (index < otpLength - 1) {
+  //       _focusNodes[index + 1].requestFocus();
+  //     } else {
+  //       _focusNodes[index].unfocus();
+  //     }
+  //   } else if (value.isEmpty) {
+  //     if (index > 0) {
+  //       _focusNodes[index - 1].requestFocus();
+  //     }
+  //   }
+  //   _checkOtpComplete();
+  // }
 
   @override
   void dispose() {
@@ -690,20 +642,16 @@ class _OTPScreenState extends State<OTPScreen> {
     }
     super.dispose();
   }
-
   Widget _otpBox(int index) {
-    final isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
-      width: 49.w,
+      width: 50.w,
       height: 65.h,
       child: TextField(
         textInputAction: TextInputAction.next,
         autofocus: index == 0,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(otpLength),
         ],
         controller: _controllers[index],
         focusNode: _focusNodes[index],
@@ -752,9 +700,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isButtonEnabled = isOtpComplete && !_isVerifying && !_isDisposed;
 
     return Scaffold(
@@ -784,7 +730,7 @@ class _OTPScreenState extends State<OTPScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(otpLength, (index) => _otpBox(index)),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height:10.h),
             Row(
               children: [
                 Text(
@@ -854,5 +800,3 @@ class _OTPScreenState extends State<OTPScreen> {
     );
   }
 }
-
-

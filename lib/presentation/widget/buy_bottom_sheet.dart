@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/model/buy_response.dart';
+import '../../data/model/quote_model.dart';
 import '../../data/services/trade_buy_service.dart';
 import '../../data/services/trade_quote_service.dart';
 
@@ -39,7 +41,7 @@ class BuyBottomSheet extends StatefulWidget {
 }
 
 class _BuyBottomSheetState extends State<BuyBottomSheet> {
-  Map<String, dynamic>? _quote;
+  QuoteModel? _quote;
   bool _isLoadingQuote = true;
   String? _quoteError;
 
@@ -87,7 +89,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
 
     if (!mounted) return;
 
-    if (result['success'] == true) {
+    if (result.success) {
       Navigator.of(context).pop(true);
       return;
     }
@@ -99,9 +101,9 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
   }
 
   /// Map typed backend codes to human messages.
-  String _formatError(Map<String, dynamic> result) {
-    final code = result['code']?.toString();
-    final message = result['message']?.toString();
+  String _formatError(BuyResponse result) {
+    final code = result.code;
+    final message = result.message;
     switch (code) {
       case 'INSUFFICIENT_FUNDS':
         return 'Not enough wallet balance. Top up to continue.';
@@ -296,12 +298,12 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
     }
 
     final q = _quote!;
-    final shares = (q['shares'] as num?)?.toDouble() ?? 0;
-    final avgPrice = (q['avg_price_per_share'] as num?)?.toDouble() ?? 0;
-    final maxPayout = (q['max_payout_ghs'] as num?)?.toDouble() ?? 0;
-    final profit = (q['potential_profit_ghs'] as num?)?.toDouble() ?? 0;
-    final newPrice = (q['new_price_after_fill'] as num?)?.toDouble() ?? 0;
-    final fee = (q['fee_ghs'] as num?)?.toDouble() ?? 0;
+    final shares = q.shares;
+    final avgPrice = q.avgPricePerShare;
+    final maxPayout = q.maxPayoutGhs;
+    final profit = q.potentialProfitGhs;
+    final newPrice = q.newPriceAfterFill;
+    final fee = q.feeGhs;
 
     return Container(
       padding: EdgeInsets.all(14.w),
