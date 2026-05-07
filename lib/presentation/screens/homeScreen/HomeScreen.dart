@@ -10,6 +10,7 @@ import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_provider.dart';
+import '../../../data/services/home_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
 import '../profile/default_settings_page.dart';
@@ -139,10 +140,48 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Image.asset(
-                        "assets/images/IconLogo.png",
-                        height: 35.h,
-                        errorBuilder: (_, __, ___) => const SizedBox(),
+                      Row(
+                        children: [
+                          Image.asset("assets/logo/IconLogo.png", height: 35.h),
+                          SizedBox(width: 5.w),
+                          Builder(
+                            builder: (context) {
+                              final isDark =
+                                  Theme.of(context).brightness == Brightness.dark;
+                              final textColor =
+                              isDark ? Colors.white : const Color(0xFF1A0D2B);
+
+                              return RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: "BeTrade",
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.top,
+                                      child: Transform.translate(
+                                        offset: const Offset(1, -5),
+                                        child: Text(
+                                          "™",
+                                          style: TextStyle(
+                                            fontSize: 10.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       GestureDetector(
                         onTap: () => _openFilterBottomSheet(context),
@@ -164,10 +203,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                         ),
                         child:
-                            // Center(
-                            //   child: Icon(Icons.notifications_none, size: 20.sp),
-                            // ),
-                            Center(
+                        // Center(
+                        //   child: Icon(Icons.notifications_none, size: 20.sp),
+                        // ),
+                        Center(
                           child: Image.asset(
                             "assets/images/Bell.png",
                             width: 20.w,
@@ -220,9 +259,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: provider.categories.isEmpty
                       ? const Center(child: CircularProgressIndicator())
                       : _buildPollList(
-                          categoryName:
-                              context.watch<TradeProvider>().selectedCategory,
-                        ),
+                    categoryName: context
+                        .watch<TradeProvider>()
+                        .selectedCategory,
+                  ),
                 ),
               ],
             ),
@@ -263,8 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             hintStep == 0
                                 ? Icons.swipe_left
                                 : hintStep == 1
-                                    ? Icons.swipe_right
-                                    : Icons.touch_app,
+                                ? Icons.swipe_right
+                                : Icons.touch_app,
                             color: Colors.white,
                             size: 60,
                           ),
@@ -273,8 +313,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             hintStep == 0
                                 ? "SWIPE LEFT FOR NO"
                                 : hintStep == 1
-                                    ? "SWIPE RIGHT FOR YES"
-                                    : "TAP TO VIEW DETAILS",
+                                ? "SWIPE RIGHT FOR YES"
+                                : "TAP TO VIEW DETAILS",
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -286,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             hintStep == 0
                                 ? "You're not convinced."
                                 : hintStep == 1
-                                    ? "You think it will happen."
-                                    : "Get the full picture.",
+                                ? "You think it will happen."
+                                : "Get the full picture.",
                             style: const TextStyle(color: Colors.white70),
                           ),
                         ],
@@ -326,7 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.all(10.w),
-        itemCount: tradeProvider.trades.length +
+        itemCount:
+        tradeProvider.trades.length +
             (tradeProvider.isPaginationLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index < tradeProvider.trades.length) {
@@ -354,62 +395,34 @@ class PollCard extends StatefulWidget {
 }
 
 class _PollCardState extends State<PollCard> {
-  bool isSending = false;
-  bool _isPlacingOrder = false;
+  /// Swipe and tap both open the same `TradePage` bottom sheet (one
+  /// consistent UX) but they differ in how the cost is set:
+  ///
+  ///   * Swipe → pre-fills `amount` from `DefaultAmountProvider` and
+  ///     hides the input field + quick chips (`useDefaultAmount: true`).
+  ///     The user just confirms with Buy.
+  ///   * Tap → leaves `amount = 0`; user types it in the input field.
+  ///
+  /// Swipe direction is forwarded as `initialOutcome` so the YES/NO
+  /// toggle is pre-selected.
+  void _handleSwipe(String outcome) {
+    if (!_ensureReadyToTrade()) return;
+    _openTradeSheet(initialOutcome: outcome, useDefaultAmount: true);
+  }
 
-  Future<void> _handleSwipe(String outcome) async {
-    if (isSending) return;
-    final provider = context.read<DefaultAmountProvider>();
-
-    if (!provider.hasLoaded) {
-      _showSnack("Loading default amount, please wait...");
-      return;
-    }
-    if (provider.defaultAmount == 0) {
-      _showSnack("Please set default amount greater than 0");
-      return;
-    }
-    final defaultAmount = provider.defaultAmount;
-
-    setState(() => isSending = true);
-    debugPrint("💰 Sending amount: $defaultAmount");
-
-    final response = await HomeService.getQuote(
-      uuid: widget.trade.uuid ?? "",
-      outcome: outcome,
-      amount: defaultAmount,
+  void _openTradeSheet({
+    String initialOutcome = 'yes',
+    bool useDefaultAmount = false,
+  }) {
+    CommonBottomSheet.open(
+      context: context,
+      builder: (controller) => TradePage(
+        scrollController: controller,
+        tradeUuid: widget.trade.uuid ?? '',
+        initialOutcome: initialOutcome,
+        useDefaultAmount: useDefaultAmount,
+      ),
     );
-
-    if (!mounted) return;
-    setState(() => isSending = false);
-
-    if (response == null) {
-      _showSnack("Something went wrong");
-      debugPrint("❌ Quote failed");
-      return;
-    }
-    // ✅ custom validation snackbar
-    final message = response["message"]?.toString() ?? "";
-
-    if (message.contains("greater than 0")) {
-      _showSnack("Default amount must be greater than 0");
-      return;
-    }
-
-    debugPrint("✅ Quote received for $outcome");
-    if (response["status"] == false) {
-      if (response["code"] == "MARKET_CLOSED") {
-        _showSnack("Market is closed or already resolved");
-      } else {
-        _showSnack(response["message"] ?? "Error occurred");
-      }
-      return;
-    }
-
-    final data = response['data'];
-    if (data is Map) {
-      _showQuotePopup(Map<String, dynamic>.from(data), outcome);
-    }
   }
 
   void _showSnack(String message) {
@@ -438,7 +451,6 @@ class _PollCardState extends State<PollCard> {
     }
     return true;
   }
-
   @override
   Widget build(BuildContext context) {
     final trade = widget.trade;
@@ -511,8 +523,7 @@ class _PollCardState extends State<PollCard> {
                   left: 14.w,
                   child: Container(
                     height: 36.h,
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: AppColors.whiteDynamic(context),
                       borderRadius: BorderRadius.circular(16.r),
@@ -527,7 +538,7 @@ class _PollCardState extends State<PollCard> {
                 ),
                 Positioned(
                   top: 14.h,
-                  right: 14.w,
+                  right:14.w,
                   child: CommonShareButton(onTap: () {}),
                 ),
                 Positioned(
@@ -554,17 +565,19 @@ class _PollCardState extends State<PollCard> {
                         ],
                       ),
                       SizedBox(height: 6.h),
+
                       Text(
                         trade.description ?? "",
                         style: AppTextStyle.headingWhite,
                       ),
+
                       SizedBox(height: 10.h),
+
                       Row(
                         children: [
                           Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
                           SizedBox(width: 10.w),
-                          Expanded(
-                              child: _modernVoteBar("YES", 33, Colors.green)),
+                          Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
                         ],
                       ),
                     ],
