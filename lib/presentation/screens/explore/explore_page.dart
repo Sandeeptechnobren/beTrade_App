@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/explorer_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
@@ -60,22 +61,43 @@ class _ExplorePageState extends State<ExplorePage> {
     });
   }
 
-  void _loadSearchHistory() {
-    _searchHistory = [];
+  Future<void> _loadSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    _searchHistory =
+        prefs.getStringList('explore_search_history') ?? [];
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  void _saveToHistory(String query) {
+  Future<void> _saveToHistory(String query) async {
     if (query.trim().isEmpty) return;
 
     _searchHistory.remove(query);
     _searchHistory.insert(0, query);
+
     if (_searchHistory.length > 10) {
       _searchHistory = _searchHistory.take(10).toList();
     }
-    setState(() {});
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      'explore_search_history',
+      _searchHistory,
+    );
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  void _clearSearchHistory() {
+  Future<void> _clearSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('explore_search_history');
+
     setState(() {
       _searchHistory.clear();
       _showSearchHistory = false;
@@ -83,54 +105,90 @@ class _ExplorePageState extends State<ExplorePage> {
   }
   void _performSearch(String value) {
     if (_isDisposed) return;
+
+    // rebuild for suffix icon
+    setState(() {});
+
     _debounce?.cancel();
 
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (_isDisposed || !mounted) return;
+    // Clear search immediately
+    if (value.trim().isEmpty) {
+      context.read<ExploreProvider>().clearSearch();
 
-      try {
-        final provider = context.read<ExploreProvider>();
-        if (value.trim().isEmpty) {
-          return;
-        } else {
-          _saveToHistory(value.trim());
-          provider.searchTrades(value.trim());
+      setState(() {
+        _showSearchHistory =
+            _isSearchFocused &&
+                _searchHistory.isNotEmpty;
+      });
+
+      return;
+    }
+
+    // optional optimization
+    if (value.trim().length < 2) return;
+
+    _debounce = Timer(
+      const Duration(milliseconds: 300),
+          () async {
+        if (_isDisposed || !mounted) return;
+
+        try {
+          final provider = context.read<ExploreProvider>();
+
+          await provider.searchTrades(value.trim());
+
+          if (!mounted) return;
+
           setState(() {
             _showSearchHistory = false;
           });
+        } catch (e) {
+          debugPrint("❌ Search error: $e");
         }
-      } catch (e) {
-        debugPrint("❌ Search error: $e");
-      }
-    });
+      },
+    );
   }
 
-  void _onSearchSubmitted(String value) {
+  void _onSearchSubmitted(String value) async {
     if (value.trim().isEmpty) return;
 
     _debounce?.cancel();
+
     _saveToHistory(value.trim());
 
     try {
       final provider = context.read<ExploreProvider>();
-      provider.searchTrades(value.trim());
+
+      await provider.searchTrades(value.trim());
+
+      if (!mounted) return;
+
       setState(() {
         _showSearchHistory = false;
-        _searchFocusNode.unfocus();
       });
+
+      _searchFocusNode.unfocus();
     } catch (e) {
       debugPrint("❌ Search error: $e");
     }
   }
+
+
   void _clearSearch() {
     if (_isDisposed || !mounted) return;
 
     _searchController.clear();
-    _searchFocusNode.unfocus();
 
     try {
       final provider = context.read<ExploreProvider>();
+
       provider.clearSearch();
+
+      setState(() {
+        _showSearchHistory =
+            _isSearchFocused &&
+                _searchHistory.isNotEmpty;
+      });
     } catch (e) {
       debugPrint("❌ Clear search error: $e");
     }
@@ -238,10 +296,11 @@ class _ExplorePageState extends State<ExplorePage> {
   Widget build(BuildContext context) {
     if (_isDisposed) return const SizedBox();
     final provider = context.watch<ExploreProvider>();
-    List<TradeModel> displayedTrades = provider.isSearching
+    List<TradeModel> displayedTrades = provider.isSearchMode
         ? provider.searchResults
         : provider.exploreTrades;
 
+    
     Map<String, List<TradeModel>> groupedTrades = {};
     for (var item in displayedTrades) {
       final category = item.categoryName.isNotEmpty
@@ -401,7 +460,7 @@ class _ExplorePageState extends State<ExplorePage> {
               ),
 
               SizedBox(height: 20.h),
-              if (provider.isSearching && _searchController.text.isNotEmpty) ...[
+              if (provider.isSearchMode && _searchController.text.isNotEmpty) ...[
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                   decoration: BoxDecoration(
@@ -453,7 +512,9 @@ class _ExplorePageState extends State<ExplorePage> {
                 ),
                 SizedBox(height: 16.h),
               ],
-              if (provider.isSearching && provider.searchResults.isEmpty) ...[
+              if (!provider.isSearching &&
+                  provider.isSearchMode &&
+                  provider.searchResults.isEmpty) ...[
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 80.h),
                   child: Center(
@@ -500,13 +561,13 @@ class _ExplorePageState extends State<ExplorePage> {
                   ),
                 ),
               ],
-              if (!provider.isSearching || provider.searchResults.isNotEmpty)
+              if (!provider.isSearchMode || provider.searchResults.isNotEmpty)
                 ...sortedKeys.map((categoryName) {
                   final items = groupedTrades[categoryName]!;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!provider.isSearching) ...[
+                      if (!provider.isSearchMode) ...[
                         Text(categoryName, style: AppTextStyle.heading),
                         SizedBox(height: 10.h),
                       ],

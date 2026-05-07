@@ -160,10 +160,10 @@ class _StepOtpState extends State<StepOtp> {
       try {
         final provider = context.read<SignupProvider>();
 
-        final success = await provider.sendOtp();
+        final result = await provider.sendOtp();
 
         if (mounted && !_isDisposed) {
-          if (success) {
+          if (result["success"]) {
             _startTimer();
             for (var c in _controllers) {
               c.clear();

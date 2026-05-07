@@ -115,10 +115,10 @@ class SignupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> sendOtp() async {
+  Future<Map<String, dynamic>> sendOtp() async {
     isLoading = true;
     notifyListeners();
-    bool success = await _service.sendOtp(phone);
+    Map<String, dynamic> success = await _service.sendOtp(phone);
     isLoading = false;
     notifyListeners();
     return success;

@@ -29,7 +29,34 @@ class AuthService {
   //     return false;
   //   }
   // }
-  Future<bool> sendOtp(String phone) async {
+  // Future<bool> sendOtp(String phone) async {
+  //   try {
+  //     final response = await DioClient.instance.post(
+  //       ApiEndpoints.register,
+  //       data: {
+  //         "phone": phone,
+  //       },
+  //     );
+  //     print("STATUS: ${response.statusCode}");
+  //     print("RESPONSE: ${response.data}");
+  //
+  //
+  //
+  //
+  //
+  //     return response.statusCode == 200;
+  //   } catch (e) {
+  //     if (e is DioException) {
+  //       print("ERROR: ${e.message}");
+  //       print("RESPONSE: ${e.response?.data}");
+  //     } else {
+  //       print("ERROR: $e");
+  //     }
+  //     return false;
+  //   }
+  // }
+
+  Future<Map<String, dynamic>> sendOtp(String phone) async {
     try {
       final response = await DioClient.instance.post(
         ApiEndpoints.register,
@@ -37,18 +64,48 @@ class AuthService {
           "phone": phone,
         },
       );
+
       print("STATUS: ${response.statusCode}");
       print("RESPONSE: ${response.data}");
 
-      return response.statusCode == 200;
-    } catch (e) {
-      if (e is DioException) {
-        print("ERROR: ${e.message}");
-        print("RESPONSE: ${e.response?.data}");
-      } else {
-        print("ERROR: $e");
+      // SUCCESS
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "OTP sent successfully",
+        };
       }
-      return false;
+      // NUMBER ALREADY EXISTS
+      else if (response.statusCode == 202) {
+        return {
+          "success": false,
+          "message": "Phone number already registered! Please use another number .",
+        };
+      }
+      // OTHER STATUS
+      else {
+        return {
+          "success": false,
+          "message": "Something went wrong",
+        };
+      }
+
+    } on DioException catch (e) {
+      print("ERROR: ${e.message}");
+      print("RESPONSE: ${e.response?.data}");
+
+      return {
+        "success": false,
+        "message": e.response?.data["message"] ??
+            "Server error occurred",
+      };
+    } catch (e) {
+      print("ERROR: $e");
+
+      return {
+        "success": false,
+        "message": "Unexpected error occurred",
+      };
     }
   }
 
@@ -156,6 +213,45 @@ class AuthService {
         print("Signup Error: $e");
       }
       return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> sendLoginOtp(String phone) async {
+    try {
+
+      final response = await DioClient.instance.post(
+        ApiEndpoints.login,
+        data: {
+          "phone": phone,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "OTP sent successfully",
+        };
+      }
+
+      return {
+        "success": false,
+        "message": response.data["message"] ?? "Something went wrong",
+      };
+
+    } on DioException catch (e) {
+
+      return {
+        "success": false,
+        "message": e.response?.data["message"] ??
+            "Server error occurred",
+      };
+
+    } catch (e) {
+
+      return {
+        "success": false,
+        "message": "Unexpected error occurred",
+      };
     }
   }
 
@@ -381,4 +477,9 @@ class AuthService {
       return false;
     }
   }
+
+
+
+
+//   google
 }

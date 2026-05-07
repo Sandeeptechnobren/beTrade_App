@@ -7,6 +7,7 @@ import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_prof
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/animations/success_animation.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/provider/signup_provider.dart';
 import '../../auth/auth_screen.dart';
 
@@ -151,8 +152,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        content: Text(message,style: TextStyle(
+            color: AppColors.white
+        )),
+        backgroundColor: Colors.red.shade500,
       ),
     );
   }
@@ -200,13 +203,14 @@ class _SignupScreenState extends State<SignupScreen> {
       switch (step) {
         case 1: // Phone step
           {
-            final sent = await provider.sendOtp();
+            // final sent = await provider.sendOtp();
+            final result = await provider.sendOtp();
             if (_isDisposed || !mounted) return;
 
-            if (_isSuccess(sent) && mounted) {
+            if (result["success"]) {
               next();
             } else {
-              _showError("OTP send failed");
+              _showError(result["message"]);
               if (mounted) setState(() => _isProcessing = false);
             }
           }

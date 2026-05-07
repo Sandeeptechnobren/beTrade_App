@@ -12,6 +12,7 @@ import '../../../data/services/trade_quote_service.dart';
 import '../../widget/buy_bottom_sheet.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_header.dart';
+import '../../widget/customSnackBar.dart';
 import 'trade_details_page.dart';
 
 class TradePage extends StatefulWidget {
@@ -87,18 +88,17 @@ class _TradePageState extends State<TradePage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Please set a valid default amount first"),
-            ),
+          CustomSnackBar.showError(
+            context,
+            message: "Please set a valid default amount first",
+            duration: const Duration(seconds: 3),
           );
-
+          Navigator.pop(context);
           CommonBottomSheet.open(
             context: context,
             builder: (controller) =>
                 DefaultSettingsPage(scrollController: controller),
           );
-
           });
         return;
       }

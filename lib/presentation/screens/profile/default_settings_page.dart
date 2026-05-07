@@ -8,6 +8,7 @@ import '../../../data/model/default_settings_model.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/services/default_settings_service.dart';
 import '../../widget/common_header.dart';
+import '../../widget/customSnackBar.dart';
 import '../../widget/purple_button.dart';
 
 class DefaultSettingsPage extends StatefulWidget {
@@ -52,7 +53,11 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
 
   void _populateFromSettings(DefaultSettingsModel? settings) {
     if (settings == null) {
-      _showSnack("Set default Amount");
+      CustomSnackBar.showError(
+        context,
+        message: "Default amount is required before placing a trade",
+        duration: const Duration(seconds: 7),
+      );
       return;
     }
     _maxDefaultAmountController.text = settings.maxDefaultAmount.toString();
@@ -66,16 +71,21 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
     if (_isSaving) return;
     FocusScope.of(context).unfocus();
 
-    final defaultVal =
-        int.tryParse(_defaultAmountController.text.trim()) ?? 0;
+    final defaultVal = int.tryParse(_defaultAmountController.text.trim()) ?? 0;
     final maxVal = int.tryParse(_maxDefaultAmountController.text.trim()) ?? 0;
 
     if (defaultVal <= 0) {
-      _showSnack("Default amount must be greater than 0");
+      CustomSnackBar.showError(
+        context,
+        message: "Default amount must be greater than 0",
+      );
       return;
     }
     if (maxVal > 0 && defaultVal > maxVal) {
-      _showSnack("Cannot set default amount greater than max value");
+      CustomSnackBar.showError(
+        context,
+        message: "Default amount cannot be greater than max amount",
+      );
       return;
     }
 
@@ -86,24 +96,20 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
 
     if (ok) {
       context.read<DefaultAmountProvider>().setDefaultAmount(defaultVal);
-      _showSnack("Default amount updated");
+      CustomSnackBar.showSuccess(
+        context,
+        message: "Default amount updated",
+      );
       Navigator.pop(context);
     } else {
-      _showSnack("Failed to save default amount");
+      CustomSnackBar.showError(
+        context,
+        message: "Failed to save default amount",
+      );
     }
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(12.w),
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {

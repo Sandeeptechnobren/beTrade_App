@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
+import '../../../data/provider/login_provider.dart';
 import '../../../data/provider/signin_provider.dart';
 import 'country_picker_sheet.dart';
 
@@ -119,43 +120,35 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleContinue() async {
+
     if (_isDisposed || !mounted) return;
+
     if (!_isValidPhoneNumber()) {
       _showSnackBar("Enter valid phone number");
       return;
     }
+
     if (_selectedCountry == null) {
       _showSnackBar("Please select country");
       return;
     }
 
-    if (_isLoading) return;
+    final fullPhone =
+        "${_selectedCountry!.phoneCode}${_phoneController.text.trim()}";
 
-    setState(() => _isLoading = true);
+    final provider = context.read<AuthProvider>();
 
-    try {
-      final fullPhone =
-          "${_selectedCountry!.phoneCode}${_phoneController.text.trim()}";
-      final provider = context.read<AuthProvider>();
-      final result = await provider.sendOtp(fullPhone);
+    final result = await provider.sendOtp(fullPhone);
 
-      if (_isDisposed || !mounted) return;
+    if (_isDisposed || !mounted) return;
 
-      final parsed = _safeParseResult(result);
+    if (result["success"]) {
 
-      if (parsed['success'] == true) {
-        _navigateToOtp(fullPhone);
-      } else {
-        _showSnackBar(parsed['message']);
-      }
-    } catch (e) {
-      if (_isDisposed || !mounted) return;
-      _showSnackBar("Network error. Please try again.");
-      debugPrint("Send OTP error: $e");
-    } finally {
-      if (!_isDisposed && mounted) {
-        setState(() => _isLoading = false);
-      }
+      _navigateToOtp(fullPhone);
+
+    } else {
+
+      _showSnackBar(result["message"]);
     }
   }
 
@@ -166,12 +159,9 @@ class _LoginScreenState extends State<LoginScreen> {
       SnackBar(
         content: Text(
           message,
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(color: AppColors.white),
         ),
-        backgroundColor:
-            isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+        backgroundColor: Colors.red.shade500,
       ),
     );
   }
@@ -195,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final loginProvider = context.watch<LoginProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -241,31 +232,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         _selectedCountry == null
                             ? SizedBox(
-                          width: 20.w,
-                          height: 20.h,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
+                                width: 20.w,
+                                height: 20.h,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : ClipOval(
-                          child: Image.network(
-                            _selectedCountry!.flag,
-                            width: 23.4.w,
-                            height: 23.4.h,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.flag,
-                              size: 16.sp,
-                            ),
-                          ),
-                        ),
-
+                                child: Image.network(
+                                  _selectedCountry!.flag,
+                                  width: 23.4.w,
+                                  height: 23.4.h,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    Icons.flag,
+                                    size: 16.sp,
+                                  ),
+                                ),
+                              ),
                         SizedBox(width: 5.w),
-
                         Icon(
                           Icons.keyboard_arrow_down,
                           size: 18.sp,
-                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
+                          color:
+                              isDarkMode ? Colors.grey.shade400 : Colors.grey,
                         ),
                       ],
                     ),
@@ -332,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   )
                 : Button(
                     title: "Continue",
-                    onPressed: _handleContinue,
+                    onPressed: loginProvider.isLoading ? null : _handleContinue,
                   ),
             SizedBox(height: 15.h),
             Row(

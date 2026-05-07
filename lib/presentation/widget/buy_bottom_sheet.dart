@@ -217,6 +217,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                   ),
                 ),
               ),
+
               SizedBox(height: 12.h),
             ],
 

@@ -13,6 +13,7 @@ import '../../../data/provider/trade_provider.dart';
 import '../../../data/services/home_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
+import '../../widget/customSnackBar.dart';
 import '../profile/default_settings_page.dart';
 import '../trade/trade_page.dart';
 
@@ -426,26 +427,41 @@ class _PollCardState extends State<PollCard> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+    CustomSnackBar.showError(
+      context,
+      message: "Please set a valid default amount first",
+      duration: const Duration(seconds: 3),
     );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text(message),
+    //     backgroundColor: Colors.red,
+    //   ),
+    // );
   }
 
   bool _ensureReadyToTrade() {
     final provider = context.read<DefaultAmountProvider>();
-    // if (!provider.hasLoaded) {
-    //   _showSnack("Loading default amount, please wait...");
-    //   return false;
-    // }
+
     if (provider.defaultAmount == 0) {
-      _showSnack("Default amount is null/0");
+      CustomSnackBar.showError(
+        context,
+        message: "Default amount is null/0",
+        duration: const Duration(seconds: 3),
+      );
       CommonBottomSheet.open(
         context: context,
         builder: (controller) =>
             DefaultSettingsPage(scrollController: controller),
+      );
+      return false;
+    }
+
+    if (!provider.hasLoaded) {
+      CustomSnackBar.showLoader(
+        context,
+        message: "Loading default amount, please wait...",
+        duration: const Duration(seconds: 3),
       );
       return false;
     }
@@ -654,314 +670,3 @@ class _PollCardState extends State<PollCard> {
     );
   }
 }
-
-// class PollCard extends StatelessWidget {
-//   final TradeModel trade;
-//
-//   const PollCard({super.key, required this.trade});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return GestureDetector(
-//       onTap: () {
-//         debugPrint("CLICK UUID: ${trade.uuid}");
-//         CommonBottomSheet.open(
-//           context: context,
-//           builder: (controller) =>
-//               TradePage(scrollController: controller, tradeUuid: trade.uuid),
-//         );
-//       },
-//       child:
-//       Container(
-//         margin: EdgeInsets.only(bottom: 10.h),
-//         child: ClipRRect(
-//           borderRadius: BorderRadius.circular(30.r),
-//           child: Container(
-//             height: 605.h,
-//             color: Theme.of(context).brightness == Brightness.dark
-//                 ? Colors.black
-//                 : Colors.grey.shade900,
-//             child: Stack(
-//               fit: StackFit.expand,
-//               children: [
-//                 if (trade.image != null && trade.image!.isNotEmpty)
-//                   Image.network(
-//                     trade.image!,
-//                     fit: BoxFit.cover,
-//                     width: double.infinity,
-//                     height: double.infinity,
-//                     loadingBuilder: (context, child, progress) {
-//                       if (progress == null) return child;
-//
-//                       return Container(
-//                         color: Theme.of(context).brightness == Brightness.dark
-//                             ? Colors.black
-//                             : Colors.grey.shade900,
-//                         child: const Center(
-//                           child: CircularProgressIndicator(),
-//                         ),
-//                       );
-//                     },
-//                     errorBuilder: (context, error, stackTrace) {
-//                       return Container(
-//                         color: Theme.of(context).brightness == Brightness.dark
-//                             ? Colors.black
-//                             : Colors.grey.shade900,
-//                       );
-//                     },
-//                   ),
-//
-//                 /// ✅ GRADIENT (ADAPTIVE)
-//                 Container(
-//                   decoration: BoxDecoration(
-//                     gradient: LinearGradient(
-//                       begin: Alignment.topCenter,
-//                       end: Alignment.bottomCenter,
-//                       colors: [
-//                         Colors.transparent,
-//                         Theme.of(context).brightness == Brightness.dark
-//                             ? Colors.black.withOpacity(0.85)
-//                             : Colors.black.withOpacity(0.6), // light me halka
-//                       ],
-//                     ),
-//                   ),
-//                 ),
-//
-//                 /// ✅ CATEGORY TAG
-//                 Positioned(
-//                   top: 14.h,
-//                   left: 14.w,
-//                   child: Container(
-//                     height: 36.h,
-//                     padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-//                     decoration: BoxDecoration(
-//                       color: AppColors.whiteDynamic(context),
-//                       borderRadius: BorderRadius.circular(16.r),
-//                     ),
-//                     child: Center(
-//                       child: Text(
-//                         trade.categoryName ?? "",
-//                         style: AppTextStyle.small,
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 Positioned(
-//                   top: 14.h,
-//                   right:14.w,
-//                   child: CommonShareButton(onTap: () {}),
-//                 ),
-//                 Positioned(
-//                   bottom: 12.h,
-//                   left: 12.w,
-//                   right: 12.w,
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Row(
-//                         children: [
-//                           CircleAvatar(
-//                             radius: 12.r,
-//                             backgroundColor: Colors.white,
-//                           ),
-//                           SizedBox(width: 4.w),
-//                           Text(
-//                             "3975 trades",
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontSize: 12.sp,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       SizedBox(height: 6.h),
-//
-//                       Text(
-//                         trade.description ?? "",
-//                         style: AppTextStyle.headingWhite,
-//                       ),
-//
-//                       SizedBox(height: 10.h),
-//
-//                       Row(
-//                         children: [
-//                           Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
-//                           SizedBox(width: 10.w),
-//                           Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
-//                         ],
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//       // child:ClipRRect(
-//       //   borderRadius: BorderRadius.circular(25.r),
-//       //   child: Container(
-//       //     height: 605.h,
-//       //     margin: EdgeInsets.only(bottom: 10.h),
-//       //     decoration: BoxDecoration(borderRadius: BorderRadius.circular(25.r)),
-//       //     child: Stack(
-//       //       children: [
-//       //         if (trade.image != null && trade.image!.isNotEmpty)
-//       //           ClipRRect(
-//       //             borderRadius: BorderRadius.circular(0.r),
-//       //             child: Image.network(
-//       //               trade.image!,
-//       //               height: double.infinity,
-//       //               width: double.infinity,
-//       //               fit: BoxFit.cover,
-//       //               loadingBuilder: (context, child, loadingProgress) {
-//       //                 if (loadingProgress == null) return child;
-//       //                 return Container(
-//       //                   color: Colors.grey.shade800,
-//       //                   child: const Center(
-//       //                     child: CircularProgressIndicator(),
-//       //                   ),
-//       //                 );
-//       //               },
-//       //               errorBuilder: (context, error, stackTrace) {
-//       //                 debugPrint("❌ Image error: $error");
-//       //                 return Container(color: Colors.grey.shade800);
-//       //               },
-//       //             ),
-//       //           ),
-//       //         Container(
-//       //           decoration: BoxDecoration(
-//       //             borderRadius: BorderRadius.circular(16.r),
-//       //             gradient: LinearGradient(
-//       //               begin: Alignment.topCenter,
-//       //               end: Alignment.bottomCenter,
-//       //               colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-//       //             ),
-//       //           ),
-//       //         ),
-//       //         Positioned(
-//       //           top: 12.h,
-//       //           left: 12.w,
-//       //           child: Container(
-//       //             height: 36.h,
-//       //             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-//       //             decoration: BoxDecoration(
-//       //               color: AppColors.whiteDynamic(context),
-//       //               borderRadius: BorderRadius.circular(16.r),
-//       //             ),
-//       //             child: Center(
-//       //               child: Text(
-//       //                 trade.categoryName ?? "",
-//       //                 style: AppTextStyle.small,
-//       //               ),
-//       //             ),
-//       //           ),
-//       //         ),
-//       //         Positioned(
-//       //           top: 12.h,
-//       //           right: 12.w,
-//       //           child: CommonShareButton(onTap: () {}),
-//       //         ),
-//       //         Positioned(
-//       //           bottom: 12.h,
-//       //           left: 12.w,
-//       //           right: 12.w,
-//       //           child: Column(
-//       //             crossAxisAlignment: CrossAxisAlignment.start,
-//       //             children: [
-//       //               Row(
-//       //                 children: [
-//       //                   CircleAvatar(radius: 12.r, backgroundColor: Colors.white),
-//       //                   SizedBox(width: 4.w),
-//       //                   Text(
-//       //                     "3975 trades",
-//       //                     style: TextStyle(color: Colors.white, fontSize: 12.sp),
-//       //                   ),
-//       //                 ],
-//       //               ),
-//       //               SizedBox(height: 6.h),
-//       //               Text(
-//       //                 trade.description ?? "",
-//       //                 style: AppTextStyle.headingWhite,
-//       //               ),
-//       //               SizedBox(height: 10.h),
-//       //               Row(
-//       //                 children: [
-//       //                   Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
-//       //                   SizedBox(width: 10.w),
-//       //                   Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
-//       //                 ],
-//       //               ),
-//       //             ],
-//       //           ),
-//       //         ),
-//       //       ],
-//       //     ),
-//       //   ),
-//       // ),
-//     );
-//   }
-//
-//   Widget _modernVoteBar(String label, int percent, Color color) {
-//     return Container(
-//       padding: EdgeInsets.all(14.w),
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(20.r),
-//         gradient: const LinearGradient(
-//           colors: [Color(0xff2A2A2A), Color(0xff3A3A3A)],
-//           begin: Alignment.topLeft,
-//           end: Alignment.bottomRight,
-//         ),
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Row(
-//             children: [
-//               Text(
-//                 label,
-//                 style: TextStyle(
-//                   color: color,
-//                   fontSize: 14.sp,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//               const Spacer(),
-//               Text(
-//                 "$percent%",
-//                 style: TextStyle(
-//                   color: Colors.white,
-//                   fontSize: 14.sp,
-//                   fontWeight: FontWeight.w600,
-//                 ),
-//               ),
-//             ],
-//           ),
-//           SizedBox(height: 10.h),
-//           ClipRRect(
-//             borderRadius: BorderRadius.circular(20.r),
-//             child: Stack(
-//               children: [
-//                 Container(
-//                   height: 10.h,
-//                   width: double.infinity,
-//                   color: Colors.white,
-//                 ),
-//                 FractionallySizedBox(
-//                   widthFactor: percent / 100,
-//                   child: Container(
-//                     height: 10.h,
-//                     decoration: BoxDecoration(
-//                       color: color,
-//                       borderRadius: BorderRadius.circular(20.r),
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
