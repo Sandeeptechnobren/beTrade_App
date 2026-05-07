@@ -10,6 +10,7 @@ import '../../../core/animations/success_animation.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/provider/signup_provider.dart';
 import '../../auth/auth_screen.dart';
+import '../../widget/customSnackBar.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -149,25 +150,20 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _showError(String message) {
     if (_isDisposed || !mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message,style: TextStyle(
-            color: AppColors.white
-        )),
-        backgroundColor: Colors.red.shade500,
-      ),
+    CustomSnackBar.showError(
+      context,
+      message: message,
+      duration: const Duration(seconds: 3),
     );
   }
 
   void _showSuccess(String message) {
     if (_isDisposed || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green.shade700,
-      ),
+    CustomSnackBar.showSuccess(
+      context,
+      message: message,
+      duration: const Duration(seconds: 3),
     );
   }
 

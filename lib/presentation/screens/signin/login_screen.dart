@@ -10,6 +10,7 @@ import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
 import '../../../data/provider/login_provider.dart';
 import '../../../data/provider/signin_provider.dart';
+import '../../widget/customSnackBar.dart';
 import 'country_picker_sheet.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -124,12 +125,20 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_isDisposed || !mounted) return;
 
     if (!_isValidPhoneNumber()) {
-      _showSnackBar("Enter valid phone number");
+      CustomSnackBar.showError(
+        context,
+        message: "Enter valid phone number",
+        duration: const Duration(seconds: 3),
+      );
       return;
     }
 
     if (_selectedCountry == null) {
-      _showSnackBar("Please select country");
+      CustomSnackBar.showError(
+        context,
+        message: "Please select country",
+        duration: const Duration(seconds: 3),
+      );
       return;
     }
 
@@ -148,23 +157,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
     } else {
 
-      _showSnackBar(result["message"]);
+      CustomSnackBar.showError(
+        context,
+        message: result["message"],
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 
-  void _showSnackBar(String message) {
-    if (_isDisposed || !mounted) return;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: AppColors.white),
-        ),
-        backgroundColor: Colors.red.shade500,
-      ),
-    );
-  }
+  // void _showSnackBar(String message) {
+  //   if (_isDisposed || !mounted) return;
+  //   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  //   CustomSnackBar.showError(
+  //     context,
+  //     message: message,
+  //     duration: const Duration(seconds: 3),
+  //   );
+  // }
 
   Widget _safeImage(String path,
       {double? height, double? width, Color? color}) {

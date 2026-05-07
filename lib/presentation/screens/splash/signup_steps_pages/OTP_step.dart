@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_style.dart';
 import '../../../../data/provider/signup_provider.dart';
+import '../../../widget/customSnackBar.dart';
 
 class StepOtp extends StatefulWidget {
   final Function(String) onChanged;
@@ -172,32 +173,26 @@ class _StepOtpState extends State<StepOtp> {
             _onOtpChange();
             _safeSetState(() => _errorMessage = '');
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('OTP resent successfully'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
+            CustomSnackBar.showSuccess(
+              context,
+              message: "OTP resent successfully",
+              duration: const Duration(seconds: 3),
             );
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to resend OTP. Please try again.'),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 2),
-              ),
+            CustomSnackBar.showError(
+              context,
+              message: "Failed to resend OTP. Please try again.",
+              duration: const Duration(seconds: 3),
             );
           }
         }
       } catch (e) {
         debugPrint("❌ Resend error: $e");
         if (mounted && !_isDisposed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 2),
-            ),
+          CustomSnackBar.showError(
+            context,
+            message: 'Error: ${e.toString()}',
+            duration: const Duration(seconds: 3),
           );
         }
       } finally {

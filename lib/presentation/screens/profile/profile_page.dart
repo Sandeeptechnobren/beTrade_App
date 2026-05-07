@@ -14,6 +14,7 @@ import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
 import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
+import '../../widget/customSnackBar.dart';
 import 'Payment_method.dart';
 import 'default_settings_page.dart';
 import 'help_support_page.dart';
@@ -41,9 +42,14 @@ class _ProfilePageState extends State<ProfilePage> {
   void logoutUser() async {
     String? token = LocalStorage.getToken();
     if (token == null || token.isEmpty) {
-      ScaffoldMessenger.of(
+      CustomSnackBar.showError(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Token not found")));
+        message: "Token not found",
+        duration: const Duration(seconds: 3),
+      );
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(const SnackBar(content: Text("Token not found")));
       return;
     }
 
@@ -58,9 +64,14 @@ class _ProfilePageState extends State<ProfilePage> {
         (route) => false,
       );
     } else {
-      ScaffoldMessenger.of(
+      CustomSnackBar.showError(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Logout Failed")));
+        message: "Logout Failed",
+        duration: const Duration(seconds: 3),
+      );
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(const SnackBar(content: Text("Logout Failed")));
     }
   }
 

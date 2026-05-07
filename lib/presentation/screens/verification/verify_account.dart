@@ -12,6 +12,7 @@ import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
+import '../../widget/customSnackBar.dart';
 import '../camera/camera_screen.dart';
 import '../camera/selfie_camera.dart';
 import '../main_screen.dart';
@@ -142,18 +143,19 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
   void _showError(String message) {
     if (_isDisposed || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    CustomSnackBar.showError(
+      context,
+      message: message,
+      duration: const Duration(seconds: 3),
     );
   }
 
   void _showSuccess(String message) {
     if (_isDisposed || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+    CustomSnackBar.showSuccess(
+      context,
+      message: message,
+      duration: const Duration(seconds: 3),
     );
   }
 

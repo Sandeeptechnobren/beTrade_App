@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
+import 'package:betrade/presentation/widget/customSnackBar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -279,10 +280,14 @@ class _EditProfileState extends State<EditProfile> {
                       );
                       if (!mounted) return;
                       if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Profile Updated")),
+                        // ScaffoldMessenger.of(context).showSnackBar(
+                        //   const SnackBar(content: Text("Profile Updated")),
+                        // );
+                        CustomSnackBar.showSuccess(
+                          context,
+                          message: "Profile Updated",
+                          duration: const Duration(seconds: 3),
                         );
-
                         Navigator.pop(context);
                       }
                     },

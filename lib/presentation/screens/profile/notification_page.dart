@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../data/model/profile_notification_preferences_model.dart';
 import '../../../data/services/profile_notification_service.dart';
 import '../../widget/common_header.dart';
+import '../../widget/customSnackBar.dart';
 
 class NotificationPreferencesPage extends StatefulWidget {
   const NotificationPreferencesPage({
@@ -78,14 +79,19 @@ class _NotificationPreferencesPageState
     if (!ok) {
       // Backend rejected or the request failed → revert + warn.
       _applyToggle(sectionIdx, itemIdx, previousValue);
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Failed to update notification setting"),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(12.w),
-        ),
+      // ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: const Text("Failed to update notification setting"),
+      //     duration: const Duration(seconds: 2),
+      //     behavior: SnackBarBehavior.floating,
+      //     margin: EdgeInsets.all(12.w),
+      //   ),
+      // );
+      CustomSnackBar.showError(
+        context,
+        message: "Failed to update notification setting",
+        duration: const Duration(seconds: 3),
       );
       return;
     }
