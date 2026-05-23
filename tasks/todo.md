@@ -104,6 +104,13 @@ To wire:
 
 ## Completed
 
+### 2026-05-23 — Layout polish (QA #7, #8, #9)
+- **QA #7** — `wallet_history.dart` `_menuItem`: added `width: double.infinity` so the selected-row highlight spans the full menu width (was shrinking to fit the label).
+- **QA #8** — `achivement_Sheet.dart` `gridDelegate.mainAxisSpacing`: 20.h → 10.h. Rows now sit closer, proportional to the 6.w `crossAxisSpacing`.
+- **QA #9** — `profile_page.dart` between-card spacing: 20.h → 16.h for both card gaps (profile↔achievements, achievements↔settings). Matches the 16.w horizontal margin for a consistent rhythm.
+
+Analyzer: 0 new issues. Manual smoke test pending APK build.
+
 ### 2026-05-23 — Swipe-on-PollCard race fix (QA #6)
 Race condition between user swiping a PollCard and `DefaultAmountProvider.loadFromBackend()` completing. Provider was setting `_hasLoaded = true` optimistically before the await, so `_ensureReadyToTrade()` would falsely return true on a still-null amount, then TradePage would immediately pop and open DefaultSettingsPage — user perceived this as "swipe doesn't work".
 

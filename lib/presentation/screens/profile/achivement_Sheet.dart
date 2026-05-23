@@ -46,7 +46,11 @@ class _AchievementsSheetState extends State<AchievementsSheet> {
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
                   crossAxisSpacing: 6.w,
-                  mainAxisSpacing: 20.h,
+                  // Was 20.h — too generous compared to the 6.w
+                  // horizontal gap, producing a visibly empty band
+                  // between rows. 10.h keeps badges grouped while
+                  // leaving room for the two-line title (QA #8).
+                  mainAxisSpacing: 10.h,
                   childAspectRatio: 0.65,
                 ),
                 itemBuilder: (context, index) {

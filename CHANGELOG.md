@@ -19,6 +19,10 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-23 — **Layout polish (QA #7, #8, #9)** on `feature/vandana_claude`:
+  - `wallet_history.dart` `_menuItem` — added `width: double.infinity`. The Container previously sized to its `Text` child, so the selected-row highlight only covered the label and left an empty strip on the right (QA #7).
+  - `achivement_Sheet.dart` `gridDelegate` — `mainAxisSpacing` 20.h → 10.h. The 20.h vertical gap was disproportionate to the 6.w horizontal gap, producing a visibly empty band between badge rows (QA #8).
+  - `profile_page.dart` — between-card SizedBoxes 20.h → 16.h (profile-summary↔achievements and achievements↔settings). Now matches the 16.w horizontal margin so the gaps form a consistent square grid instead of feeling top-heavy (QA #9). Top padding (20.h before first card) and bottom padding kept as-is.
 - 2026-05-23 — **Swipe-on-PollCard race condition (QA #6)** on `feature/vandana_claude`:
   - `default_amount_provider.dart` — separated `_isFetching` from `_hasLoaded`. The previous version set `_hasLoaded = true` BEFORE awaiting the response, so during the request window `hasLoaded` lied. `_isFetching` now tracks in-flight state; `_hasLoaded` only flips after the response is parsed.
   - `HomeScreen.dart` `_ensureReadyToTrade()` — fixed the order and the null-handling. Was checking `defaultAmount == 0` first (which silently skipped `null`), then `!hasLoaded` (which never fired thanks to the optimistic flag above). Now checks `!hasLoaded || defaultAmount == null` first (shows purple `showLoader` snackbar "Loading your settings, please wait..."), then `defaultAmount <= 0` (shows red `showError` "Please set your default trade amount first" + opens DefaultSettingsPage).

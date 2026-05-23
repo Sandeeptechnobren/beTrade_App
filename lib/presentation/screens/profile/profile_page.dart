@@ -146,7 +146,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                SizedBox(height: 20.h),
+                // 16.h matches the cards' horizontal margin (16.w), so
+                // the gaps between cards now form a consistent square
+                // grid instead of feeling top-heavy (QA #9).
+                SizedBox(height: 16.h),
                 GestureDetector(
                   onTap: () {
                     CommonBottomSheet.open(
@@ -190,7 +193,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 16.h),
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 16.w),
                   padding: EdgeInsets.all(16.w),
