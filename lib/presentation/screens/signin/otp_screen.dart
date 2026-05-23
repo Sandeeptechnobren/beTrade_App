@@ -147,8 +147,22 @@ class _OTPScreenState extends State<OTPScreen> {
       final parsed = _safeParseResult(result);
 
       if (parsed['success'] == true) {
-        final rawStatus = result['doc_upload_status'];
-        final docUploadStatus = rawStatus is int ? rawStatus : 0;
+        // AuthProvider.verifyOtp wraps the service result inside `data`,
+        // so doc_upload_status lives at result['data']['doc_upload_status'],
+        // not at the top level. The service itself already wrote the value
+        // to LocalStorage; we re-read it from the wrapped result for the
+        // navigation argument only.
+        final inner = result['data'];
+        final rawStatus =
+            inner is Map ? inner['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
         await LocalStorage.setDocUploadStatus(docUploadStatus);
         _navigateToHome(docUploadStatus);
       } else {
