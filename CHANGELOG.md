@@ -19,6 +19,10 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-23 — **Chart-page Buy Yes/No now opens the quote view** on `feature/vandana_claude`:
+  - `trade_details_page.dart` `_openNewTrade` — taps on the chart/info page's Buy Yes / Buy No buttons now open `TradePage` with `useDefaultAmount: true`, so the user lands directly on the quote view (shares, price, max payout, potential profit) instead of an empty amount input. Mirrors the home-screen swipe path.
+  - Added the same readiness gate `HomeScreen._ensureReadyToTrade()` uses (purple `showLoader` while default amount is still fetching; red `showError` + open `DefaultSettingsPage` if loaded-but-zero). Imports `DefaultAmountProvider`, `DefaultSettingsPage`, `CustomSnackBar`.
+  - TODO noted in the file: extract the gate to a shared helper to avoid duplicating the logic with HomeScreen.
 - 2026-05-23 — **Layout polish (QA #7, #8, #9)** on `feature/vandana_claude`:
   - `wallet_history.dart` `_menuItem` — added `width: double.infinity`. The Container previously sized to its `Text` child, so the selected-row highlight only covered the label and left an empty strip on the right (QA #7).
   - `achivement_Sheet.dart` `gridDelegate` — `mainAxisSpacing` 20.h → 10.h. The 20.h vertical gap was disproportionate to the 6.w horizontal gap, producing a visibly empty band between badge rows (QA #8).

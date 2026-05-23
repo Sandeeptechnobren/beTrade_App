@@ -6,8 +6,11 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../data/model/trade_detail_model.dart';
+import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
+import '../../widget/customSnackBar.dart';
+import '../profile/default_settings_page.dart';
 import 'trade_page.dart';
 
 /// Full-screen "Details" view for a market.
@@ -135,7 +138,43 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     );
   }
 
+  /// Open the New Trade modal pre-filled with the user's default amount so
+  /// they land directly on the quote view (shares, price, max payout,
+  /// potential profit) instead of an empty amount input. Mirrors the home-
+  /// screen swipe path. If the default amount isn't ready, gate the same
+  /// way `_ensureReadyToTrade()` does on HomeScreen:
+  ///   - still loading        → purple "Loading your settings..." snackbar
+  ///   - loaded but unset/0   → red "Please set default" + DefaultSettings
+  ///
+  /// TODO: extract this gate to a shared helper to avoid duplicating
+  /// HomeScreen._ensureReadyToTrade().
   void _openNewTrade(String outcome) {
+    final provider = context.read<DefaultAmountProvider>();
+
+    if (!provider.hasLoaded || provider.defaultAmount == null) {
+      CustomSnackBar.showLoader(
+        context,
+        message: "Loading your settings, please wait...",
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    if (provider.defaultAmount! <= 0) {
+      Navigator.pop(context);
+      CustomSnackBar.showError(
+        context,
+        message: "Please set your default trade amount first",
+        duration: const Duration(seconds: 3),
+      );
+      CommonBottomSheet.open(
+        context: context,
+        builder: (controller) =>
+            DefaultSettingsPage(scrollController: controller),
+      );
+      return;
+    }
+
     Navigator.pop(context);
     CommonBottomSheet.open(
       context: context,
@@ -143,6 +182,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
         tradeUuid: widget.tradeUuid,
         scrollController: controller,
         initialOutcome: outcome,
+        useDefaultAmount: true,
       ),
     );
   }
