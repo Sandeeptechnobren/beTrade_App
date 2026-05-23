@@ -266,6 +266,36 @@ class _StepProfileState extends State<StepProfile> {
 
   }
 
+  // Widget _safeAvatarImage(String path, bool isSelected) {
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       shape: BoxShape.circle,
+  //       border: isSelected
+  //           ? Border.all(
+  //         color: AppColors.primary,
+  //         width: 2.w,
+  //       )
+  //           : null,
+  //     ),
+  //     child: CircleAvatar(
+  //       radius: 31.r,
+  //       backgroundColor: AppColors.inputFieldBgDynamic(context),
+  //       backgroundImage: AssetImage(path),
+  //       onBackgroundImageError: (_, __) {
+  //         debugPrint("❌ Avatar missing: $path");
+  //       },
+  //       child: Container(
+  //         decoration: BoxDecoration(
+  //           shape: BoxShape.circle,
+  //           color: Colors.grey.shade300,
+  //         ),
+  //         child: const Icon(Icons.person),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+
   Widget _safeAvatarImage(String path, bool isSelected) {
     return Container(
       decoration: BoxDecoration(
@@ -277,23 +307,25 @@ class _StepProfileState extends State<StepProfile> {
         )
             : null,
       ),
-      child: CircleAvatar(
-        radius: 31.r,
-        backgroundColor: AppColors.inputFieldBgDynamic(context),
-        backgroundImage: AssetImage(path),
-        onBackgroundImageError: (_, __) {
-          debugPrint("❌ Avatar missing: $path");
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.grey.shade300,
-          ),
-          child: const Icon(Icons.person),
+      child: ClipOval(
+        child: Image.asset(
+          path,
+          width: 62.w,
+          height: 62.w,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return Container(
+              width: 62.w,
+              height: 62.w,
+              color: Colors.grey.shade300,
+              child: const Icon(Icons.person),
+            );
+          },
         ),
       ),
     );
   }
+
 
   void _openOptionsSheet() {
     if (_isDisposed || !mounted) return;

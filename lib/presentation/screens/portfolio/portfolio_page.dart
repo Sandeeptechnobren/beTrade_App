@@ -3,8 +3,7 @@ import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/screens/portfolio/position_detail_page.dart';
 import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
-import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart'
-    hide DepositPage;
+import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart' hide DepositPage;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:betrade/presentation/widget/icon_container.dart';
@@ -108,12 +107,16 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(50.r),
                                       onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => const WalletHistoryPage(),
-                                          ),
+                                        CommonBottomSheet.open(
+                                          context: context,
+                                          builder: (controller) => WalletHistoryPage(),
                                         );
+                                        // Navigator.push(
+                                        //   context,
+                                        //   MaterialPageRoute(
+                                        //     builder: (_) => const WalletHistoryPage(),
+                                        //   ),
+                                        // );
                                       },
                                       child: SizedBox(
                                         height: 40.w,

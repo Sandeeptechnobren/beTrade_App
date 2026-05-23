@@ -1,4 +1,5 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/widget/customSnackBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -33,7 +34,7 @@ class _DepositPageState extends State<WithdrawPage> {
 
   @override
   void initState() {
-    amountController.text = "10";
+    amountController.text = "0.00";
     super.initState();
   }
 
@@ -197,9 +198,10 @@ class _DepositPageState extends State<WithdrawPage> {
 
     final amount = double.tryParse(amountController.text.trim()) ?? 0;
     if (amount <= 0) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please enter an amount.')),
-      );
+      CustomSnackBar.showError(context, message: "Please enter an amount.");
+      // messenger.showSnackBar(
+      //   const SnackBar(content: Text('Please enter an amount.')),
+      // );
       return;
     }
 
@@ -234,13 +236,14 @@ class _DepositPageState extends State<WithdrawPage> {
     } else {
       // Show typed-error message; INSUFFICIENT_FUNDS is mapped by the
       // backend to a user-readable string already.
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
-          ),
-        ),
-      );
+      CustomSnackBar.showError(context, message:  wallet.lastSubmitMessage ?? 'Could not submit withdrawal.');
+      // messenger.showSnackBar(
+      //   SnackBar(
+      //     content: Text(
+      //       wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
+      //     ),
+      //   ),
+      // );
     }
   }
 

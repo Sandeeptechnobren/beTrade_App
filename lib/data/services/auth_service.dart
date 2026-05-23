@@ -4,57 +4,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
+import '../provider/default_amount_provider.dart';
 import 'local_storage.dart';
+import 'package:provider/provider.dart';
 
 class AuthService {
-  // Future<bool> sendOtp(String phone) async {
-  //   try {
-  //     final res = await http.post(
-  //       Uri.parse(ApiEndpoints.register),
-  //       headers: {
-  //         "Accept": "application/json",
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: jsonEncode({
-  //         "phone": phone,
-  //       }),
-  //     );
-  //
-  //     print("STATUS: ${res.statusCode}");
-  //     print("RESPONSE: ${res.body}");
-  //
-  //     return res.statusCode == 200;
-  //   } catch (e) {
-  //     print("ERROR: $e");
-  //     return false;
-  //   }
-  // }
-  // Future<bool> sendOtp(String phone) async {
-  //   try {
-  //     final response = await DioClient.instance.post(
-  //       ApiEndpoints.register,
-  //       data: {
-  //         "phone": phone,
-  //       },
-  //     );
-  //     print("STATUS: ${response.statusCode}");
-  //     print("RESPONSE: ${response.data}");
-  //
-  //
-  //
-  //
-  //
-  //     return response.statusCode == 200;
-  //   } catch (e) {
-  //     if (e is DioException) {
-  //       print("ERROR: ${e.message}");
-  //       print("RESPONSE: ${e.response?.data}");
-  //     } else {
-  //       print("ERROR: $e");
-  //     }
-  //     return false;
-  //   }
-  // }
+
 
   Future<Map<String, dynamic>> sendOtp(String phone) async {
     try {
@@ -127,14 +82,6 @@ class AuthService {
           final isSuccess =
               responseData['status'] == true || responseData['success'] == true;
 
-          // if (isSuccess) {
-          //   final token = responseData['token'] ?? responseData['access_token'];
-          //   if (token != null) {
-          //     DioClient.setToken(token);
-          //   }
-          //   print(" OTP verified successfully!");
-          //   return true;
-          // }
           if (isSuccess) {
             final token = responseData['token'] ?? responseData['access_token'];
             if (token != null) {
@@ -221,7 +168,6 @@ class AuthService {
 
   Future<Map<String, dynamic>> sendLoginOtp(String phone) async {
     try {
-
       final response = await DioClient.instance.post(
         ApiEndpoints.login,
         data: {
@@ -229,30 +175,28 @@ class AuthService {
         },
       );
 
-      if (response.statusCode == 200) {
+      // ✅ SUCCESS CASE
+      if (response.statusCode == 200 && response.data["status"] == true) {
         return {
-          "success": true,
-          "message": "OTP sent successfully",
+          "status": true,
+          "message": response.data["message"] ?? "OTP sent successfully",
         };
       }
 
+      // ❌ API returned 200 but success: false (phone not registered)
       return {
-        "success": false,
-        "message": response.data["message"] ?? "Something went wrong",
+        "status": false,
+        "message": response.data["message"] ?? "Phone not registered",
       };
 
     } on DioException catch (e) {
-
       return {
-        "success": false,
-        "message": e.response?.data["message"] ??
-            "Server error occurred",
+        "status": false,
+        "message": e.response?.data["message"] ?? "Server error occurred",
       };
-
     } catch (e) {
-
       return {
-        "success": false,
+        "status": false,
         "message": "Unexpected error occurred",
       };
     }
@@ -285,6 +229,7 @@ class AuthService {
 
   static Future<bool> logout(String token) async {
     try {
+
       final response = await DioClient.instance.post(
         ApiEndpoints.logout,
         options: Options(
@@ -323,35 +268,21 @@ class AuthService {
       }
 
       return false; // real invalid
+    } on DioException catch (e) {
+      // 401 = server rejected the token — treat as invalid, force re-login.
+      if (e.response?.statusCode == 401) {
+        return false;
+      }
+      // 404 = backend hasn't deployed /verify-token yet — fall through
+      // to the network-issue branch so users aren't locked out during
+      // a rolling deploy. Once the route ships everywhere this can be
+      // tightened.
+      return null; // ⚠️ network issue or transitional 404
     } catch (e) {
       return null; // ⚠️ network issue
     }
   }
-  //
-  // Future<bool> verifyToken(String token) async {
-  //   try {
-  //     final response = await DioClient.instance.get(
-  //       "https://api.buildacademy.io/projects/betrade/public/api/verify-token",
-  //       options: Options(
-  //         headers: {
-  //           "Authorization": "Bearer $token",
-  //         },
-  //       ),
-  //     );
-  //     print("VERIFY TOKEN STATUS: ${response.statusCode}");
-  //     print("VERIFY TOKEN RESPONSE: ${response.data}");
-  //     if (response.statusCode == 200) {
-  //       return response.data['status'] == true;
-  //     }
-  //     return false;
-  //   } catch (e) {
-  //     if (e is DioException) {
-  //       print("VERIFY TOKEN ERROR: ${e.message}");
-  //       print("VERIFY TOKEN RESPONSE: ${e.response?.data}");
-  //     }
-  //     return false;
-  //   }
-  // }
+
 
   Future<Map<String, dynamic>> login(String phone) async {
     try {
@@ -480,9 +411,6 @@ class AuthService {
       return false;
     }
   }
-
-
-
 
 //   google
 }

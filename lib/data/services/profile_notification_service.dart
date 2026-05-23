@@ -6,10 +6,7 @@ import '../../core/network/dio_client.dart';
 import '../model/profile_notification_preferences_model.dart';
 import 'local_storage.dart';
 
-/// Dio client for `/notificationPreferences`.
 class NotificationService {
-  /// GET `/notificationPreferences`.
-  /// Returns parsed sections, or `[]` on any failure.
   static Future<List<NotificationSection>> getPreferences() async {
     try {
       final token = LocalStorage.getToken();

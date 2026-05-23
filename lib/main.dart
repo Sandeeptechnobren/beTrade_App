@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:betrade/data/provider/category_provider.dart';
 import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
-import 'package:betrade/data/provider/login_provider.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
@@ -123,12 +122,7 @@ Future<void> main() async {
         const MyApp(),
       );
 
-      /// ------------------------------------------
-      /// NOTIFICATION SERVICE
-      /// IMPORTANT:
-      /// WITHOUT AWAIT
-      /// so app freeze na ho
-      /// ------------------------------------------
+
       Future.microtask(() {
         NotificationService.init();
       });
@@ -149,9 +143,6 @@ Future<void> main() async {
   );
 }
 
-/// =====================================================
-/// APP
-/// =====================================================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -197,9 +188,6 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => PositionsProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LoginProvider(),
         ),
       ],
       child: ScreenUtilInit(

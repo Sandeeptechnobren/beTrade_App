@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_style.dart';
 import '../../../../data/provider/wallet_provider.dart';
 import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
+
 class DepositPage extends StatefulWidget {
   final ScrollController scrollController;
   const DepositPage({super.key, required this.scrollController});
@@ -15,7 +16,7 @@ class DepositPage extends StatefulWidget {
 class _DepositPageState extends State<DepositPage> {
   int step = 1;
   final TextEditingController amountController = TextEditingController();
-  int selectedAmount = 10;
+  int selectedAmount = 0;
   String paymentMethod = "card";
   final TextEditingController cardNumber = TextEditingController();
   final TextEditingController expiry = TextEditingController();
@@ -25,7 +26,7 @@ class _DepositPageState extends State<DepositPage> {
   final List<int> amounts = [10, 20, 50, 100];
   @override
   void initState() {
-    amountController.text = "10";
+    amountController.text = "0.00";
     super.initState();
   }
   @override
@@ -95,7 +96,7 @@ class _DepositPageState extends State<DepositPage> {
         Text("Amount", style: AppTextStyle.body),
         SizedBox(height: 10.h),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          padding: EdgeInsets.symmetric(horizontal: 20.w,vertical: 4.h),
           decoration: BoxDecoration(
             color: AppColors.inputFieldBgDynamic(context),
             borderRadius: BorderRadius.circular(12.r),
@@ -123,21 +124,24 @@ class _DepositPageState extends State<DepositPage> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: isSelected ? Colors.purple : Colors.grey.shade400,
+                    width: 1.w,
+                    color: isSelected ? AppColors.electricViolet200 : Colors.grey.shade300,
                   ),
                   color: isSelected
                       ? Colors.purple.withOpacity(0.1)
-                      : AppColors.inputFieldBgDynamic(context),
+                      : AppColors.white,
+                //   electric-violet-200
                 ),
                 child: Text(
                   "$e GHS",
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w500,
                     color: isSelected
-                        ? Colors.purple
+                        ? AppColors.electricViolet900
                         : (Theme.of(context).brightness == Brightness.dark
                         ? Colors.white
-                        : Colors.black), // ✅ FIX
+                        : AppColors.electricViolet900), // ✅ FIX
                   ),
                 ),
               )
@@ -243,28 +247,59 @@ class _DepositPageState extends State<DepositPage> {
 
   Widget cardUI() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text("Card Number", style: AppTextStyle.body),
+        SizedBox(height: 10.h),
         _input(cardNumber, "0000 0000 0000 0000"),
         SizedBox(height: 20.h),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _input(expiry, "MM/YY")),
+            Expanded(child:
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Payment Method", style: AppTextStyle.body),
+                    SizedBox(height: 10.h),
+                    _input(expiry, "MM/YY")
+                  ],
+                )
+            // _input(expiry, "MM/YY")
+            ),
             SizedBox(width: 10.w),
-            Expanded(child: _input(cvc, "CVC")),
+            Expanded(child:
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Payment Method", style: AppTextStyle.body),
+                SizedBox(height: 10.h),
+                _input(cvc, "CVC")
+              ],
+            )
+            // _input(cvc, "CVC")
+            ),
           ],
         ),
       ],
     );
   }
   Widget momoUI() {
-    return Column(
-      children: [
-        _dropdown("Select Provider", (val) {
-          provider = val!;
-        }),
-        SizedBox(height: 20.h),
-        _input(phone, "Phone Number"),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Payment Provider", style: AppTextStyle.body),
+          SizedBox(height: 10.h),
+          _dropdown("Select Provider", (val) {
+            provider = val!;
+          }),
+          SizedBox(height: 20.h),
+          Text("Phone Number", style: AppTextStyle.body),
+          SizedBox(height: 10.h),
+          _input(phone, "Phone Number"),
+        ],
+      ),
     );
   }
   Widget _input(TextEditingController controller, String hint) {

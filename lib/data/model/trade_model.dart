@@ -1,5 +1,6 @@
 
 class TradeModel {
+  final int id;
   final String uuid;
   final String categoryName;
   final String description;
@@ -13,11 +14,13 @@ class TradeModel {
     required this.description,
     required this.minTradeAmount,
     this.image,
-    required this.endDate,
+    required this.endDate, required this.id,
   });
 
   factory TradeModel.fromJson(Map<String, dynamic> json) {
+    print("TRADE JSON => $json");
     return TradeModel(
+      id: json['id'] ?? 0,
       uuid: json['uuid'] ?? "",
       categoryName: json['category_name'] ?? "",
       description: json['description'] ?? "",

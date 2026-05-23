@@ -3,15 +3,8 @@ import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import 'local_storage.dart';
 
-/// User-facing wallet API client.
-///
-/// Backend (mounted under `actor.user` middleware):
-///   GET  /api/wallet              → balance + currency + updated_at
-///   GET  /api/wallet/transactions → paginated ledger (?type optional)
-///   POST /api/wallet/deposit      → records pending intent (no credit)
-///   POST /api/wallet/withdraw     → locks + debits + records pending intent
+
 class WalletService {
-  /// Returns { balance_ghs, currency, updated_at } or null on failure.
   static Future<Map<String, dynamic>?> getBalance() async {
     try {
       final token = LocalStorage.getToken();
@@ -43,9 +36,6 @@ class WalletService {
     }
   }
 
-  /// Paginated transactions. `type` filter is optional; valid values
-  /// are 'deposit' | 'withdraw' | 'trade' | 'payout'.
-  /// Returns the items list (ledger rows). On failure returns [].
   static Future<List<Map<String, dynamic>>> getTransactions({
     String? type,
     int page = 1,
@@ -85,10 +75,6 @@ class WalletService {
     }
   }
 
-  /// Submit a deposit intent. The backend records a pending Transaction
-  /// and waits for admin to mark it completed once funds arrive offline.
-  ///
-  /// Returns { success, message?, code?, data? }.
   static Future<Map<String, dynamic>> requestDeposit({
     required double amountGhs,
     String? method,
@@ -104,11 +90,7 @@ class WalletService {
     );
   }
 
-  /// Submit a withdrawal intent. Backend locks the wallet, validates
-  /// balance, debits IMMEDIATELY, then creates a pending Transaction.
-  ///
-  /// Returns { success, message?, code?, data? }. Watch for
-  /// code='INSUFFICIENT_FUNDS' (HTTP 402) to surface a top-up nudge.
+
   static Future<Map<String, dynamic>> requestWithdraw({
     required double amountGhs,
     required String destination,
@@ -124,7 +106,6 @@ class WalletService {
     );
   }
 
-  /// Shared POST handler for deposit + withdraw — same response shape.
   static Future<Map<String, dynamic>> _postIntent({
     required String url,
     required Map<String, dynamic> payload,

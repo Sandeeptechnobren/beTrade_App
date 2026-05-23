@@ -93,9 +93,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Map<String, dynamic> _safeParseResult(dynamic result) {
     if (result is Map<String, dynamic>) {
+      // AuthProvider.sendLoginOtp returns {status, message}.
+      // AuthProvider.verifyOtp returns {success, message, data}.
+      // Accept either envelope so this helper is reusable across both flows.
       return {
-        'success': result['success'] == true,
-        'message': result['message']?.toString() ?? 'Something went wrong',
+        'success':
+            result['status'] == true || result['success'] == true,
+        'message':
+            result['message']?.toString() ?? 'Something went wrong',
       };
     }
     return {
@@ -148,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final provider = context.read<AuthProvider>();
-      final result = await provider.sendOtp(fullPhone);
+      final result = await provider.sendLoginOtp(fullPhone);
 
       if (_isDisposed || !mounted) return;
 

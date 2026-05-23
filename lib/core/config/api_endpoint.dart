@@ -76,4 +76,9 @@ class ApiEndpoints {
 
   static String get updateUserDefaultSettingsList =>
       '${EnvConfig.baseUrl}/userDefaultSettings/update';
+
+  static String  tradeDetail(String tradeId) =>
+      '${EnvConfig.baseUrl}/trade/tradedetail/$tradeId';
+
+
 }
