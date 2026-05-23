@@ -10,13 +10,7 @@ import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_header.dart';
 import '../trade/trade_page.dart';
 
-/// Detail screen for a single position. Shows BOTH outcomes (yes + no)
-/// of the market — the user might hold one side or both. A side the
-/// user doesn't hold appears with `shares: 0` so they can see context
-/// pricing.
-///
-/// Reachable from:
-///   - portfolio_page.dart → tap a row in the Open Positions list
+
 class PositionDetailPage extends StatefulWidget {
   final String marketUuid;
   final String? marketTitleHint; // shown while the API call is in flight
@@ -124,14 +118,14 @@ class _PositionDetailPageState extends State<PositionDetailPage> {
             ),
           ),
           SizedBox(height: 4.h),
-          Text(
-            'Market UUID: ${detail.marketUuid}',
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: Colors.grey.shade600,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
+          // Text(
+          //   'Market UUID: ${detail.marketUuid}',
+          //   style: TextStyle(
+          //     fontSize: 11.sp,
+          //     color: Colors.grey.shade600,
+          //   ),
+          //   overflow: TextOverflow.ellipsis,
+          // ),
         ],
       ),
     );

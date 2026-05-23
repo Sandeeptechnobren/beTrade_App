@@ -43,7 +43,7 @@ class _TradePageState extends State<TradePage> {
   // for the current (amount, outcome). When null the UI falls back to
   // a naive local approximation so the user sees something while typing.
   QuoteModel? _serverQuote;
-  Timer? _quoteDebounce;
+  // Timer? _quoteDebounce;
   int _quoteRequestId = 0;
 
   // @override
@@ -129,7 +129,7 @@ class _TradePageState extends State<TradePage> {
 
   @override
   void dispose() {
-    _quoteDebounce?.cancel();
+    // _quoteDebounce?.cancel();
     amountController.dispose();
     super.dispose();
   }
@@ -159,12 +159,18 @@ class _TradePageState extends State<TradePage> {
   /// hitting the server quote endpoint. Backend throttles at 60/min so
   /// we keep the cadence well under that.
   void _scheduleQuoteFetch() {
-    _quoteDebounce?.cancel();
+
     if (amount <= 0) {
-      setState(() => _serverQuote = null);
+
+      setState(() {
+
+        _serverQuote = null;
+      });
+
       return;
     }
-    _quoteDebounce = Timer(const Duration(milliseconds: 200), _fetchQuote);
+
+    _fetchQuote();
   }
 
   Future<void> _fetchQuote() async {

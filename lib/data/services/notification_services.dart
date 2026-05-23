@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -12,9 +11,6 @@ class NotificationService {
   _localNotifications =
   FlutterLocalNotificationsPlugin();
 
-  /// =====================================================
-  /// INIT
-  /// =====================================================
   static Future<void> init() async {
     await _initLocalNotification();
     await _requestPermission();
@@ -23,9 +19,6 @@ class NotificationService {
     await _setupNotificationClickHandling();
   }
 
-  /// =====================================================
-  /// NOTIFICATION PERMISSION
-  /// =====================================================
   static Future<void> _requestPermission() async {
     NotificationSettings settings =
     await _messaging.requestPermission(
@@ -40,9 +33,6 @@ class NotificationService {
     );
   }
 
-  /// =====================================================
-  /// GET FCM TOKEN + CONSOLE PRINT
-  /// =====================================================
   static Future<void> _generateFcmToken() async {
     try {
       /// iOS only
@@ -76,7 +66,6 @@ class NotificationService {
         return;
       }
 
-      /// Token refresh listener
       FirebaseMessaging.instance
           .onTokenRefresh
           .listen((newToken) {
@@ -91,9 +80,6 @@ class NotificationService {
     }
   }
 
-  /// =====================================================
-  /// LOCAL NOTIFICATION INIT
-  /// =====================================================
   static Future<void>
   _initLocalNotification() async {
     const AndroidInitializationSettings
@@ -145,9 +131,6 @@ class NotificationService {
     );
   }
 
-  /// =====================================================
-  /// FOREGROUND NOTIFICATION LISTENER
-  /// =====================================================
   static void _setupForegroundListener() {
     FirebaseMessaging.onMessage.listen(
           (RemoteMessage message) {
@@ -166,9 +149,6 @@ class NotificationService {
     );
   }
 
-  /// =====================================================
-  /// SHOW LOCAL NOTIFICATION
-  /// =====================================================
   static Future<void> _showNotification(
       RemoteMessage message) async {
     const AndroidNotificationDetails
@@ -208,9 +188,7 @@ class NotificationService {
     );
   }
 
-  /// =====================================================
-  /// CLICK HANDLING
-  /// =====================================================
+
   static Future<void>
   _setupNotificationClickHandling() async {
     /// Background click

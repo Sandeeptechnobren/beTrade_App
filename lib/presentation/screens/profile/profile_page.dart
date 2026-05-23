@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
@@ -47,17 +48,18 @@ class _ProfilePageState extends State<ProfilePage> {
         message: "Token not found",
         duration: const Duration(seconds: 3),
       );
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(const SnackBar(content: Text("Token not found")));
+
       return;
     }
 
     setState(() => isLoading = true);
     bool success = await AuthService.logout(token);
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
     if (success) {
       await LocalStorage.clearToken();
+      context.read<DefaultAmountProvider>().clear();
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const AuthScreen()),
@@ -69,9 +71,6 @@ class _ProfilePageState extends State<ProfilePage> {
         message: "Logout Failed",
         duration: const Duration(seconds: 3),
       );
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(const SnackBar(content: Text("Logout Failed")));
     }
   }
 

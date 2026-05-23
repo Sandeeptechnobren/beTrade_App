@@ -33,4 +33,10 @@ class DefaultAmountProvider extends ChangeNotifier {
     _hasLoaded = true;
     notifyListeners();
   }
+
+  void clear() {
+    _defaultAmount = null;
+    _hasLoaded = false;
+    notifyListeners();
+  }
 }

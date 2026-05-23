@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:pinput/pinput.dart'; // ✅ ADD THIS
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../data/provider/signin_provider.dart';
@@ -26,8 +27,11 @@ class _OTPScreenState extends State<OTPScreen> {
   Timer? _timer;
   bool isOtpComplete = false;
   final int otpLength = 6;
-  late List<TextEditingController> _controllers;
-  late List<FocusNode> _focusNodes;
+
+  // ✅ Single controller for Pinput
+  late TextEditingController _otpController;
+  late FocusNode _focusNode;
+
   bool _isDisposed = false;
   bool _isVerifying = false;
   bool _isResending = false;
@@ -35,9 +39,12 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   void initState() {
     super.initState();
-    _controllers = List.generate(otpLength, (_) => TextEditingController());
-    _focusNodes = List.generate(otpLength, (_) => FocusNode());
+    _otpController = TextEditingController();
+    _focusNode = FocusNode();
     _startTimer();
+
+    // Listen to OTP changes
+    _otpController.addListener(_checkOtpComplete);
   }
 
   void _startTimer() {
@@ -86,12 +93,19 @@ class _OTPScreenState extends State<OTPScreen> {
   void _showMessage(String message, {bool isError = true}) {
     if (_isDisposed || !mounted) return;
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    CustomSnackBar.showError(
-      context,
-      message: message,
-      duration: const Duration(seconds: 3),
-    );
+    if (isError) {
+      CustomSnackBar.showError(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
+    } else {
+      CustomSnackBar.showSuccess(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   void _navigateToHome(int docUploadStatus) {
@@ -107,7 +121,7 @@ class _OTPScreenState extends State<OTPScreen> {
               docUploadStatus: docUploadStatus,
             ),
           ),
-          (route) => false,
+              (route) => false,
         );
       }
     });
@@ -116,7 +130,7 @@ class _OTPScreenState extends State<OTPScreen> {
   Future<void> _verifyOtp() async {
     if (_isDisposed || !mounted || _isVerifying) return;
 
-    final otp = _getOtp();
+    final otp = _otpController.text.trim();
     if (otp.length != otpLength) {
       _showMessage("Please enter complete OTP");
       return;
@@ -159,7 +173,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
     try {
       final provider = context.read<AuthProvider>();
-      await provider.sendOtp(widget.phone);
+      await provider.sendLoginOtp(widget.phone);
 
       if (_isDisposed || !mounted) return;
 
@@ -178,142 +192,72 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   void _clearOtpFields() {
-    for (var controller in _controllers) {
-      controller.clear();
-    }
-    _focusNodes.first.requestFocus();
+    _otpController.clear();
+    _focusNode.requestFocus();
     setState(() {
       isOtpComplete = false;
     });
   }
 
-  String _getOtp() {
-    return _controllers.map((e) => e.text).join();
-  }
-
   void _checkOtpComplete() {
     if (_isDisposed) return;
-    final otp = _getOtp();
-    setState(() {
-      isOtpComplete = otp.length == otpLength;
-    });
-  }
-  void _onOtpChanged(String value, int index) {
-    if (_isDisposed || !mounted) return;
-    if (value.isNotEmpty) {
-      _controllers[index].text = value.substring(value.length - 1);
-      _controllers[index].selection = TextSelection.fromPosition(
-        const TextPosition(offset: 1),
-      );
-
-      if (index < otpLength - 1) {
-        FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-      } else {
-        FocusScope.of(context).unfocus();
-      }
+    final otp = _otpController.text.trim();
+    if (mounted) {
+      setState(() {
+        isOtpComplete = otp.length == otpLength;
+      });
     }
-    if (value.isEmpty && index > 0) {
-      FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-      _controllers[index - 1].selection =
-          TextSelection.fromPosition(
-            TextPosition(
-              offset: _controllers[index - 1].text.length,
-            ),
-          );
-    }
-
-    _checkOtpComplete();
   }
-  //
-  // void _onOtpChanged(String value, int index) {
-  //   if (_isDisposed) return;
-  //
-  //   if (value.length == 1) {
-  //     if (index < otpLength - 1) {
-  //       _focusNodes[index + 1].requestFocus();
-  //     } else {
-  //       _focusNodes[index].unfocus();
-  //     }
-  //   } else if (value.isEmpty) {
-  //     if (index > 0) {
-  //       _focusNodes[index - 1].requestFocus();
-  //     }
-  //   }
-  //   _checkOtpComplete();
-  // }
 
   @override
   void dispose() {
     _isDisposed = true;
     _timer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _otpController.removeListener(_checkOtpComplete);
+    _otpController.dispose();
+    _focusNode.dispose();
     super.dispose();
-  }
-  Widget _otpBox(int index) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      width: 50.w,
-      height: 65.h,
-      child: TextField(
-        textInputAction: TextInputAction.next,
-        autofocus: index == 0,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        maxLength: 1,
-        style: TextStyle(
-          fontSize: 18.sp,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimaryDynamic(context),
-        ),
-        decoration: InputDecoration(
-          hintText: "0",
-          hintStyle: TextStyle(
-            color: isDarkMode ? Colors.grey.shade600 : Colors.grey,
-            fontWeight: FontWeight.w400,
-          ),
-          counterText: "",
-          filled: true,
-          fillColor: isDarkMode
-              ? const Color(0xFF2C2C2E)
-              : Colors.grey.shade100,
-          contentPadding: EdgeInsets.zero,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(
-              color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: const BorderSide(
-              color: AppColors.primary,
-              width: 1.5,
-            ),
-          ),
-        ),
-        onChanged: (value) => _onOtpChanged(value, index),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isButtonEnabled = isOtpComplete && !_isVerifying && !_isDisposed;
+
+    // ✅ Pinput themes - matching your UI
+    final defaultPinTheme = PinTheme(
+      width: 50.w,
+      height: 65.h,
+      textStyle: TextStyle(
+        fontSize: 18.sp,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimaryDynamic(context),
+      ),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2C2C2E) : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
+        ),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration?.copyWith(
+        border: Border.all(
+          color: AppColors.primary,
+          width: 1.5,
+        ),
+      ),
+    );
+
+    final submittedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration?.copyWith(
+        border: Border.all(
+          color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
+        ),
+      ),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -338,11 +282,32 @@ class _OTPScreenState extends State<OTPScreen> {
               ),
             ),
             SizedBox(height: 20.h),
-            Row(
+
+            // ✅ PINPUT WIDGET - UI same as before
+            Pinput(
+              controller: _otpController,
+              focusNode: _focusNode,
+              length: otpLength,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              defaultPinTheme: defaultPinTheme,
+              focusedPinTheme: focusedPinTheme,
+              submittedPinTheme: submittedPinTheme,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(otpLength, (index) => _otpBox(index)),
+              hapticFeedbackType: HapticFeedbackType.lightImpact,
+              closeKeyboardWhenCompleted: true,
+              onCompleted: (pin) {
+                // Auto verify jab 6 digit complete ho
+                if (pin.length == otpLength && !_isVerifying) {
+                  _verifyOtp();
+                }
+              },
             ),
-            SizedBox(height:10.h),
+
+            SizedBox(height: 10.h),
             Row(
               children: [
                 Text(

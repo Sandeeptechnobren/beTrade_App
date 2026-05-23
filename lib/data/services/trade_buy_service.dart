@@ -6,29 +6,8 @@ import '../../core/network/dio_client.dart';
 import '../model/buy_response.dart';
 import 'local_storage.dart';
 
-/// Place an order against the LMSR trade engine.
-///
-/// Atomic on the backend: market open guard, KYC guard, wallet lock,
-/// outcome locks, idempotency check — all wrapped in a DB transaction.
-/// The mobile-side responsibility is just generating a fresh
-/// idempotency key per "Buy" tap and mapping typed error codes from
-/// the backend to user-readable messages.
 class TradeBuyService {
-  /// POST /api/trade/{uuid}/buy
-  ///
-  /// Returns a Map with at minimum:
-  ///   { 'success': bool, 'message': String }
-  /// Plus on success:
-  ///   { 'data': { order, position, wallet_balance, quote } }
-  /// Plus on typed backend error:
-  ///   { 'code': 'INSUFFICIENT_FUNDS' | 'KYC_REQUIRED' | 'MARKET_CLOSED'
-  ///           | 'BELOW_MIN_COST' | 'ABOVE_MAX_COST' | 'UNKNOWN_OUTCOME' }
-  ///
-  /// `idempotencyKey` MUST be a fresh UUID v4 per "Buy" tap. If the
-  /// network drops mid-call and the user retries with the same key,
-  /// the backend short-circuits to the original Order without
-  /// re-charging the wallet. Use [generateIdempotencyKey] from this
-  /// class.
+
   static Future<BuyResponse> buy({
     required String marketUuid,
     required String outcomeSlug,
@@ -81,16 +60,9 @@ class TradeBuyService {
     }
   }
 
-  /// Generate an RFC 4122 v4 UUID using a cryptographically secure
-  /// random source. Used as the idempotency_key for /buy.
-  ///
-  /// We hand-roll this rather than adding the `uuid` package as a
-  /// dependency for one call site — the math is 6 lines and avoids
-  /// pubspec.lock churn during cross-team integration.
   static String generateIdempotencyKey() {
     final rng = Random.secure();
     final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-    // Per RFC 4122 §4.4: set version (4) and variant (10) bits.
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
     String hex(int n) => n.toRadixString(16).padLeft(2, '0');
