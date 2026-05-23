@@ -104,6 +104,16 @@ To wire:
 
 ## Completed
 
+### 2026-05-23 — Swipe-on-PollCard race fix (QA #6)
+Race condition between user swiping a PollCard and `DefaultAmountProvider.loadFromBackend()` completing. Provider was setting `_hasLoaded = true` optimistically before the await, so `_ensureReadyToTrade()` would falsely return true on a still-null amount, then TradePage would immediately pop and open DefaultSettingsPage — user perceived this as "swipe doesn't work".
+
+Three fixes:
+1. `default_amount_provider.dart` — separated `_isFetching` (in-flight) from `_hasLoaded` (response parsed). `_hasLoaded` only set after a successful fetch.
+2. `HomeScreen.dart` `_ensureReadyToTrade()` — handle null explicitly (was `null == 0` → false → skipped), use `CustomSnackBar.showLoader` for the still-loading case and `CustomSnackBar.showError` for the user-has-no-default case with clear messages ("Loading your settings, please wait..." / "Please set your default trade amount first").
+3. `HomeScreen.dart` `onTap` — removed the `_ensureReadyToTrade()` gate. Tap path doesn't pre-fill from default amount, so it shouldn't block on missing default.
+
+Analyzer: 0 new issues. Manual smoke test pending APK build.
+
 ### 2026-05-23 — Trading UX critical bugs (4 fixes from QA report)
 - **QA #1 + #13** — `lib/core/animations/success_animation.dart`: after signup, the SuccessScreen was navigating to AuthScreen (dumping the user back at login). Fixed to navigate to MainScreen with `showWelcomePopup: true` + `docUploadStatus` from LocalStorage. KYC banner now appears immediately after signup, satisfying both bugs.
 - **QA #11** — `lib/presentation/screens/trade/trade_page.dart` `selectQuickAmount` (renamed from `addQuickAmount`): chip taps now **replace** the amount instead of adding. Tapping 10 then 20 → 20 GHS (was 30).

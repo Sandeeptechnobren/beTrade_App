@@ -443,10 +443,26 @@ class _PollCardState extends State<PollCard> {
   bool _ensureReadyToTrade() {
     final provider = context.read<DefaultAmountProvider>();
 
-    if (provider.defaultAmount == 0) {
+    // Still fetching from backend (or never started). Don't treat a
+    // null amount as "user has no default" — that case is handled below
+    // after the load has actually completed. Show a brief purple loader
+    // so the swipe doesn't feel ignored.
+    if (!provider.hasLoaded || provider.defaultAmount == null) {
+      CustomSnackBar.showLoader(
+        context,
+        message: "Loading your settings, please wait...",
+        duration: const Duration(seconds: 2),
+      );
+      return false;
+    }
+
+    // Loaded, but the user genuinely has no default amount set. Send
+    // them to the settings sheet so they can pick one before this
+    // swipe-buy makes sense.
+    if (provider.defaultAmount! <= 0) {
       CustomSnackBar.showError(
         context,
-        message: "Default amount is null/0",
+        message: "Please set your default trade amount first",
         duration: const Duration(seconds: 3),
       );
       CommonBottomSheet.open(
@@ -457,14 +473,6 @@ class _PollCardState extends State<PollCard> {
       return false;
     }
 
-    if (!provider.hasLoaded) {
-      CustomSnackBar.showLoader(
-        context,
-        message: "Loading default amount, please wait...",
-        duration: const Duration(seconds: 3),
-      );
-      return false;
-    }
     return true;
   }
   @override
@@ -473,8 +481,11 @@ class _PollCardState extends State<PollCard> {
 
     return GestureDetector(
       onTap: () {
+        // Tap path doesn't use the default amount — the user types the
+        // cost themselves on TradePage. So no _ensureReadyToTrade gate
+        // here. Only the swipe path (which pre-fills from the default)
+        // gates on the provider state.
         debugPrint("CLICK UUID: ${trade.uuid}");
-        if (!_ensureReadyToTrade()) return;
         CommonBottomSheet.open(
           context: context,
           builder: (controller) => TradePage(
