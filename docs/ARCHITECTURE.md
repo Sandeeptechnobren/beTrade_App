@@ -1,427 +1,517 @@
-# Betrade — Architecture
+# BeTrade — Architecture
 
-- **Source**: `github.com/Sandeeptechnobren/beTrade_App` — `main` branch (HEAD `6c546de`)
-- **Date**: 2026-04-30
-- **Companion docs**: see [`CODEBASE_AUDIT.md`](./CODEBASE_AUDIT.md) for findings/concerns and [`PATTERNS.md`](./PATTERNS.md) for the style guide.
+**Repository:** `github.com/Sandeeptechnobren/beTrade_App`
+**Local path:** `D:\claude\betrade`
+**Date:** 2026-05-23
+**Companion docs:** [`CODEBASE_AUDIT.md`](./CODEBASE_AUDIT.md) (findings/concerns), [`PATTERNS.md`](./PATTERNS.md) (style guide), [`ACCESS.md`](./ACCESS.md) (credentials), [`SSH_CONFIG.md`](./SSH_CONFIG.md) (server access).
 
-This document describes how the system is wired today. It is purely descriptive — concerns and recommendations live in the audit.
-
----
-
-## 1. System overview
-
-Betrade is a **Flutter mobile client application** ("trade" / prediction-market UX) targeting Android and iOS, with default Flutter scaffolding present (but unused) for web, Windows, macOS, and Linux. It talks to a single REST backend hosted at `api.buildacademy.io/projects/betrade/public/api` for authentication (OTP-based), KYC/onboarding, profile management, and trade browsing. Local state is held by `provider`-based `ChangeNotifier`s; the bearer token, theme preference, and onboarding-completed flag are persisted in `SharedPreferences`. There is no Betrade-owned server code, no database, and no real-time channel in this repository — it is a client-only codebase.
+> Purely descriptive. Documents only what exists in the code today. Concerns and recommendations live in the audit.
 
 ---
 
-## 2. High-level architecture
+## Table of Contents
+
+1. [System Overview](#1-system-overview)
+2. [High-Level Architecture](#2-high-level-architecture)
+3. [Directory Map](#3-directory-map)
+4. [Database Schema](#4-database-schema)
+5. [API Surface](#5-api-surface)
+6. [Authentication & Authorization](#6-authentication--authorization)
+7. [Background Jobs / Queues](#7-background-jobs--queues)
+8. [Third-Party Integrations](#8-third-party-integrations)
+9. [Deployment Architecture](#9-deployment-architecture)
+10. [Key Environment Variables](#10-key-environment-variables)
+11. [Real-Time / Event Flows](#11-real-time--event-flows)
+12. [Server Access](#12-server-access)
+
+---
+
+## 1. System Overview
+
+BeTrade is a Flutter mobile client (Android + iOS) for a **prediction-market / "trade"** product. Users browse markets, fetch live LMSR quotes, place buy orders, track positions, and manage a wallet — all via REST calls to a backend operated **outside this repository**. State is managed with `provider` `ChangeNotifier`s; the bearer token, theme preference, and onboarding flag persist in `SharedPreferences`. There is **no application database, no real-time channel, and no server-side code in this repo** — the client talks to a single Laravel REST API at `api.buildacademy.io`, plus Firebase Cloud Messaging for push notifications.
+
+---
+
+## 2. High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Flutter App (lib/)                          │
-│                                                                     │
-│  ┌─────────────────────┐   ┌──────────────────┐   ┌──────────────┐  │
-│  │ presentation/       │   │ data/provider/   │   │ data/        │  │
-│  │  - screens/         │──▶│  9 ChangeNotifier│──▶│ services/    │  │
-│  │  - widget/          │◀──│  (auth, signup,  │◀──│  static-     │  │
-│  │  - onboarding/      │   │  profile, trade, │   │  method      │  │
-│  │  - auth/            │   │  explore, theme, │   │  classes     │  │
-│  │  - bottom_navigation│   │  category, etc.) │   │              │  │
-│  └─────────┬───────────┘   └────────┬─────────┘   └──────┬───────┘  │
-│            │                        │                    │          │
-│            │                        ▼                    ▼          │
-│            │             ┌────────────────────┐   ┌─────────────┐   │
-│            │             │ data/services/     │   │ core/       │   │
-│            │             │  local_storage.dart│   │  network/   │   │
-│            │             │  (SharedPrefs:     │   │  dio_client │   │
-│            │             │  token, theme,     │   │             │   │
-│            │             │  onboardingDone)   │   │ + raw http  │   │
-│            │             └────────────────────┘   │   client    │   │
-│            │                                      └──────┬──────┘   │
-│            │             ┌────────────────────┐          │          │
-│            └────────────▶│ core/config/       │          │          │
-│                          │  EnvConfig         │          │          │
-│                          │  ApiEndpoints      │          │          │
-│                          └────────────────────┘          │          │
-│                                       ▲                  │          │
-│                                       │                  │          │
-│                                  ┌────┴────────┐         │          │
-│                                  │  .env       │         │          │
-│                                  │  BASE_URL   │         │          │
-│                                  └─────────────┘         │          │
-└──────────────────────────────────────────────────────────┼──────────┘
-                                                           │
-                                                           ▼ HTTPS
-                                  ┌────────────────────────────────────┐
-                                  │  api.buildacademy.io/projects/     │
-                                  │  betrade/public/api  (single env)  │
-                                  │   - auth/OTP, KYC, profile         │
-                                  │   - countries, languages           │
-                                  │   - trade list / explore / view    │
-                                  └────────────────────────────────────┘
++-------------------------------------------------------------+
+|                  Flutter Mobile App                         |
+|                                                             |
+|  +-----------------------------------------------------+    |
+|  |  Presentation (lib/presentation/)                   |    |
+|  |  splash | signin | KYC | home | explore | trade    |    |
+|  |  portfolio | profile | onboarding | bottom_nav     |    |
+|  +------------------------|----------------------------+    |
+|     context.read<T>() / context.watch<T>()                  |
+|                           v                                 |
+|  +-----------------------------------------------------+    |
+|  |  Data Layer (lib/data/)                             |    |
+|  |  +-------------+  +-------------+  +-------------+  |    |
+|  |  | provider/   |  | services/   |  | model/      |  |    |
+|  |  | ~14 CNs     |  | ~16 static  |  | ~13 DTOs    |  |    |
+|  |  | (state)     |  | service cls |  | (manual     |  |    |
+|  |  |             |  |             |  |  fromJson)  |  |    |
+|  |  +------|------+  +------|------+  +-------------+  |    |
+|  +---------|-----------------|--------------------------+   |
+|            v                 v                              |
+|  +-----------------------------------------------------+    |
+|  |  Core (lib/core/)                                   |    |
+|  |  config/     network/      theme/      utils/       |    |
+|  |  EnvConfig   DioClient     AppColors   Validators   |    |
+|  |  ApiEndpts   (singleton)   AppText                  |    |
+|  +-----------------------------------------------------+    |
+|            |                                                |
++------------|------------------------------------------------+
+             | HTTPS (Bearer token in Authorization header)
+             v
++-------------------------------------------------------------+
+|        Backend REST API (operated outside this repo)        |
+|        https://api.buildacademy.io/projects/                |
+|                  betrade/public/api                         |
+|        - OTP auth, profile, KYC                             |
+|        - markets / quotes / orders                          |
+|        - positions, wallet                                  |
++-------------------------------------------------------------+
+
+                  +------------------------+
+                  |  Firebase Cloud        |
+                  |  Messaging (FCM)       |
+                  |  - betrade-new (mob)   |
+                  |  - betrade-4efd1 (web) |
+                  +-----------|------------+
+                              | push (background + foreground)
+                              v
+                      Flutter app handler
+                      (lib/main.dart +
+                       notification_services.dart)
 ```
 
-**Layers (in `lib/`)**
+### Major components
 
-| Layer | Folder | Responsibility |
-| --- | --- | --- |
-| Presentation | `presentation/` | Screens, widgets, navigation. No HTTP, no JSON. Reads providers via `Provider.of` / `context.watch` / `Consumer`. |
-| State | `data/provider/` | 9 `ChangeNotifier` classes. Hold UI-relevant state (loading, error, lists, current values). Call into services. |
-| Services | `data/services/` | Network calls + persistence. Mostly abstract classes with `static` methods. Returns parsed models or raw maps. |
-| Models | `data/model/` | 5 DTOs with manual `fromJson` constructors. No `toJson`. |
-| Core | `core/` | Cross-cutting helpers: env config, endpoint constants, Dio singleton, theme tokens, validators, animations. |
-| Entry | `lib/main.dart` | Initialises `LocalStorage`, loads `.env`, locks portrait, wraps app in `MultiProvider` + `ScreenUtilInit` + `Consumer<ThemeProvider>`. |
+| Component | Owner | Role |
+|-----------|-------|------|
+| **Flutter Mobile App** | This repo | UI + business logic. Three layers: `presentation/` (screens & widgets), `data/` (providers, services, models), `core/` (config, network, theme, utils). |
+| **Backend REST API** | Operated externally (not in this repo) | Source of truth for users, markets, prices (LMSR), orders, positions, wallet. Laravel app at `api.buildacademy.io` per `CLAUDE.md`. |
+| **Firebase project `betrade-new`** | Mobile FCM credentials | Push notifications to Android + iOS. |
+| **Firebase project `betrade-4efd1`** | Web/desktop FCM credentials | Configured in `firebase_options.dart` for Web/Windows/macOS targets (those platforms are unused in product). |
+| **`.env` (bundled asset)** | Local repo | Single key: `BASE_URL` pointing at the backend API. |
 
-**Key wiring quirks** (behaviour, not concerns):
+### Request lifecycle (typical)
 
-- The sign-in flow (`AuthProvider`) and the sign-up flow (`SignupProvider` → `AuthService`) use **different HTTP clients** (`http` vs `dio`) and **different URL sources** (hard-coded literals vs `EnvConfig` + `ApiEndpoints`).
-- `DioClient` keeps the bearer in its shared `Authorization` header via `setToken`/`removeToken`; the rest of the app reads the token from `LocalStorage` and adds the header per request.
-- Theme is the only provider that drives a `Consumer` at the `MaterialApp` root; all other providers are scoped per screen.
+1. Screen calls `context.read<SomeProvider>().method()`.
+2. Provider sets `isLoading = true`, calls a static `SomeService.method()`.
+3. Service reads token via `LocalStorage.getToken()`, builds URL with `ApiEndpoints.x()`, dispatches via `DioClient.instance` (or `http` for the legacy paths).
+4. `DioClient` injects `Authorization: Bearer <token>` and times out at 15s (30s for multipart).
+5. Response JSON is parsed via a manual `Model.fromJson(...)` constructor.
+6. Provider stores the result, calls `notifyListeners()`.
+7. `Consumer<T>` rebuilds the affected widgets.
 
 ---
 
-## 3. Directory map
+## 3. Directory Map
 
-### Repo root
-
-| Folder / file | Purpose |
-| --- | --- |
-| `lib/` | All Dart application code. |
-| `assets/` | `images/`, `logo/`, `fonts/` (SFProRounded). Also contains the bundled `.env` reference. |
-| `test/` | Test files. Currently only `widget_test.dart` (default scaffold). |
-| `android/` | Android platform project (Kotlin/Gradle). Customised manifest, package `com.build.betrade`. |
-| `ios/` | iOS platform project (Xcode). Customised `Info.plist` (camera/mic/photo perms, portrait-lock). |
-| `web/` | Default Flutter web scaffold (unmodified). |
-| `windows/` | Default Flutter Windows scaffold (unmodified). |
-| `macos/` | Default Flutter macOS scaffold (unmodified). |
-| `linux/` | Default Flutter Linux scaffold (unmodified). |
-| `.env` | Runtime config (only `BASE_URL`). Tracked in git, bundled as Flutter asset. |
-| `.gitignore` | Standard Flutter ignores; does **not** include `.env`. |
-| `analysis_options.yaml` | Lints — only `package:flutter_lints/flutter.yaml`, no overrides. |
-| `pubspec.yaml` / `pubspec.lock` | Dart/Flutter package manifest and lockfile. |
-| `README.md` | Default Flutter scaffold (16 lines). |
-| `docs/` | This folder. Audit, architecture, patterns. |
-
-### `lib/` second level
+### Top-level
 
 | Folder | Purpose |
-| --- | --- |
-| `lib/main.dart` | App entry point — bootstraps storage, dotenv, providers, theme. |
-| `lib/core/animations/` | Standalone visual effects (currently `success_animation.dart`). |
-| `lib/core/config/` | `env_config.dart` (BASE_URL accessor), `api_endpoint..dart` (sic — endpoint URL builders). |
-| `lib/core/network/` | `dio_client.dart` — singleton `Dio` + a `multipartInstance` for FormData uploads. |
-| `lib/core/theme/` | `app_colors.dart` and `app_text_style.dart` — design tokens with light/dark `*Dynamic` helpers. |
-| `lib/core/utils/validators/` | Field validators (currently phone numbers per country). |
-| `lib/data/model/` | DTOs: `category_model`, `country_model`, `graph_model`, `profile_model`, `trade_model`. |
-| `lib/data/provider/` | 9 `ChangeNotifier`s: `signIn_provider`, `signUp_provider`, `profile_provider`, `country_provider`, `category_provider`, `trade_provider`, `explorer_provider`, `bottom_nav_provider`, `theam_provider` (sic). |
-| `lib/data/services/` | API + storage services: `auth_service`, `category_service`, `explorer_service`, `profile_service`, `trade_details_service`, `trade_service`, `local_storage`. |
-| `lib/presentation/auth/` | Auth landing screen (`auth_screen`, `auth_bottom_sheet`). |
-| `lib/presentation/bottom_navigation/` | Custom bottom-nav widget. |
+|--------|---------|
+| `lib/` | All Dart source (~88 files). |
+| `assets/` | Images, logo, fonts (SFProRounded TTF). Also bundles `.env` as a Flutter asset. |
+| `test/` | Flutter tests. Currently only the broken default scaffold (`widget_test.dart`). |
+| `android/` | Android platform project (Kotlin/Gradle). Package `com.build.betrade`. |
+| `ios/` | iOS platform project (Xcode). Bundle ID `com.build.betrade`. |
+| `web/` | Default Flutter web scaffold — unused in product. |
+| `windows/` | Default Flutter Windows scaffold — unused. |
+| `macos/` | Default Flutter macOS scaffold — unused. |
+| `linux/` | Default Flutter Linux scaffold — unused. |
+| `docs/` | Project docs — `ARCHITECTURE.md` (this), `CODEBASE_AUDIT.md`, `PATTERNS.md`, `ACCESS.md`, `SSH_CONFIG.md`, `DEPLOY_LOG.md`. |
+| `tasks/` | Workstream tracking — `todo.md`, `lessons.md`, plans, findings. |
+| `.claude/` | Claude Code configuration (commands, agents, skills, settings). |
+
+### `lib/` second-level
+
+| Path | Purpose |
+|------|---------|
+| `lib/main.dart` | App entry. Boots Firebase, dotenv, LocalStorage; registers `MultiProvider` + `ScreenUtilInit`; renders `SplashScreen`. |
+| `lib/firebase_options.dart` | Auto-generated Firebase platform credentials. |
+| `lib/core/animations/` | `success_animation.dart` — post-signup particle effect. |
+| `lib/core/config/` | `env_config.dart` (BASE_URL accessor), `api_endpoint..dart` (URL builders — note **double-dot typo in filename**). |
+| `lib/core/network/` | `dio_client.dart` — Dio singleton + multipart variant; manages shared Authorization header. |
+| `lib/core/theme/` | `app_colors.dart`, `app_text_style.dart` — design tokens with dark-mode variants. |
+| `lib/core/utils/` | Helpers + validators (e.g. `phone_number_validator.dart`). |
+| `lib/data/model/` | ~13 DTOs (Trade, TradeDetail, Profile, Country, Category, Position, MarketPositions, Quote, Order, BuyResponse, ChartData, DefaultSettings, ProfileNotificationPreferences). Manual `fromJson()`, no code generation. |
+| `lib/data/provider/` | ~14 `ChangeNotifier`s (auth, signup, login, profile, country, category, trade, trade detail, explore, wallet, positions, theme, bottom nav, default amount). |
+| `lib/data/services/` | ~16 static service classes — auth, profile, trade, trade_quote, trade_buy, positions, wallet, explorer, category, notification, local_storage, etc. |
+| `lib/presentation/auth/` | Auth landing screen + bottom sheet (post-onboarding). |
 | `lib/presentation/onboarding/` | First-run onboarding pager. |
-| `lib/presentation/screens/` | All feature screens. Subfolders: `splash/`, `signin/`, `verification/` (KYC), `homeScreen/`, `explore/`, `trade/`, `portfolio/{deposit,withdraw}/`, `profile/`, `camera/`, plus `main_screen.dart`. |
-| `lib/presentation/widget/` | 14 reusable widgets (buttons, headers, dropdowns, indicators, cameras, etc.). |
+| `lib/presentation/screens/` | ~20 feature screens — `splash/`, `signin/`, `verification/` (KYC), `homeScreen/`, `explore/`, `trade/`, `portfolio/` (deposit + withdraw), `profile/`, `camera/`, plus `main_screen.dart` (IndexedStack tab host). |
+| `lib/presentation/widget/` | 14 reusable widgets — buttons, headers, dropdowns, indicators, camera, snackbar helper. |
+| `lib/presentation/bottom_navigation/` | Custom bottom-nav widget driven by `BottomNavProvider`. |
 
 ---
 
-## 4. Database schema
+## 4. Database Schema
 
-There is **no database** in this codebase — no SQL, SQLite, Hive, Drift, Firestore, Realm, or Isar. The two persistence surfaces are: (a) **API DTO classes** that decode backend responses, and (b) **`SharedPreferences` keys** for a small amount of local app state.
+> **No application database exists.** The app does not connect to any DBMS (SQL or NoSQL), no local cache layer (Hive, sqflite, Isar, Drift, Realm), and Firestore is configured in `firebase_options.dart` but never read or written. All persistent data is HTTP-mediated via the backend at `api.buildacademy.io`, which is opaque to this client.
 
-### 4.1 API model classes (`lib/data/model/`)
+### Local persistence (`SharedPreferences` via `LocalStorage` service)
 
-All five classes have manual `fromJson` factory constructors (no `toJson`, no codegen). **No model references any other model**: relations on the wire are flattened into denormalised string fields (e.g., `TradeModel.categoryName` instead of a `Category` reference).
+Three keys, all device-local:
 
-| Class | File | Source endpoint(s) | Key fields | Relationships |
-| --- | --- | --- | --- | --- |
-| `ProfileModel` | `lib/data/model/profile_model.dart` | `GET /profile`, `PUT /edit-profile` | `firstName`, `lastName`, `avatar`, `phone?`, `gender?`, `country?`, `currency?`, `language?` | None. `country`/`currency` are plain strings, not refs. |
-| `CountryModel` | `lib/data/model/country_model.dart` | `GET /countries` | `id`, `name`, `phoneCode`, `flag`, `currency` | None. |
-| `CategoryModel` | `lib/data/model/category_model.dart` | `GET /trade/categories-list` | `uuid`, `name` | None. |
-| `TradeModel` | `lib/data/model/trade_model.dart` | `GET /trade/list`, `GET /trade/explore` | `uuid`, `categoryName`, `description`, `minTradeAmount` (kept as String), `image?`, `endDate` (kept as String) | None. Category denormalised. |
-| `ChartData` | `lib/data/model/graph_model.dart` | `GET /chart` (defined; never invoked from UI) | `x` (← `time`), `y` (← `value`) | None. |
+| Key | Type | Set by | Read by |
+|-----|------|--------|---------|
+| `token` | `String?` | After successful `/verify-otp/login` (`AuthService.verifyLoginOtp`) | Every authenticated service call via `LocalStorage.getToken()` |
+| `theme_mode` | `String?` | `ThemeProvider` on toggle | `ThemeProvider` at startup |
+| `onboardingDone` | `bool?` | First-run flow on completion | `SplashScreen` route logic |
 
-### 4.2 Local persistence (`SharedPreferences`)
+### Client-side data models (closest analog to "schema")
 
-Centralised wrapper at `lib/data/services/local_storage.dart`, initialised in `lib/main.dart` before `runApp` via `LocalStorage.init()`.
+These are read-only DTOs that mirror backend response shapes. Relationships are **denormalized** (no foreign-key pattern) — when a model references another entity, it embeds the entity's data as fields/nested dicts rather than holding an ID.
 
-| Key | Type | Set | Get | Cleared |
-| --- | --- | --- | --- | --- |
-| `theme_mode` | `String` (`"dark"` / `"light"`) | `local_storage.dart:5` | `:8` | — |
-| `token` | `String` (bearer) | `:15` | `:18` | `:21` (`clearToken`) |
-| `onboardingDone` | `bool` | `:24` | `:27` | — |
+| Model | File | Backend source | Key fields |
+|-------|------|----------------|------------|
+| `TradeModel` | `lib/data/model/trade_model.dart` | `GET /trade/list`, `/trade/explore` | uuid, categoryName, description, minTradeAmount, image, endDate |
+| `TradeDetailModel` | `trade_detail_model.dart` | `GET /trade/view/{uuid}` | uuid, title, description, categoryName, currentPricePerShare |
+| `ProfileModel` | `profile_model.dart` | `GET /profile`, `/verify-otp/login` | firstName, lastName, avatar, phone, gender, country, currency, language, email |
+| `CountryModel` | `country_model.dart` | `GET /countries` | id, name, phoneCode, flag, currency |
+| `CategoryModel` | `category_model.dart` | `GET /trade/categories-list` | uuid, name |
+| `PositionModel` | `position_model.dart` | `GET /positions`, `/positions/{uuid}` | shares, avgCostGhs, currentPrice, costBasisGhs, marketValueGhs, unrealisedPnlGhs, realizedPnlGhs, maxPayoutGhs; embeds `market{}` and `outcome{}` nested dicts |
+| `MarketPositionsModel` | `position_model.dart` | `GET /positions/{market_uuid}` | marketUuid, description, sides[] (List of PositionModel) |
+| `QuoteModel` | `quote_model.dart` | `POST /trade/{uuid}/quote` | outcomeSlug, costGhs, shares, avgPricePerShare, newPriceAfterFill, maxPayoutGhs, potentialProfitGhs, feeGhs |
+| `OrderModel` | `order_model.dart` | `POST /trade/{uuid}/buy` (`data.order`) | shares, avgFillPrice, totalCostGhs, feeGhs |
+| `BuyResponse` | `buy_response.dart` | `POST /trade/{uuid}/buy` (envelope) | success, message, code, `OrderModel?`, `QuoteModel?`, walletBalance |
+| `ChartData` | `graph_model.dart` | `GET /chart` (defined, never called) | x (time), y (value) |
+| `DefaultSettingsModel` | `default_settings_model.dart` | `GET /userDefaultSettings/index` | defaultAmount |
+| `ProfileNotificationPreferencesModel` | `profile_notification_preferences_model.dart` | `POST /profile/preferences` | (unused in UI) |
 
-Direct access (bypasses the wrapper):
+**Relationships (containment, not references):**
 
-| Key | Type | Set | Get |
-| --- | --- | --- | --- |
-| `isFirstTime` | `bool` | `lib/presentation/screens/homeScreen/HomeScreen.dart:102` | `:63` |
+- `TradeModel.categoryName` is a denormalized **string**, not a reference to `CategoryModel`.
+- `PositionModel` embeds `market { uuid, description, image, category_name, closing_date_time, status }` and `outcome { slug, label, is_winner }` as nested dicts.
+- `BuyResponse` contains nested `OrderModel?` and `QuoteModel?` plus a scalar `walletBalance` — one transactional response.
 
-### 4.3 Implicit "schema" inferred from API responses
-
-Several endpoints are parsed inline as `Map<String, dynamic>` without dedicated model classes. The implicit shape used by the app:
-
-- `/login` and `/verify-otp/login` responses: `{status: bool, message: String, token?: String}`.
-- `/verify-token`: `{status: bool, ...}`.
-- `/trade/list?page=N`: `{status: bool, data: {items: List, ...}}`.
-- `/trade/view/{uuid}`: `{status: bool, data: { ..., current_price_per_share, ... }}`.
-- `/kyc/submit`: multipart upload of `id_front`, `id_back`, `selfie`.
-
-These are not modelled as Dart classes; the audit flags this as a future-modelling opportunity but it is **not** in scope for this architecture document.
+> The backend's actual schema (PostgreSQL / MySQL tables, FK constraints, LMSR pricing tables, wallet ledger, etc.) is **not visible** from this repository.
 
 ---
 
-## 5. API surface
+## 5. API Surface
 
-**Base URL (single environment)**: `https://api.buildacademy.io/projects/betrade/public/api`, defined in `.env` as `BASE_URL` and exposed via `EnvConfig.baseUrl` (`lib/core/config/env_config.dart`). Endpoint URL builders live in `lib/core/config/api_endpoint..dart` (sic — double-dot in filename, propagated to 7 importers).
+All calls route through `ApiEndpoints` static builders and (primarily) `DioClient.instance`. Base URL: `https://api.buildacademy.io/projects/betrade/public/api`.
 
-There is **no second environment** (no dev / staging / prod split).
+### Auth (7)
 
-### 5.1 Auth & onboarding
+| Method | Path | Service method |
+|--------|------|----------------|
+| POST | `/register` | `AuthService.sendOtp()` |
+| POST | `/verify-otp/register` | `AuthService.verifyOtp()` |
+| POST | `/complete-profile` *(multipart)* | `AuthService.completeSignup()` |
+| POST | `/login` | `AuthService.sendLoginOtp()` |
+| POST | `/verify-otp/login` | `AuthService.verifyLoginOtp()` |
+| GET | `/verify-token` | `AuthService.verifyToken()` |
+| POST | `/logout` | `AuthService.logout()` |
 
-| Method | Path | Caller | Client |
-| --- | --- | --- | --- |
-| POST | `/login` *(hard-coded URL — bypasses `EnvConfig`)* | `lib/data/provider/signIn_provider.dart:18` | `http` |
-| POST | `/verify-otp/login` *(hard-coded URL)* | `lib/data/provider/signIn_provider.dart:54` | `http` |
-| POST | `/register` | `lib/data/services/auth_service.dart:35` | `dio` |
-| POST | `/verify-otp/register` | `lib/data/services/auth_service.dart:58` | `dio` |
-| POST | `/complete-profile` (multipart) | `lib/data/services/auth_service.dart:145` | `dio.multipartInstance` |
-| POST | `/logout` | `lib/data/services/auth_service.dart:190` | `dio` |
-| GET | `/verify-token` *(hard-coded URL)* | `lib/data/services/auth_service.dart:213` | `dio` |
-| POST | `/kyc/submit` (multipart) | `lib/presentation/screens/verification/verify_account.dart:212` | `http` |
-| POST | `/profile/preferences` | `lib/presentation/screens/verification/verify_account.dart:267` | `http` |
+### Profile (2)
 
-### 5.2 Profile
+| Method | Path | Service method |
+|--------|------|----------------|
+| GET | `/profile` | `ProfileService.getProfile()` |
+| PUT | `/edit-profile` *(multipart)* | `ProfileService.updateProfile()` |
 
-| Method | Path | Caller | Client |
-| --- | --- | --- | --- |
-| GET | `/profile` | `lib/data/services/profile_service.dart:99` | `http` |
-| PUT (multipart) | `/edit-profile` | `lib/data/services/profile_service.dart:188` | `http` |
-| GET | `/languages` | `lib/presentation/screens/verification/verify_account.dart:110`, `lib/presentation/screens/profile/edit_profile.dart:79` | `http` |
+### Trading & Quotes (7)
 
-### 5.3 Trades / Explore / Categories
+| Method | Path | Service method |
+|--------|------|----------------|
+| GET | `/trade/list?page=N` | `TradeService.getTrades()` |
+| GET | `/trade/explore?search=Q` | `ExploreService.searchTrades()` |
+| GET | `/trade/categories-list` | `CategoryService.getCategories()` |
+| GET | `/trade/view/{uuid}` | `TradeDetailService.getTradeDetail()` |
+| POST | `/trade/{uuid}/quote` | `TradeQuoteService.quote()` |
+| GET | `/trade/{uuid}/chart` | `AuthService.fetchChartData()` *(defined, never called)* |
+| POST | `/trade/{uuid}/buy` | `TradeBuyService.buy()` |
 
-| Method | Path | Caller | Client |
-| --- | --- | --- | --- |
-| GET | `/trade/list?page=N` | `lib/data/services/trade_service.dart:20`, `:59` | `http` |
-| GET | `/trade/explore?search=Q` *(hard-coded URL)* | `lib/data/services/explorer_service.dart:50` | `http` |
-| GET | `/trade/view/{uuid}` *(hard-coded URL)* | `lib/data/services/trade_details_service.dart:12` | `http` |
-| GET | `/trade/categories-list` | `lib/data/services/category_service.dart:11` | `http` |
-| GET | `/chart` | `lib/data/services/auth_service.dart:165` (defined, never called from UI) | `dio` |
+### Positions (2)
 
-### 5.4 Reference data
+| Method | Path | Service method |
+|--------|------|----------------|
+| GET | `/positions` | `PositionsService.getAll()` |
+| GET | `/positions/{market_uuid}` | `PositionsService.getForMarket()` |
 
-| Method | Path | Caller | Client |
-| --- | --- | --- | --- |
-| GET | `/countries` | `lib/data/provider/country_provider.dart:488` | `dio` |
-| GET | `/countries` *(alternate hard-coded URL)* | `lib/presentation/screens/verification/country_services_step_one.dart:42` | `http` |
+### Wallet (4)
 
-### 5.5 Endpoints absent from the codebase
+| Method | Path | Service method |
+|--------|------|----------------|
+| GET | `/wallet` | `WalletService.getBalance()` |
+| GET | `/wallet/transactions?type=&page=` | `WalletService.getTransactions()` |
+| POST | `/wallet/deposit` | `WalletService.requestDeposit()` |
+| POST | `/wallet/withdraw` | `WalletService.requestWithdraw()` |
 
-The following are **not present** in `lib/`: place-order, deposit, withdraw, wallet/balance, transactions, search history, push-token registration, watchlist. The "Buy Yes / Buy No" button in `trade_page.dart:89` uses `onPressed: isEnabled ? () {} : null` — a no-op. The deposit/withdraw screens collect form data but never POST.
+### KYC (2)
 
----
+| Method | Path | Caller |
+|--------|------|--------|
+| POST | `/kyc/submit` *(multipart)* | Called directly from `lib/presentation/screens/verification/verify_account.dart` |
+| POST | `/profile/preferences` | Same screen |
 
-## 6. Authentication & authorization
+### Settings & Misc (6)
 
-### 6.1 Mechanism
+| Method | Path | Consumer |
+|--------|------|----------|
+| POST | `/fcm/save-token` | `AuthService.saveFcmToken()` |
+| GET | `/countries` | `CountryProvider` |
+| GET | `/languages` | Defined in `ApiEndpoints.languages` — no consumer |
+| GET | `/notificationPreferences` | Defined — no consumer |
+| GET | `/userDefaultSettings/index` | `DefaultAmountProvider` |
+| POST | `/userDefaultSettings/update` | `DefaultAmountProvider` |
 
-Stateless **bearer-token** authentication. The token is a string returned by the backend after successful OTP verification.
-
-### 6.2 Acquisition
-
-Two paths exist (one per direction of onboarding):
-
-- **Sign-in** — `AuthProvider.verifyOtp` (`lib/data/provider/signIn_provider.dart:45`) `POST`s to a hard-coded `https://api.buildacademy.io/.../verify-otp/login`. On `data['status'] == true`, the response's `data['token']` is persisted via `LocalStorage.setToken(...)` (`signIn_provider.dart:68` → `local_storage.dart:14`).
-- **Sign-up** — `AuthService.verifyOtp` (`lib/data/services/auth_service.dart:58`) goes through Dio and `ApiEndpoints.verifyOtp`, called by `SignupProvider`.
-
-### 6.3 Storage
-
-Plaintext `SharedPreferences` under the key `token`, via `LocalStorage` (`lib/data/services/local_storage.dart:14-21`). No iOS Keychain, no Android Keystore, no `flutter_secure_storage`.
-
-### 6.4 Injection into requests
-
-Two parallel patterns coexist:
-
-1. **Dio path** — `DioClient.setToken(token)` (`lib/core/network/dio_client.dart`) mutates the singleton's shared `options.headers['Authorization'] = 'Bearer $token'`. Set after a successful `verifyOtp` in `AuthService`. **Not restored on app launch** — Dio calls after a relaunch run unauthenticated until/unless `setToken` is called again.
-2. **`http` path** — every service method reads `LocalStorage.getToken()` per request and inlines `'Authorization': 'Bearer $token'` into a `Map<String, String>` headers literal. Used by `TradeService`, `CategoryService`, `ExploreService`, `ProfileService`, `TradeDetailService`, and `AuthProvider`.
-
-### 6.5 Validation / freshness
-
-- **One-shot at launch** — `SplashScreen._navigateUser` (`lib/presentation/screens/splash/splash_screen.dart:51`) calls `AuthService.verifyToken(token)` (Dio, `GET /verify-token` hard-coded URL). If `false`, `LocalStorage.clearToken()` and route to `AuthScreen`.
-- **Polling on the home shell** — `MainScreen._startTokenChecker` (`lib/presentation/screens/main_screen.dart:55-150`) runs a `Timer.periodic(Duration(seconds: 10))` calling `AuthService.verifyToken`. On `false`, shows a "Session Expired" dialog and pushes `AuthScreen`. (See §7.)
-- **Reactive 401** — `ProfileService.getProfile` clears the token on a 401 response.
-
-### 6.6 Authorization model
-
-There is **no role/permission model** in the client. Every signed-in user has identical access. KYC status (returned by `/profile/preferences` and `/kyc/submit`) gates UI access to certain screens (the verification flow), but this is purely client-side branching, not enforced by the bearer.
-
-### 6.7 Session lifecycle
-
-| Event | What happens |
-| --- | --- |
-| App start, no token | Splash → `OnboardingScreen` (if first run) → `AuthScreen`. |
-| App start, valid token | Splash → `verifyToken` → `MainScreen` → 10-second polling begins. |
-| App start, expired token | Splash → `verifyToken` returns false → `clearToken` → `AuthScreen`. |
-| Logout | `AuthService.logout()` (`POST /logout` via Dio) → `DioClient.removeToken()` → `LocalStorage.clearToken()`. |
-| 401 mid-session | `ProfileService.getProfile` clears token; `MainScreen` polling raises the Session Expired dialog. |
+**Total: ~30 endpoints; ~3 defined but never called.**
 
 ---
 
-## 7. Background jobs / queues
+## 6. Authentication & Authorization
 
-The codebase has **no background-job framework** (no WorkManager, no Isolate-based job runner, no `flutter_background_service`, no platform-specific background fetch hooks beyond Flutter defaults).
+### Mechanism
 
-The closest mechanism is foreground UI-thread polling via `Timer.periodic`, present in two places:
+- **OTP via phone** — stateless bearer tokens issued by the backend.
+- No OAuth, no social login, no biometric, no MFA beyond OTP.
+- The login screen contains UI stubs for social-login buttons but they are **not wired to any provider** (confirmed in `docs/ACCESS.md`).
 
-| Location | Cadence | Purpose |
-| --- | --- | --- |
-| `lib/presentation/screens/main_screen.dart:55-150` (`_startTokenChecker`) | Every 10 seconds while `MainScreen` is mounted | Calls `AuthService.verifyToken`; on `false`, triggers the Session Expired dialog. Cancelled in `dispose`. |
-| `lib/presentation/screens/profile/info_chart_screen.dart` (`Timer.periodic` in chart screen) | Sub-second cadence while the chart screen is mounted | Mutates the in-memory `List<FlSpot>` to *simulate* live price movement. No backend interaction. |
+### Token lifecycle
 
-There are **no async queues**, **no Workmanager tasks**, **no Isolate workers**, and **no scheduled local notifications**.
+| Stage | Where |
+|-------|-------|
+| **Issue** | `AuthService.verifyLoginOtp()` and `AuthService.verifyOtp()` (registration) receive a token in the response. |
+| **Persist** | `LocalStorage.setToken(token)` writes to `SharedPreferences` under key `token` (plaintext). |
+| **Inject** | `DioClient.setToken(token)` mutates the shared `Authorization: Bearer <token>` header on the Dio singleton. Each service call also reads `LocalStorage.getToken()` defensively. |
+| **Validate** | `MainScreen` runs `Timer.periodic(Duration(seconds: 300), …)` (`lib/presentation/screens/main_screen.dart:58`) which calls `AuthService.verifyToken()` every 5 minutes. On failure, a glassmorphic "Session Expired" dialog is shown and the user is bounced to login. |
+| **Refresh** | None. Tokens are not refreshed — once they expire backend-side, the user re-authenticates via OTP. |
+| **Revoke** | `AuthService.logout()` POSTs to `/logout` then `LocalStorage.removeToken()` + `DioClient.removeToken()`. |
 
----
+> The audit's "every 10s" claim for token polling is stale — the actual interval in `main_screen.dart:58` is **300 seconds (5 minutes)**. Some `CLAUDE.md` subdir docs still say 10s.
 
-## 8. Third-party integrations
+### Authorization (per-route)
 
-The app integrates with exactly **one** external service in production paths: the Betrade backend at `api.buildacademy.io`. Every other "integration"-style package in `pubspec.yaml` is either a Flutter plugin used for on-device capability (camera, image picker, permissions) or a UI library (charts, icons).
+Authorization is enforced **server-side** by the backend. From the client's perspective:
 
-| Category | Status | Module / file | Credentials needed |
-| --- | --- | --- | --- |
-| Backend REST API | **In use** end-to-end | All `data/services/*` + several providers | None at build time. The base URL comes from `.env` (`BASE_URL`). The bearer token is acquired at runtime via OTP. |
-| Payment gateway (Razorpay/Stripe/etc.) | **Not present** | — | — |
-| Push notifications (FCM/OneSignal) | **Not present** | — (no `firebase_messaging`, no `firebase_core`, no APNs config) | — |
-| Analytics / Crash reporting | **Not present** | — (no Firebase Analytics, Mixpanel, Sentry, Crashlytics) | — |
-| File / media CDN | **Not present** | Avatar + KYC media POSTed directly to backend as multipart | — |
-| Social login (Google / Apple / Facebook) | **UI-only stub** — buttons exist with empty `onPressed: () {}` callbacks | `lib/presentation/screens/signin/login_screen.dart:356,394` | — (no SDKs in pubspec) |
-| WebSocket / realtime | **Not present** | — | — |
-| Maps | **Not present** | — | — |
-| Third-party KYC vendor | **Not present** | KYC done in-house via `lib/presentation/screens/verification/` and `lib/presentation/screens/camera/` | — |
+- All endpoints except `/register`, `/verify-otp/register`, `/login`, `/verify-otp/login`, and `/countries` are called with the bearer header.
+- KYC-gated actions (`/trade/{uuid}/buy`, wallet deposit/withdraw) return typed error codes like `KYC_REQUIRED`, `INSUFFICIENT_FUNDS`, `MARKET_CLOSED` via `BuyResponse.code` — surfaced in UI as targeted error messages.
+- No role-based UI gating; there is one user role.
 
-**On-device Flutter plugins that talk to native APIs (not external services)**: `camera`, `image_picker`, `permission_handler`, `path_provider`, `flutter_image_compress`, `shared_preferences`, `flutter_screenutil`, `iconsax`, `cupertino_icons`, `fl_chart`, `flutter_dotenv`. None require third-party credentials.
+### FCM token registration
 
----
-
-## 9. Deployment architecture
-
-This is a **client-only mobile app** — there is no deployable server, container, Kubernetes config, Terraform, or CDN inside this repository. Deployment means producing signed mobile binaries from the Flutter source.
-
-### 9.1 Build artifacts
-
-| Target | Command | Output |
-| --- | --- | --- |
-| Android APK | `flutter build apk` (or `--split-per-abi`) | `build/app/outputs/flutter-apk/*.apk` |
-| Android App Bundle | `flutter build appbundle` | `build/app/outputs/bundle/release/*.aab` |
-| iOS | `flutter build ios` / `flutter build ipa` | Xcode archive / `*.ipa` |
-| Web | `flutter build web` | `build/web/` (web target is the unmodified scaffold — not a real product target) |
-| Desktop (Windows/macOS/Linux) | `flutter build {windows,macos,linux}` | OS-specific bundles (scaffolds only) |
-
-### 9.2 Android packaging
-
-`android/app/build.gradle.kts` (key values):
-
-- `applicationId` / `namespace`: `com.build.betrade`
-- `compileSdk` / `minSdk` / `targetSdk` — provided by Flutter defaults
-- JDK 11
-- Release build signing: **`signingConfig = signingConfigs.getByName("debug")`** (line 30) — release uses the debug keystore. There is no `key.properties`, no env-driven keystore, and no `signingConfigs { create("release") {…} }` block.
-- R8 enabled: `isMinifyEnabled = true`, `isShrinkResources = true`. There is **no `proguard-rules.pro`** in the repo, so the default Flutter Proguard rules apply.
-
-### 9.3 iOS packaging
-
-`ios/Runner.xcodeproj/project.pbxproj` and `ios/Runner/Info.plist`:
-
-- Bundle ID: `com.build.betrade` (Runner), `com.build.betrade.RunnerTests` (test target).
-- Display name `Betrade`, `CFBundleName betrade`.
-- Versioning: dynamic via `$(FLUTTER_BUILD_NAME)` / `$(FLUTTER_BUILD_NUMBER)` ← `pubspec.yaml` `version: 1.0.0+10`.
-- Code signing: `CODE_SIGN_STYLE = Automatic` (test target); `CODE_SIGN_IDENTITY[sdk=iphoneos*] = "iPhone Developer"`.
-- **No `DEVELOPMENT_TEAM` / `PROVISIONING_PROFILE`** set anywhere — non-interactive CI signing is unconfigured on the merged branch.
-- Portrait-only orientation; usage strings present for camera/mic/photo/documents.
-
-### 9.4 CI / CD
-
-- **No `.github/`** at repo root → no GitHub Actions.
-- **No `codemagic.yaml`** at root or `.codemagic/` on `main`.
-- The remote branches `feature/codemagic-testflight` and `feature/testflight-prep` exist (not merged), suggesting a Codemagic-driven TestFlight pipeline was prototyped on a feature branch.
-- No Fastlane (`Fastfile` / `fastlane/`).
-- No `Dockerfile`, `Makefile`, or `scripts/` directory.
-- No CI runs on `main`; all builds are local/manual today.
-
-### 9.5 Distribution
-
-Distribution channels are not codified in the repo. Based on configuration:
-
-- **iOS**: TestFlight is the implied target (per the feature branches), but the merged `main` lacks the provisioning team and CI required to drive it.
-- **Android**: With debug-keystore signing, builds cannot be uploaded under the developer's Play Store identity. Manual sideloading of debug-signed APKs is the only currently viable path.
-
-### 9.6 Backend infrastructure (not in this repo)
-
-The server at `api.buildacademy.io` is **out of scope** for this codebase. No deployment scripts, no infrastructure-as-code, no migrations, no operational runbooks for the server are stored here.
+Separate from auth tokens. `NotificationService.init()` fetches the FCM device token and POSTs it to `/fcm/save-token` along with the bearer token, so the backend can address pushes to this device.
 
 ---
 
-## 10. Key environment variables
+## 7. Background Jobs / Queues
 
-There is exactly **one** runtime environment variable consumed by the app: `BASE_URL`.
+### Server-side
 
-### 10.1 Effective env vars
+**Not visible from this repo.** Any queue workers, scheduled jobs, settlement engines, etc. live in the external backend at `api.buildacademy.io` and are out of scope.
 
-| Variable | Purpose | Defined in | Read by | Required |
-| --- | --- | --- | --- | --- |
-| `BASE_URL` | API root, e.g. `https://api.buildacademy.io/projects/betrade/public/api` | `.env` (committed) | `EnvConfig.baseUrl` (`lib/core/config/env_config.dart`) → `ApiEndpoints` (`lib/core/config/api_endpoint..dart`) | **Yes.** `EnvConfig.baseUrl` throws if missing/empty. |
+### Client-side async work
 
-### 10.2 Env vars referenced in code but never set
+There are **no Dart isolates, no `WorkManager`, no `BGTaskScheduler`, no `flutter_background_service`**. All async work runs on the main isolate. The only persistent background-style work is:
 
-| Variable | Reference | Status |
-| --- | --- | --- |
-| `API_BASE_URL` | `lib/main.dart:33` (`dotenv.env['API_BASE_URL']` debug warning) | Never defined in `.env`. Dead branch. |
+| Pattern | File | Purpose | Cadence |
+|---------|------|---------|---------|
+| `Timer.periodic` | `lib/presentation/screens/main_screen.dart:58` | Token-validity polling (`/verify-token`) | 300s |
+| `Timer.periodic` | `lib/presentation/screens/signin/otp_screen.dart:50` | OTP resend countdown | 1s |
+| `Timer.periodic` | `lib/presentation/screens/splash/signup_steps_pages/OTP_step.dart:67` | OTP resend countdown (signup variant) | 1s |
+| `Timer.periodic` | `lib/presentation/screens/profile/info_chart_screen.dart:59` | **Simulated** live chart price ticks — random walk, not a real stream | 700ms |
+| `Timer.periodic` | `lib/core/animations/success_animation.dart:244` | Post-signup particle animation tick | 16ms |
+| `Timer(...)` (one-shot) | `lib/presentation/screens/trade/trade_page.dart:167` | Debounce — fires `getQuote` after typing settles | 200ms |
+| `Timer(...)` (one-shot) | `lib/presentation/screens/explore/explore_page.dart:130` | Debounce — search input | configurable |
+| `Timer(...)` (one-shot) | `lib/presentation/widget/custom_camera.dart:179` | Camera autofocus delay | 500ms |
 
-### 10.3 Compile-time configuration
+### FCM background handler
 
-Search of `lib/` for `String.fromEnvironment` / `bool.fromEnvironment` / `int.fromEnvironment` returns **zero matches**. No `--dart-define` configuration — all config is runtime via `flutter_dotenv`.
-
-### 10.4 Loading mechanism
-
-`lib/main.dart` calls `await dotenv.load(fileName: '.env')` before `runApp` (`flutter_dotenv: ^6.0.0`). The `.env` file is also listed under `flutter.assets` in `pubspec.yaml:39`, so it is bundled into the release APK/IPA. This means the file is read at runtime from the bundle, not from any device-side environment.
-
-### 10.5 Where secrets would go (if they existed)
-
-There are **no API keys, OAuth client secrets, signing secrets, or third-party credentials** in the codebase, `.env`, `AndroidManifest.xml`, or `Info.plist` — confirmed by audit. Should any be added in the future, the existing `.env` mechanism would ship them in the release bundle (extractable with `apktool`), so a different mechanism would need to be introduced.
+`_firebaseBackgroundHandler` is registered via `FirebaseMessaging.onBackgroundMessage(...)` in `lib/main.dart`. This top-level function runs in a separate isolate when an FCM message arrives while the app is terminated. It is the only true OS-level background processing in this client.
 
 ---
 
-## 11. Real-time / event flows
+## 8. Third-Party Integrations
 
-There is **no real-time channel** in the codebase: no `web_socket_channel`, `socket_io_client`, `pusher_*`, `signalr_*`, `sse_*`, `EventSource`, or platform-specific streaming SDKs. There is no client-side pub/sub bus beyond `ChangeNotifier` notifications (which are in-process, not network-aware).
+| Service | Module(s) | Used by | Credentials needed | Where credentials live |
+|---------|-----------|---------|---------------------|------------------------|
+| **Backend REST API** (proprietary, Laravel) | All `lib/data/services/*` | All authenticated flows | None client-side; users authenticate via OTP. Base URL is the only config. | `.env` → `BASE_URL` |
+| **Firebase Cloud Messaging (FCM)** | `firebase_core ^3.6.0`, `firebase_messaging ^15.0.0` | `lib/data/services/notification_services.dart`, `lib/main.dart` (background handler) | Firebase project config (API key, project ID, sender ID, app ID) per platform | `lib/firebase_options.dart` (auto-gen), `android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist` — **all committed to git** |
+| **Flutter local notifications** | `flutter_local_notifications ^17.0.0` | `lib/data/services/notification_services.dart` | None | n/a |
+| **Camera + image stack** | `camera ^0.12.0+1`, `image_picker ^1.0.7`, `flutter_image_compress ^2.4.0`, `path_provider ^2.1.5` | `lib/presentation/screens/camera/*`, KYC flow, profile avatar upload | None client-side; OS permissions at runtime via `permission_handler ^12.0.1` | iOS `Info.plist` keys (Camera, Microphone, Photo Library, Documents Folder); Android `AndroidManifest.xml` permissions |
+| **Charts** | `fl_chart ^1.2.0` | `lib/presentation/screens/profile/info_chart_screen.dart`, `lib/presentation/screens/trade/trade_details_page.dart` | None | n/a |
+| **OTP input UI** | `pinput ^5.0.0` | OTP screens (signin + signup) | None | n/a |
+| **Icon sets** | `iconsax ^0.0.8`, `lucide_icons ^0.257.0`, `cupertino_icons ^1.0.8` | UI-wide | None | n/a |
 
-Despite this being a "trade"/prediction-market UI:
+### NOT integrated (confirmed by audit)
 
-- Trade prices are **static REST snapshots**: `TradeModel` carries `min_trade_amount` and `end_date`; `tradeData['current_price_per_share']` (`trade_page.dart:60`) is read once from `/trade/view/{uuid}` and never refreshed.
-- The chart on `info_chart_screen.dart` is a **client-side simulation** — `Timer.periodic` mutates a hardcoded `List<FlSpot>` to fake movement. No backend subscription.
-- There are no push-driven updates either — no FCM / APNs receivers, no `flutter_local_notifications`.
-
-In short: every dynamic value the user sees is the result of a one-shot REST call when a screen is mounted (or a manually triggered refresh). There is no broadcast layer, no event queue, and no server-pushed state.
-
----
-
-## 12. Server access
-
-This repository contains **no server-side code**. Betrade's backend lives at `api.buildacademy.io/projects/betrade/public/api` and is not part of this codebase.
-
-What the repo *does* document about server access:
-
-| Item | Status in this repo |
-| --- | --- |
-| SSH config / authorized_keys | None — no server is provisioned or deployed from here. |
-| Deployment user / host | None — there is no deploy target. |
-| Server IP / hostname | Only the backend's public DNS hostname appears: `api.buildacademy.io` (in `.env` as `BASE_URL`, and hard-coded in the URL literals listed in §5). No IPs, no admin endpoints, no SSH endpoints. |
-| Firewall / security-group rules | None. |
-| Access control lists | None. |
-| Bastion / VPN | None. |
-| Environment-by-environment hostnames | Single environment only (`api.buildacademy.io`). No dev/staging/prod split exists in the codebase. |
-| Database access | None — the app does not connect to a database directly. All persistence is HTTP-mediated via the backend. |
-| Logging / observability infra | None — server logs are not in this repo. The client emits `print` / `debugPrint` only, with no remote sink. |
-
-Operational access to the backend (provisioning, SSH, deploys, monitoring, database admin) is **owned by whoever runs `api.buildacademy.io`** and must be documented in their infrastructure repo or runbooks.
+- **No payment gateways** — Razorpay / Stripe / PayPal / in-app purchases. Wallet deposit/withdraw is fully backend-driven; no client-side payment SDK.
+- **No analytics** — Mixpanel / Amplitude / Segment / Firebase Analytics.
+- **No crash reporting** — Crashlytics / Sentry.
+- **No external trading data APIs** — Zerodha Kite / Upstox / Alpha Vantage / Finnhub / Polygon / Binance / CoinGecko / TradingView / Yahoo Finance. Prices come from the proprietary backend only.
+- **No social auth** — Google Sign-In / Apple Sign-In / Facebook (login screen has UI stubs only).
+- **No maps, no SMS provider, no email provider, no CDN, no KYC vendor** integrated client-side.
 
 ---
 
-*End of architecture document. Companion docs: [`CODEBASE_AUDIT.md`](./CODEBASE_AUDIT.md), [`PATTERNS.md`](./PATTERNS.md).*
+## 9. Deployment Architecture
+
+### What ships
+
+This is a mobile app — "deployment" means producing signed binaries:
+
+- **Android:** APK (`flutter build apk`) or AAB (`flutter build appbundle`) → uploaded to Google Play Console.
+- **iOS:** Archive (`flutter build ios` / `flutter build ipa`) → uploaded to App Store Connect → TestFlight → AppStore.
+
+### Where it runs
+
+| Tier | Hosting |
+|------|---------|
+| **Mobile client** | End-user devices (Android 5.0+ via `minSdk 21`; iOS 13.0+ via Podfile) |
+| **Backend API** | External infra at `api.buildacademy.io` — **not in this repo and not visible from here** |
+| **FCM** | Google Firebase managed service |
+
+### Build / CI status
+
+- `.github/workflows/` — **none on `main`.**
+- `codemagic.yaml` — **none on `main`.** Two feature branches contain prototypes:
+  - `feature/codemagic-testflight`
+  - `feature/testflight-prep`
+  Both are **unmerged**.
+- `fastlane/`, `bitrise.yml` — none.
+- **All current builds are manual / local.** Every release upload should be logged in [`docs/DEPLOY_LOG.md`](./DEPLOY_LOG.md).
+
+### Signing
+
+| Platform | Status |
+|----------|--------|
+| Android | ⚠ Release builds currently use the **debug** keystore (`android/app/build.gradle.kts:30`). No `key.properties` file. Must be replaced before Play Store. |
+| iOS | ⚠ No `DEVELOPMENT_TEAM` or `PROVISIONING_PROFILE` configured. Must be set (Xcode Automatic per-dev, or manual provisioning in CI). |
+
+### Firebase deploy
+
+`firebase.json` configures Android (`betrade-new`) and iOS (`betrade-new`) for credential generation only. **No** Firestore deploy, **no** Cloud Functions deploy, **no** Hosting deploy is configured.
+
+---
+
+## 10. Key Environment Variables
+
+### Runtime config (`.env`)
+
+| Variable | Purpose | Required | Used by | Default |
+|----------|---------|----------|---------|---------|
+| `BASE_URL` | Backend REST API root | **Yes** | `EnvConfig.baseUrl` → `ApiEndpoints` → `DioClient` | `https://api.buildacademy.io/projects/betrade/public/api` |
+
+- File: `.env` at repo root.
+- ⚠ **Currently committed to git**; also bundled as a Flutter asset (declared in `pubspec.yaml`).
+- Loader: `await dotenv.load(fileName: ".env")` in `lib/main.dart` before `runApp`.
+- Validation: `EnvConfig.baseUrl` throws if the key is empty or missing.
+
+### Firebase credentials (not env vars, but required)
+
+| File | Platform | Used at |
+|------|----------|---------|
+| `lib/firebase_options.dart` | All (auto-gen by FlutterFire CLI) | Runtime — `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` |
+| `android/app/google-services.json` | Android | Build time (Gradle plugin) |
+| `ios/Runner/GoogleService-Info.plist` | iOS | Build time (Xcode) |
+
+⚠ All three files are committed to git and contain API keys (project `betrade-new` for mobile, `betrade-4efd1` for web/desktop targets). Firebase API keys are technically public identifiers but rely on Firebase Security Rules being properly configured server-side.
+
+### What is NOT present
+
+- No staging/dev/prod env split.
+- No payment-gateway keys, no analytics keys, no crash-reporting DSN, no third-party API keys.
+- No `.env.example` (one is mentioned in `ACCESS.md` but does not exist in the repo).
+
+---
+
+## 11. Real-Time / Event Flows
+
+### Push notifications (the only true real-time channel)
+
+| Direction | Mechanism | Implementation |
+|-----------|-----------|----------------|
+| **Backend → Device** | Firebase Cloud Messaging (FCM) | Backend uses the per-device FCM token (POSTed to `/fcm/save-token`) to send pushes via Firebase. |
+| **Foreground delivery** | `FirebaseMessaging.onMessage.listen(...)` in `lib/data/services/notification_services.dart` | Converts each message into a local notification via `flutter_local_notifications`. |
+| **Background delivery** | `_firebaseBackgroundHandler` (top-level function) registered via `FirebaseMessaging.onBackgroundMessage(...)` in `lib/main.dart` | Runs in a dedicated isolate when the app is terminated; displays the system notification. |
+| **Token refresh** | `FirebaseMessaging.onTokenRefresh.listen(...)` in `notification_services.dart` | Re-registers the new token with the backend. |
+
+### What is NOT used (despite being available)
+
+- **No WebSocket** — no `web_socket_channel`, no `socket.io` client.
+- **No Server-Sent Events** — no `EventSource` / SSE client.
+- **No Firestore real-time listeners** — Firestore is configured in `firebase_options.dart` but never read or written.
+- **No Firebase Realtime Database listeners** — same.
+- **No GraphQL subscriptions.**
+
+### "Live" chart price is simulated
+
+`lib/presentation/screens/profile/info_chart_screen.dart:59` runs a `Timer.periodic(700ms)` that mutates the displayed price with a random walk — purely client-side cosmetic motion, **not** a real backend stream. The user sees the price moving; no data leaves the device.
+
+---
+
+## 12. Server Access
+
+### Status
+
+> **There is no Betrade-owned server in this repository today.** This is a client-only Flutter app. The deployable artefacts are mobile binaries (APK/AAB/IPA), not server images. The backend at `api.buildacademy.io` is operated outside this repo and outside this team's direct infra.
+
+This section documents the **prepared but unprovisioned** server-access scaffolding in case the team adds a build server, deployment server, or backend host. See [`docs/ACCESS.md`](./ACCESS.md) and [`docs/SSH_CONFIG.md`](./SSH_CONFIG.md) for the canonical sources.
+
+### Documented (placeholder) server entry
+
+From `docs/ACCESS.md`:
+
+| Server | Host/IP | SSH User | Purpose | Who Can Access |
+|--------|---------|----------|---------|----------------|
+| `betrade-server` | `[FILL IN — none provisioned yet]` | `claude-server` | TBD | TBD |
+
+### Planned SSH config (from `docs/SSH_CONFIG.md`)
+
+```
+Host betrade-server
+    HostName [FILL IN server IP]
+    User claude-server
+    IdentityFile ~/.ssh/claude-server
+```
+
+### Planned server-user setup (from `docs/SSH_CONFIG.md`)
+
+```bash
+# Run once as root on the (eventual) server
+adduser claude-server --disabled-password
+usermod -aG docker claude-server
+usermod -aG www-data claude-server
+```
+
+### Planned key generation (per developer)
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/claude-server -C "claude-code-access"
+ssh-copy-id -i ~/.ssh/claude-server.pub claude-server@[server-ip]
+ssh betrade-server "echo connected"
+```
+
+### Documented security rules (from `docs/SSH_CONFIG.md`)
+
+- Each developer uses their **own** SSH key — keys are never shared.
+- `claude-server` is a dedicated unprivileged user — **no sudo, no root**.
+- Rotate keys immediately if suspected compromised.
+- Revoke keys (`~claude-server/.ssh/authorized_keys`) when a team member leaves.
+- Server firewall: SSH allowed only from known IPs / VPN.
+
+### Effect on Claude Code slash commands
+
+The slash commands `/deploy`, `/test-live`, `/monitor`, `/logs`, `/db` are wired up but will fail their SSH pre-check until `betrade-server` is provisioned and the host entry is filled in. Failure messages point operators at `docs/SSH_CONFIG.md`.
+
+### Database access
+
+Per `docs/ACCESS.md`: **none**. The app does not connect to a database directly. The backend at `api.buildacademy.io` owns its own DB; access to it is **not granted via this repo**.
+
+### Repo / API ownership (per `docs/ACCESS.md`)
+
+- **GitHub repo:** access via tech lead — `[FILL IN]`.
+- **Backend API operational owner:** `[FILL IN backend team / contact]`.
+- **DevOps / Server owner:** `[FILL IN]` (none yet, since no server exists).
+
+---
+
+**End of architecture document.** All twelve sections describe only state observed in the repo at `D:\claude\betrade` on 2026-05-23. Any item marked `[FILL IN]` is a placeholder copied from existing project docs and indicates information not yet recorded in this repo.

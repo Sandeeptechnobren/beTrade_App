@@ -1,19 +1,16 @@
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/model/category_detail_model.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_provider.dart';
 import '../../../data/services/home_service.dart';
-import '../../../data/services/market_card_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
 import '../../widget/customSnackBar.dart';
@@ -144,7 +141,49 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Image.asset("assets/logo/IconLogo.png", height: 35.h),
+                      Row(
+                        children: [
+                          Image.asset("assets/logo/IconLogo.png", height: 35.h),
+                          SizedBox(width: 5.w),
+                          Builder(
+                            builder: (context) {
+                              final isDark =
+                                  Theme.of(context).brightness == Brightness.dark;
+                              final textColor =
+                              isDark ? Colors.white : const Color(0xFF1A0D2B);
+
+                              return RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: "BeTrade",
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.top,
+                                      child: Transform.translate(
+                                        offset: const Offset(1, -5),
+                                        child: Text(
+                                          "™",
+                                          style: TextStyle(
+                                            fontSize: 10.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                       GestureDetector(
                         onTap: () => _openFilterBottomSheet(context),
                         child: Row(
@@ -346,490 +385,226 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-class PollCard extends StatefulWidget {
 
+class PollCard extends StatefulWidget {
   final TradeModel trade;
 
-  const PollCard({
-    super.key,
-    required this.trade,
-  });
+  const PollCard({super.key, required this.trade});
 
   @override
   State<PollCard> createState() => _PollCardState();
 }
 
 class _PollCardState extends State<PollCard> {
-
-  MarketCardModel? tradeDetail;
-
-  bool isLoading = false;
-
-  // ✅ Prevent multiple API calls
-  static final Map<String, MarketCardModel>
-  _cache = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTradeDetail();
-  }
-
-  Future<void> _loadTradeDetail() async {
-
-    if (isLoading) return;
-
-    // ✅ USE UUID ONLY
-    final uuid = widget.trade.uuid;
-
-    debugPrint("TRADE UUID => $uuid");
-
-    if (uuid.isEmpty) {
-
-      debugPrint("❌ UUID EMPTY");
-
-      return;
-    }
-
-    // ✅ CACHE CHECK
-    if (_cache.containsKey(uuid)) {
-
-      debugPrint(
-        "✅ USING CACHED DATA",
-      );
-
-      setState(() {
-
-        tradeDetail = _cache[uuid];
-      });
-
-      return;
-    }
-
-    try {
-
-      isLoading = true;
-
-      debugPrint(
-        "🚀 MARKET CARD API CALL STARTED",
-      );
-
-      final result =
-      await MarketCardService.getTradeDetail(
-        uuid,
-      );
-
-      if (result != null) {
-
-        debugPrint(
-          "✅ MARKET CARD RESPONSE RECEIVED",
-        );
-
-        debugPrint(
-          "TOTAL TRADES => ${result.totalTrades}",
-        );
-
-        debugPrint(
-          "YES % => ${result.yesPercentage}",
-        );
-
-        debugPrint(
-          "NO % => ${result.noPercentage}",
-        );
-
-        // ✅ SAVE CACHE
-        _cache[uuid] = result;
-
-        if (!mounted) return;
-
-        setState(() {
-
-          tradeDetail = result;
-        });
-
-      } else {
-
-        debugPrint(
-          "❌ MARKET DETAIL RESULT NULL",
-        );
-      }
-
-    } catch (e) {
-
-      debugPrint(
-        "❌ MARKET CARD API ERROR => $e",
-      );
-
-    } finally {
-
-      isLoading = false;
-
-      debugPrint(
-        "🏁 MARKET CARD API FINISHED",
-      );
-    }
-  }
-
+  /// Swipe and tap both open the same `TradePage` bottom sheet (one
+  /// consistent UX) but they differ in how the cost is set:
+  ///
+  ///   * Swipe → pre-fills `amount` from `DefaultAmountProvider` and
+  ///     hides the input field + quick chips (`useDefaultAmount: true`).
+  ///     The user just confirms with Buy.
+  ///   * Tap → leaves `amount = 0`; user types it in the input field.
+  ///
+  /// Swipe direction is forwarded as `initialOutcome` so the YES/NO
+  /// toggle is pre-selected.
   void _handleSwipe(String outcome) {
-
     if (!_ensureReadyToTrade()) return;
-
-    _openTradeSheet(
-      initialOutcome: outcome,
-      useDefaultAmount: true,
-    );
+    _openTradeSheet(initialOutcome: outcome, useDefaultAmount: true);
   }
 
   void _openTradeSheet({
     String initialOutcome = 'yes',
     bool useDefaultAmount = false,
   }) {
-
-    final uuid = widget.trade.uuid;
-
-    if (uuid.isEmpty) return;
-
     CommonBottomSheet.open(
       context: context,
       builder: (controller) => TradePage(
         scrollController: controller,
-        tradeUuid: uuid,
+        tradeUuid: widget.trade.uuid ?? '',
         initialOutcome: initialOutcome,
         useDefaultAmount: useDefaultAmount,
       ),
     );
   }
 
+  void _showSnack(String message) {
+    CustomSnackBar.showError(
+      context,
+      message: "Please set a valid default amount first",
+      duration: const Duration(seconds: 3),
+    );
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text(message),
+    //     backgroundColor: Colors.red,
+    //   ),
+    // );
+  }
+
   bool _ensureReadyToTrade() {
+    final provider = context.read<DefaultAmountProvider>();
 
-    final provider =
-    context.read<DefaultAmountProvider>();
-
-    if (!provider.hasLoaded) {
-
+    // Still fetching from backend (or never started). Don't treat a
+    // null amount as "user has no default" — that case is handled below
+    // after the load has actually completed. Show a brief purple loader
+    // so the swipe doesn't feel ignored.
+    if (!provider.hasLoaded || provider.defaultAmount == null) {
       CustomSnackBar.showLoader(
         context,
-        message: "Loading default amount...",
-        duration: const Duration(seconds: 3),
+        message: "Loading your settings, please wait...",
+        duration: const Duration(seconds: 2),
       );
-
       return false;
     }
 
-    if ((provider.defaultAmount ?? 0) <= 0) {
-
+    // Loaded, but the user genuinely has no default amount set. Send
+    // them to the settings sheet so they can pick one before this
+    // swipe-buy makes sense.
+    if (provider.defaultAmount! <= 0) {
       CustomSnackBar.showError(
         context,
-        message: "Please set default amount first",
+        message: "Please set your default trade amount first",
         duration: const Duration(seconds: 3),
       );
-
       CommonBottomSheet.open(
         context: context,
         builder: (controller) =>
-            DefaultSettingsPage(
-              scrollController: controller,
-            ),
+            DefaultSettingsPage(scrollController: controller),
       );
-
       return false;
     }
 
     return true;
   }
-
   @override
   Widget build(BuildContext context) {
-
     final trade = widget.trade;
 
     return GestureDetector(
-
       onTap: () {
-
-        if (!_ensureReadyToTrade()) return;
-
-        _openTradeSheet();
+        // Tap path doesn't use the default amount — the user types the
+        // cost themselves on TradePage. So no _ensureReadyToTrade gate
+        // here. Only the swipe path (which pre-fills from the default)
+        // gates on the provider state.
+        debugPrint("CLICK UUID: ${trade.uuid}");
+        CommonBottomSheet.open(
+          context: context,
+          builder: (controller) => TradePage(
+            scrollController: controller,
+            tradeUuid: trade.uuid,
+          ),
+        );
       },
 
+      // 👇 SWIPE LOGIC HERE
       onHorizontalDragEnd: (details) {
-
-        final velocity =
-            details.primaryVelocity ?? 0;
+        double velocity = details.primaryVelocity ?? 0;
 
         if (velocity.abs() < 300) return;
 
         if (velocity > 0) {
-
-          _handleSwipe("yes");
-
+          _handleSwipe("yes"); // 👉 RIGHT
         } else {
-
-          _handleSwipe("no");
+          _handleSwipe("no"); // 👈 LEFT
         }
       },
 
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
-
         child: ClipRRect(
-          borderRadius:
-          BorderRadius.circular(30.r),
-
+          borderRadius: BorderRadius.circular(30.r),
           child: Container(
             height: 605.h,
-
-            color:
-            Theme.of(context).brightness ==
-                Brightness.dark
+            color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.black
                 : Colors.grey.shade900,
-
             child: Stack(
               fit: StackFit.expand,
-
               children: [
-
-                if (trade.image?.isNotEmpty == true)
+                if (trade.image != null && trade.image!.isNotEmpty)
                   Image.network(
-
                     trade.image!,
-
                     fit: BoxFit.cover,
-
                     width: double.infinity,
-
                     height: double.infinity,
-
-                    loadingBuilder:
-                        (
-                        context,
-                        child,
-                        progress,
-                        ) {
-
-                      if (progress == null) {
-                        return child;
-                      }
-
-                      return Container(
-                        color: Colors.grey.shade300,
-
-                        child: const Center(
-                          child:
-                          CircularProgressIndicator(),
-                        ),
-                      );
-                    },
-
-                    errorBuilder:
-                        (
-                        context,
-                        error,
-                        stackTrace,
-                        ) {
-
-                      return Container(
-                        color: Colors.grey.shade800,
-
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.white,
-                          ),
-                        ),
-                      );
-                    },
                   ),
 
+                /// Gradient
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-
                       colors: [
-
                         Colors.transparent,
-
-                        Colors.black.withOpacity(
-                          0.85,
-                        ),
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.85)
+                            : Colors.black.withOpacity(0.6), // light me halka
                       ],
                     ),
                   ),
                 ),
 
+                /// Bottom Content
                 Positioned(
                   top: 14.h,
                   left: 14.w,
-
                   child: Container(
                     height: 36.h,
-
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-
-                      borderRadius:
-                      BorderRadius.circular(
-                        16.r,
-                      ),
+                      color: AppColors.whiteDynamic(context),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
-
                     child: Center(
                       child: Text(
-                        trade.categoryName,
+                        trade.categoryName ?? "",
                         style: AppTextStyle.small,
                       ),
                     ),
                   ),
                 ),
-
                 Positioned(
                   top: 14.h,
-                  right: 14.w,
-
-                  child: CommonShareButton(
-                    onTap: () {},
-                  ),
+                  right:14.w,
+                  child: CommonShareButton(onTap: () {}),
                 ),
                 Positioned(
-                  bottom: 14.h,
-                  left: 14.w,
-                  right: 14.w,
+                  bottom: 12.h,
+                  left: 12.w,
+                  right: 12.w,
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       Row(
                         children: [
-
-                          SizedBox(
-
-                            height: 30.h,
-
-                            width: (() {
-
-                              final count =
-                                  tradeDetail?.users.length ?? 0;
-
-                              if (count == 0) {
-                                return 30.w;
-                              }
-
-                              if (count == 1) {
-                                return 30.w;
-                              }
-
-                              if (count == 2) {
-                                return 50.w;
-                              }
-
-                              return 70.w;
-
-                            })(),
-
-                            child: Stack(
-
-                              children: List.generate(
-
-                                tradeDetail?.users.length ?? 0,
-
-                                    (index) {
-
-                                  if (index > 2) {
-                                    return const SizedBox();
-                                  }
-
-                                  final user =
-                                  tradeDetail!.users[index];
-
-                                  return Positioned(
-
-                                    left: index * 20,
-
-                                    child: CircleAvatar(
-
-                                      radius: 14.r,
-
-                                      backgroundColor:
-                                      Colors.white,
-
-                                      backgroundImage:
-                                      user.image.isNotEmpty
-                                          ? NetworkImage(
-                                        user.image,
-                                      )
-                                          : null,
-
-                                      child:
-                                      user.image.isEmpty
-                                          ? Icon(
-                                        Icons.person,
-                                        size: 14.sp,
-                                        color: Colors.grey,
-                                      )
-                                          : null,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+                          CircleAvatar(
+                            radius: 12.r,
+                            backgroundColor: Colors.white,
                           ),
-
-                          SizedBox(width: 8.w),
-
+                          SizedBox(width: 4.w),
                           Text(
-                            "${tradeDetail?.totalTrades ?? 0} trades",
-
+                            "3975 trades",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 12.sp,
-                              fontWeight:
-                              FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
+                      SizedBox(height: 6.h),
+
+                      Text(
+                        trade.description ?? "",
+                        style: AppTextStyle.headingWhite,
+                      ),
 
                       SizedBox(height: 10.h),
 
-                      Text(
-                        trade.description,
-                        style:
-                        AppTextStyle.headingWhite,
-                      ),
-
-                      SizedBox(height: 14.h),
-
                       Row(
                         children: [
-
-                          Expanded(
-                            child: _modernVoteBar(
-                              "NO",
-                              tradeDetail
-                                  ?.noPercentage ?? 0,
-                              Colors.red,
-                            ),
-                          ),
-
+                          Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
                           SizedBox(width: 10.w),
-
-                          Expanded(
-                            child: _modernVoteBar(
-                              "YES",
-                              tradeDetail
-                                  ?.yesPercentage ?? 0,
-                              Colors.green,
-                            ),
-                          ),
+                          Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
                         ],
                       ),
                     ],
@@ -843,57 +618,33 @@ class _PollCardState extends State<PollCard> {
     );
   }
 
-  Widget _modernVoteBar(
-      String label,
-      int percent,
-      Color color,
-      ) {
-
+  Widget _modernVoteBar(String label, int percent, Color color) {
     return Container(
       padding: EdgeInsets.all(14.w),
-
       decoration: BoxDecoration(
-
-        borderRadius:
-        BorderRadius.circular(20.r),
-
+        borderRadius: BorderRadius.circular(20.r),
         gradient: const LinearGradient(
-
-          colors: [
-
-            Color(0xff2A2A2A),
-            Color(0xff3A3A3A),
-          ],
-
+          colors: [Color(0xff2A2A2A), Color(0xff3A3A3A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
-
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Row(
             children: [
-
               Text(
                 label,
-
                 style: TextStyle(
                   color: color,
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const Spacer(),
-
               Text(
                 "$percent%",
-
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 14.sp,
@@ -902,37 +653,23 @@ class _PollCardState extends State<PollCard> {
               ),
             ],
           ),
-
           SizedBox(height: 10.h),
-
           ClipRRect(
-            borderRadius:
-            BorderRadius.circular(20.r),
-
+            borderRadius: BorderRadius.circular(20.r),
             child: Stack(
               children: [
-
                 Container(
                   height: 10.h,
                   width: double.infinity,
                   color: Colors.white,
                 ),
-
                 FractionallySizedBox(
-
-                  widthFactor:
-                  (percent.clamp(0, 100)) / 100,
-
+                  widthFactor: percent / 100,
                   child: Container(
                     height: 10.h,
-
                     decoration: BoxDecoration(
                       color: color,
-
-                      borderRadius:
-                      BorderRadius.circular(
-                        20.r,
-                      ),
+                      borderRadius: BorderRadius.circular(20.r),
                     ),
                   ),
                 ),

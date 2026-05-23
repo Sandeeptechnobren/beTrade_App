@@ -1,5 +1,4 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/data/provider/signin_provider.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
@@ -9,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
+import '../../../data/provider/signin_provider.dart';
 import '../../widget/customSnackBar.dart';
 import 'country_picker_sheet.dart';
 
@@ -23,16 +23,13 @@ class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _phoneController;
   CountryModel? _selectedCountry;
   bool _isDisposed = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _phoneController = TextEditingController();
-
-    // ✅ FIX: Post-frame callback use karo
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setDefaultCountry();
-    });
+    _setDefaultCountry();
   }
 
   @override
@@ -43,15 +40,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _setDefaultCountry() async {
-    if (_isDisposed || !mounted) return;
+    if (_isDisposed) return;
 
     try {
       final provider = Provider.of<CountryProvider>(context, listen: false);
-
-      // ✅ FIX: Fetch only if not already fetched
-      if (provider.countries.isEmpty) {
-        await provider.fetchCountries();
-      }
+      await provider.fetchCountries();
 
       if (_isDisposed || !mounted) return;
 
@@ -61,14 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
-      debugPrint("❌ Country load error: $e");
-      // ✅ Fallback: Show error to user
-      if (mounted) {
-        CustomSnackBar.showError(
-          context,
-          message: "Failed to load countries. Please retry.",
-        );
-      }
+      debugPrint(" Country load error: $e");
     }
   }
 
@@ -96,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
-      debugPrint("❌ Country picker error: $e");
+      debugPrint("Country picker error: $e");
     }
   }
 
@@ -105,58 +91,108 @@ class _LoginScreenState extends State<LoginScreen> {
     return phone.isNotEmpty && phone.length >= 8;
   }
 
-  Future<void> _handleContinue() async {
+  Map<String, dynamic> _safeParseResult(dynamic result) {
+    if (result is Map<String, dynamic>) {
+      // AuthProvider.sendLoginOtp returns {status, message}.
+      // AuthProvider.verifyOtp returns {success, message, data}.
+      // Accept either envelope so this helper is reusable across both flows.
+      return {
+        'success':
+            result['status'] == true || result['success'] == true,
+        'message':
+            result['message']?.toString() ?? 'Something went wrong',
+      };
+    }
+    return {
+      'success': false,
+      'message': 'Invalid response from server',
+    };
+  }
+
+  void _navigateToOtp(String phone) {
     if (_isDisposed || !mounted) return;
 
-    final provider = context.read<AuthProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OTPScreen(phone: phone),
+          ),
+        );
+      }
+    });
+  }
 
-    if (provider.isLoading) return; // 🔥 prevent double tap
+  Future<void> _handleContinue() async {
+    // Synchronous re-entry guard: rapid double-tap can fire this method twice
+    // before isLoading propagates through a setState frame. Bail immediately.
+    if (_isDisposed || !mounted || _isLoading) return;
 
     if (!_isValidPhoneNumber()) {
-      CustomSnackBar.showError(context, message: "Enter valid phone number");
+      CustomSnackBar.showError(
+        context,
+        message: "Enter valid phone number",
+        duration: const Duration(seconds: 3),
+      );
       return;
     }
 
     if (_selectedCountry == null) {
-      CustomSnackBar.showError(context, message: "Please select country");
+      CustomSnackBar.showError(
+        context,
+        message: "Please select country",
+        duration: const Duration(seconds: 3),
+      );
       return;
     }
 
     final fullPhone =
         "${_selectedCountry!.phoneCode}${_phoneController.text.trim()}";
 
-    final result = await provider.sendLoginOtp(fullPhone);
+    setState(() => _isLoading = true);
+    try {
+      final provider = context.read<AuthProvider>();
+      final result = await provider.sendLoginOtp(fullPhone);
 
-    if (!mounted) return;
+      if (_isDisposed || !mounted) return;
 
-    // ✅ FIX: Backend uses "status" instead of "success"
-    final success = result["status"] == true;
-
-    debugPrint("LOGIN RESULT => $result");
-
-    if (success) {
-      CustomSnackBar.showSuccess(
-        context,
-        message: result["message"] ?? "OTP sent successfully",
-      );
-
-      await Future.delayed(const Duration(milliseconds: 250));
-
-      if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OTPScreen(phone: fullPhone),
-        ),
-      );
-    } else {
+      final parsed = _safeParseResult(result);
+      if (parsed['success'] == true) {
+        _navigateToOtp(fullPhone);
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: parsed['message'],
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      // Network failure / DNS / DioException — surface a user-friendly message
+      // rather than leaking the raw exception text.
+      debugPrint("Login error: $e");
+      if (_isDisposed || !mounted) return;
       CustomSnackBar.showError(
         context,
-        message: result["message"] ?? "Phone not registered",
+        message: "Network error. Please check your connection.",
+        duration: const Duration(seconds: 3),
       );
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
+
+  // void _showSnackBar(String message) {
+  //   if (_isDisposed || !mounted) return;
+  //   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  //   CustomSnackBar.showError(
+  //     context,
+  //     message: message,
+  //     duration: const Duration(seconds: 3),
+  //   );
+  // }
 
   Widget _safeImage(String path,
       {double? height, double? width, Color? color}) {
@@ -168,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
       width: width,
       color: color,
       errorBuilder: (context, error, stackTrace) {
-        debugPrint("❌ Missing asset: $path");
+        debugPrint(" Missing asset: $path");
         return SizedBox(height: height, width: width);
       },
     );
@@ -177,7 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final loginProvider = context.watch<AuthProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -212,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     height: 50.h,
                     padding:
-                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(12.r),
@@ -224,32 +259,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         _selectedCountry == null
                             ? SizedBox(
-                          width: 20.w,
-                          height: 20.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
-                          ),
-                        )
+                                width: 20.w,
+                                height: 20.h,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : ClipOval(
-                          child: Image.network(
-                            _selectedCountry!.flag,
-                            width: 23.4.w,
-                            height: 23.4.h,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.flag,
-                              size: 16.sp,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
+                                child: Image.network(
+                                  _selectedCountry!.flag,
+                                  width: 23.4.w,
+                                  height: 23.4.h,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    Icons.flag,
+                                    size: 16.sp,
+                                  ),
+                                ),
+                              ),
                         SizedBox(width: 5.w),
                         Icon(
                           Icons.keyboard_arrow_down,
                           size: 18.sp,
                           color:
-                          isDarkMode ? Colors.grey.shade400 : Colors.grey,
+                              isDarkMode ? Colors.grey.shade400 : Colors.grey,
                         ),
                       ],
                     ),
@@ -277,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: "000 000 0000",
                         hintStyle: TextStyle(
                           color:
-                          isDarkMode ? Colors.grey.shade500 : Colors.grey,
+                              isDarkMode ? Colors.grey.shade500 : Colors.grey,
                         ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 15.w,
@@ -308,10 +341,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
             const Spacer(),
-            Button(
-              title: "Continue",
-              onPressed: loginProvider.isLoading ? null : _handleContinue,
-            ),
+            _isLoading
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
+                : Button(
+                    title: "Continue",
+                    onPressed: _handleContinue,
+                  ),
             SizedBox(height: 15.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(25.r),
                         ),
                         backgroundColor:
-                        AppColors.buttonSecondaryDynamic(context),
+                            AppColors.buttonSecondaryDynamic(context),
                       ),
                       onPressed: () {},
                       child: Row(
@@ -367,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(25.r),
                         ),
                         backgroundColor:
-                        AppColors.buttonSecondaryDynamic(context),
+                            AppColors.buttonSecondaryDynamic(context),
                       ),
                       onPressed: () {},
                       child: Row(

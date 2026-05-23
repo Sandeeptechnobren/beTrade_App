@@ -155,7 +155,8 @@
 
 import 'dart:async';
 import 'dart:math';
-import 'package:betrade/presentation/auth/auth_screen.dart';
+import 'package:betrade/data/services/local_storage.dart';
+import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -257,11 +258,26 @@ class _SuccessScreenState extends State<SuccessScreen>
         }
       });
     });
-    Future.delayed(const Duration(seconds:4), () {
+    // After the success animation finishes, drop the user into the main
+    // app. The signup OTP verify in step 2 has already persisted the
+    // token, so they're already authenticated — sending them back to
+    // AuthScreen here (the old behaviour) forced a redundant login.
+    //
+    // docUploadStatus = 0 surfaces the KYC banner inside MainScreen, which
+    // satisfies the "verification should start immediately after signup"
+    // requirement (issue #13).
+    Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
-      Navigator.pushReplacement(
+      final docUploadStatus = LocalStorage.getDocUploadStatus() ?? 0;
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => AuthScreen()),
+        MaterialPageRoute(
+          builder: (_) => MainScreen(
+            showWelcomePopup: true,
+            docUploadStatus: docUploadStatus,
+          ),
+        ),
+        (route) => false,
       );
     });
   }

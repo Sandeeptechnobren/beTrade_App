@@ -109,13 +109,28 @@ class _StepOtpState extends State<StepOtp> {
       });
     }
 
-    // Forward focus when value entered
-    if (value.isNotEmpty) {
-      _controllers[index].text = value.substring(value.length - 1);
-      _controllers[index].selection = TextSelection.fromPosition(
-        const TextPosition(offset: 1),
-      );
+    // PASTE: multi-digit input lands in one cell when the user pastes an OTP
+    // from SMS. Distribute the digits across all cells starting from index 0.
+    if (value.length > 1) {
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      final paste = digits.length > 6 ? digits.substring(0, 6) : digits;
 
+      for (int i = 0; i < 6; i++) {
+        _controllers[i].text = i < paste.length ? paste[i] : '';
+      }
+
+      if (paste.length >= 6) {
+        FocusScope.of(context).unfocus();
+      } else {
+        FocusScope.of(context).requestFocus(_focusNodes[paste.length]);
+      }
+
+      _onOtpChange();
+      return;
+    }
+
+    // SINGLE-CHAR TYPING: advance / retreat focus per cell.
+    if (value.isNotEmpty) {
       if (index < 5) {
         FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
       } else {
@@ -224,9 +239,9 @@ class _StepOtpState extends State<StepOtp> {
         focusNode: _focusNodes[index],
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        maxLength: 1,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(6),
         ],
         style: TextStyle(
           fontSize: 18.sp,
