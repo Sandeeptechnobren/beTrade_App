@@ -1,32 +1,31 @@
 # lib/data/
 
 ## Purpose
-Data layer of the app. Three sibling folders: `model/` (DTOs decoded from API JSON), `provider/` (ChangeNotifiers holding UI-relevant state), and `services/` (static-method API + storage clients). No UI code lives here.
+Data layer of the app. Three sibling folders: `model/` (DTOs decoded from API JSON), `provider/` (`ChangeNotifier`s holding UI-relevant state), and `services/` (static-method API + storage clients). No UI code here.
 
 ## Key files
-- `model/trade_model.dart` — `TradeModel`, the canonical DTO pattern (manual `fromJson`, defensive `?? ""` defaults).
-- `model/profile_model.dart` — `ProfileModel` with `_fixAvatar` helper that strips a duplicated `https://` prefix bug from the backend.
-- `provider/explorer_provider.dart` — `ExploreProvider`, the canonical provider pattern (lines 137+ — earlier comment blocks are stale).
-- `provider/signIn_provider.dart` — `AuthProvider`, the legacy sign-in pipeline that bypasses `EnvConfig` and `AuthService` (uses inline `http` calls with hard-coded URLs).
-- `services/local_storage.dart` — `LocalStorage` SharedPreferences wrapper. Initialised once in `lib/main.dart` before `runApp`. Stores `token`, `theme_mode`, `onboardingDone`.
-- `services/auth_service.dart` — `AuthService` (Dio-based) for sign-up, KYC submission, logout, token verification. Mixes instance methods with one static.
-- `services/trade_service.dart` — `TradeService.getAllTrades()`, the canonical service pattern (`http` + `EnvConfig` + `ApiEndpoints`).
+- `model/trade_model.dart` — `TradeModel`. Canonical DTO pattern (manual `fromJson`, defensive `?? ""` defaults).
+- `model/buy_response.dart` — `BuyResponse`. Canonical typed-error-envelope pattern (`success` / `message` / `code` / nested `OrderModel?` + `QuoteModel?` + `walletBalance?`). Models how the trade-buy flow surfaces typed backend codes (`INSUFFICIENT_FUNDS`, `KYC_REQUIRED`, …).
+- `model/quote_model.dart` — `QuoteModel`. LMSR quote DTO with defensive `_double()` helper for numeric fields.
+- `provider/trade_detail_provider.dart` — canonical provider for the buy flow (calls `TradeQuoteService` + `TradeBuyService`).
+- `provider/signIn_provider.dart` — `AuthProvider`. **Legacy** sign-in pipeline that bypasses `EnvConfig` and `AuthService` (inline `http` + hard-coded URLs). Don't replicate.
+- `services/local_storage.dart` — `LocalStorage` SharedPreferences wrapper. Initialised once in `lib/main.dart` before `runApp`. Stores `token`, `theme_mode`, `onboardingDone`, `doc_upload_status`.
+- `services/trade_quote_service.dart` — canonical service for read-only LMSR pricing (returns `QuoteModel?` with `null` sentinel on failure).
+- `services/trade_buy_service.dart` — canonical service for mutating endpoints with typed error envelopes; also defines `generateIdempotencyKey()` (UUID v4) used per "Buy" tap.
 
 ## Data flow
 - Inbound: provider methods invoked from `lib/presentation/*` via `context.read<T>()` / `context.watch<T>()` / `Consumer<T>`.
-- Outbound: services call the backend via `http` or `lib/core/network/DioClient`; models populate from JSON; providers expose the result and call `notifyListeners()` so consumers in `lib/presentation/*` rebuild.
+- Outbound: services call the backend at `api.buildacademy.io` via `DioClient` (or legacy `http`); models decode JSON; providers expose results and `notifyListeners()`.
 
 ## Dependencies
 - Outbound: `lib/core/config/*`, `lib/core/network/dio_client.dart`; packages `http`, `dio`, `provider`, `shared_preferences`.
-- Inbound: `lib/main.dart` (registers all providers in `MultiProvider`); `lib/presentation/*` (consumes providers and, for a few screens, calls services directly — e.g., `verify_account.dart` for KYC submit, `trade_page.dart` `initState` for trade detail).
+- Inbound: `lib/main.dart` (registers all providers in `MultiProvider`); `lib/presentation/*` (consumes providers; two screens bypass providers and call services directly — `verify_account.dart` for KYC, `trade_page.dart` for live quoting).
 
 ## Conventions
-See sub-folder `CLAUDE.md` files for specifics:
-- `data/model/CLAUDE.md` — DTO conventions.
-- `data/provider/CLAUDE.md` — ChangeNotifier conventions.
-- `data/services/CLAUDE.md` — service / HTTP / storage conventions.
-
-Cross-cutting: most public state on providers is mutable fields (not getters); services use try/catch + sentinel returns (`[]`, `null`, `false`); error logging is `print` / `debugPrint`.
+See sub-folder `CLAUDE.md`s for specifics (`model/`, `provider/`, `services/`). Cross-cutting:
+- Providers expose **public mutable fields** (not getters) for `isLoading`, `error`, data.
+- Services use `try/catch` + sentinel returns (`[]`, `null`, `false`) **or** typed envelopes (`BuyResponse`) for mutating endpoints with business errors.
+- Logging is `print` / `debugPrint` only — ~202 calls across services. No structured logger yet.
 
 ## Common commands
 None module-specific.

@@ -45,6 +45,16 @@ To wire:
 
 ## Completed
 
+### 2026-05-23 — Claude Code documentation layer refresh
+Refreshed every doc-layer file with current audit findings:
+- Root `CLAUDE.md` rewritten to 124 lines (under the 150-line budget), 17 sections per the project spec, Flutter-adapted security rules.
+- All 13 subdirectory `CLAUDE.md` files rewritten (28–36 lines each, under the 80-line budget), with corrected counts (~14 providers, ~13 models, ~16 services) and the token-polling interval fixed at 300 s (was incorrectly documented as 10 s in earlier subdir docs but the actual code in `lib/presentation/screens/main_screen.dart:58` uses 300 s).
+- `docs/CODEBASE_AUDIT.md`, `docs/ARCHITECTURE.md`, `docs/PATTERNS.md` rewritten from a fresh three-agent investigation.
+- 15 slash commands + the `doc-updater` subagent rewritten verbatim from the project template.
+- `.claude/settings.json` Bash permissions adapted for Flutter (replaced `npm`/`docker`/`pg_dump`/`playwright` with `flutter`/`dart`/`pod`/`./gradlew`/`adb`/`firebase`/`flutterfire`) and gained Write/Edit denies for `.env`, keystores, Firebase service files.
+- Pre-existing maintainer content in `tasks/todo.md`, `tasks/lessons.md`, `CHANGELOG.md`, `docs/ACCESS.md`, `docs/SSH_CONFIG.md`, `.claudeignore` preserved — they were already supersets of the provided templates.
+- Committed to a new feature branch (`feature/claude/docs-refresh`); no application code touched.
+
 ### 2026-05-05 — OTP migration via `pinput`
 Migrated to `pinput` (^5.0.0) with custom themes. Reverted later in
 favor of pre-today TextField-based code per user request.
