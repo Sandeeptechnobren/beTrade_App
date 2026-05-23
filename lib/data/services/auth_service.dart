@@ -265,6 +265,16 @@ class AuthService {
       }
 
       return false; // real invalid
+    } on DioException catch (e) {
+      // 401 = server rejected the token — treat as invalid, force re-login.
+      if (e.response?.statusCode == 401) {
+        return false;
+      }
+      // 404 = backend hasn't deployed /verify-token yet — fall through
+      // to the network-issue branch so users aren't locked out during
+      // a rolling deploy. Once the route ships everywhere this can be
+      // tightened.
+      return null; // ⚠️ network issue or transitional 404
     } catch (e) {
       return null; // ⚠️ network issue
     }
