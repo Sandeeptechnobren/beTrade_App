@@ -19,6 +19,11 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-23 — **Trading UX critical bugs (4 fixes from QA report)** on `feature/claude/docs-refresh`:
+  - `success_animation.dart` — `SuccessScreen` now navigates to `MainScreen` after the success animation instead of bouncing the user back to `AuthScreen`. The signup OTP-verify in step 2 has already persisted a token, so the user is authenticated — sending them to AuthScreen forced a redundant login (QA #1). Passes `showWelcomePopup: true` + `docUploadStatus` from `LocalStorage`, surfacing the KYC banner inside MainScreen so verification starts right after signup (QA #13).
+  - `trade_page.dart` `selectQuickAmount` (renamed from `addQuickAmount`) — quick-amount chip taps now **replace** the current amount instead of adding to it. Tapping 10 then 20 now gives 20 GHS instead of 30 (QA #11, wrong-amount trades).
+  - `trade_page.dart` quick-amount chip Row — chips now visually reflect selection: filled purple background + white text when `amount == chip value`, transparent + purple text + grey border otherwise. `AnimatedContainer` for a 150 ms transition (QA #10).
+  - `trade_details_page.dart` — added Buy Yes / Buy No `bottomNavigationBar` to the chart/info bottom sheet. Tapping either closes the details sheet and reopens `TradePage` (the New Trade modal) with the chosen outcome pre-selected via `initialOutcome` (QA #12).
 - 2026-05-23 — **Login + OTP critical bugs (7 fixes)** on `feature/claude/docs-refresh`:
   - `auth_service.dart` `verifyOtp` + `verifyLoginOtp` — persist token to `SharedPreferences` BEFORE setting the in-memory `DioClient` header. Prevents an inconsistent recovery state if the app dies between the two operations.
   - `local_storage.dart` `setToken` + `auth_service.dart` `saveFcmToken` — dropped `print(token)` calls that were leaking bearer / FCM tokens to `adb logcat`.

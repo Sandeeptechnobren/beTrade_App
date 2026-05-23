@@ -104,6 +104,13 @@ To wire:
 
 ## Completed
 
+### 2026-05-23 — Trading UX critical bugs (4 fixes from QA report)
+- **QA #1 + #13** — `lib/core/animations/success_animation.dart`: after signup, the SuccessScreen was navigating to AuthScreen (dumping the user back at login). Fixed to navigate to MainScreen with `showWelcomePopup: true` + `docUploadStatus` from LocalStorage. KYC banner now appears immediately after signup, satisfying both bugs.
+- **QA #11** — `lib/presentation/screens/trade/trade_page.dart` `selectQuickAmount` (renamed from `addQuickAmount`): chip taps now **replace** the amount instead of adding. Tapping 10 then 20 → 20 GHS (was 30).
+- **QA #10** — same file, quick-amount chip Row: chips visually reflect selection state with `AnimatedContainer` (filled purple + white text when matched).
+- **QA #12** — `lib/presentation/screens/trade/trade_details_page.dart`: added Buy Yes / Buy No bottomNavigationBar. Taps close the details sheet and reopen `TradePage` (new trade modal) with the chosen outcome pre-selected.
+- Analyzer: "No issues found!" on all 3 modified files. Manual smoke test pending APK build (build environment hitting cross-drive Kotlin incremental cache bug — see Build Issues below).
+
 ### 2026-05-23 — Claude Code documentation layer refresh
 Refreshed every doc-layer file with current audit findings:
 - Root `CLAUDE.md` rewritten to 124 lines (under the 150-line budget), 17 sections per the project spec, Flutter-adapted security rules.

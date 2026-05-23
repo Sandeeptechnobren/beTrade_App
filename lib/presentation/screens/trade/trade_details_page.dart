@@ -7,6 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../data/model/trade_detail_model.dart';
 import '../../../data/provider/trade_detail_provider.dart';
+import '../../widget/common_bottom_sheet.dart';
+import 'trade_page.dart';
 
 /// Full-screen "Details" view for a market.
 ///
@@ -50,6 +52,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
+      bottomNavigationBar: detail == null ? null : _buildBuyButtons(),
       body: SafeArea(
         child: Column(
           children: [
@@ -66,6 +69,80 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Bottom Buy Yes / Buy No row. Tapping either closes this details
+  /// sheet and reopens the New Trade modal with the chosen outcome
+  /// pre-selected, so the user lands on the amount-entry step with
+  /// the correct side already toggled.
+  Widget _buildBuyButtons() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 55.h,
+                child: ElevatedButton(
+                  onPressed: () => _openNewTrade('yes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff1B5E20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                  ),
+                  child: Text(
+                    "Buy Yes",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: SizedBox(
+                height: 55.h,
+                child: ElevatedButton(
+                  onPressed: () => _openNewTrade('no'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                  ),
+                  child: Text(
+                    "Buy No",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openNewTrade(String outcome) {
+    Navigator.pop(context);
+    CommonBottomSheet.open(
+      context: context,
+      builder: (controller) => TradePage(
+        tradeUuid: widget.tradeUuid,
+        scrollController: controller,
+        initialOutcome: outcome,
       ),
     );
   }
