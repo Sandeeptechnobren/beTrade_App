@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
@@ -412,5 +414,201 @@ class AuthService {
     }
   }
 
-//   google
+  // ────────────────────────────────────────────────────────────────────────
+  // Google Sign-In
+  // ────────────────────────────────────────────────────────────────────────
+  //
+  // High-level shape:
+  //   1. Pop the native Google account picker via `google_sign_in`.
+  //   2. Grab the ID token from the resulting account.
+  //   3. POST it to the backend, which verifies via Google's tokeninfo and
+  //      either returns an existing user or auto-creates a new one.
+  //   4. Persist the Sanctum token to disk + Dio header (same order as
+  //      `verifyOtp` — disk first so we can't end up with a header without
+  //      backing persistence).
+  //   5. Surface `needs_phone` so the UI knows whether to push the
+  //      AttachPhone screen or jump straight to home.
+  //
+  // Failure surfaces (each maps to a distinct snackbar message in the UI):
+  //   - User cancelled the picker → returns success=false, message='cancelled'
+  //   - Google itself returned no id_token → success=false, generic message
+  //   - Backend 4xx/5xx → success=false with the backend's message bubbled up
+  //
+  // Singleton `GoogleSignIn` instance — recreated per call is fine for v6.x;
+  // the underlying native channel re-uses cached state where possible.
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    GoogleSignIn? googleSignIn;
+    try {
+      googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
+
+      // Clear any prior selection so users can switch accounts. Without this,
+      // tapping the button after a failed login silently re-uses the previously
+      // chosen Google account, which makes "wrong account" recovery confusing.
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {
+        // Best-effort; first-ever sign-in has no session to clear.
+      }
+
+      final account = await googleSignIn.signIn();
+      if (account == null) {
+        // User dismissed the account picker.
+        return {
+          'success': false,
+          'message': 'Sign-in cancelled',
+          'cancelled': true,
+        };
+      }
+
+      final googleAuth = await account.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        debugPrint('GOOGLE SIGN-IN: account has no idToken — '
+            'check that the Android SHA-1 fingerprint is registered in '
+            'Firebase Console and google-services.json is up to date.');
+        return {
+          'success': false,
+          'message': 'Could not get Google sign-in token. Try again.',
+        };
+      }
+
+      final response = await DioClient.instance.post(
+        ApiEndpoints.loginWithGoogle,
+        data: {'id_token': idToken},
+      );
+
+      final data = response.data;
+      if (response.statusCode == 200 && data is Map) {
+        final isSuccess = data['status'] == true;
+        if (isSuccess) {
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            // Disk before in-memory — same ordering as verifyOtp.
+            await LocalStorage.setToken(token);
+            DioClient.setToken(token);
+          }
+
+          // Register the FCM token best-effort — same pattern as verifyLoginOtp.
+          try {
+            final fcmToken = await FirebaseMessaging.instance.getToken();
+            if (fcmToken != null) {
+              await saveFcmToken(fcmToken);
+            }
+          } catch (e) {
+            debugPrint('FCM TOKEN ERROR after google sign-in: $e');
+          }
+
+          // Persist doc_upload_status if present so the KYC banner survives
+          // app close/reopen, mirroring the OTP-login path.
+          final user = data['user'];
+          final rawStatus = user is Map ? user['doc_upload_status'] : null;
+          int docUploadStatus = 0;
+          if (rawStatus is int) {
+            docUploadStatus = rawStatus;
+          } else if (rawStatus is String) {
+            docUploadStatus = int.tryParse(rawStatus) ?? 0;
+          } else if (rawStatus is bool) {
+            docUploadStatus = rawStatus ? 1 : 0;
+          }
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Login successful',
+            'data': user,
+            'needs_phone': data['needs_phone'] == true,
+            'doc_upload_status': docUploadStatus,
+          };
+        }
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Google sign-in failed',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Unexpected server response',
+      };
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      final msg = (resp is Map ? resp['message'] : null) ??
+          e.message ??
+          'Server error';
+      debugPrint('GOOGLE LOGIN ERROR: $msg');
+      return {'success': false, 'message': msg.toString()};
+    } catch (e) {
+      debugPrint('GOOGLE LOGIN ERROR: $e');
+      return {'success': false, 'message': 'Unexpected error: $e'};
+    } finally {
+      // Sign out of the Google SDK regardless of outcome — we only need the
+      // ID token, we don't want to retain the Google session on-device.
+      try {
+        await googleSignIn?.signOut();
+      } catch (_) {}
+    }
+  }
+
+  /// Step 1 of the post-Google phone attach flow.
+  /// Sends an OTP via WhApi for the supplied phone, scoped to the
+  /// Sanctum-authenticated user.
+  Future<Map<String, dynamic>> attachPhone(String phone) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.attachPhone,
+        data: {'phone': phone},
+      );
+
+      final data = response.data;
+      if (data is Map) {
+        return {
+          'success': data['status'] == true,
+          'message': data['message'] ?? 'Something went wrong',
+        };
+      }
+      return {'success': false, 'message': 'Unexpected server response'};
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      final msg = (resp is Map ? resp['message'] : null) ??
+          e.message ??
+          'Server error';
+      debugPrint('ATTACH PHONE ERROR: $msg');
+      return {'success': false, 'message': msg.toString()};
+    } catch (e) {
+      debugPrint('ATTACH PHONE ERROR: $e');
+      return {'success': false, 'message': 'Unexpected error'};
+    }
+  }
+
+  /// Step 2 of the post-Google phone attach flow.
+  /// Verifies the OTP and, on success, the backend writes the phone onto
+  /// the authed user.
+  Future<Map<String, dynamic>> verifyAttachPhone(String phone, String otp) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.verifyAttachPhone,
+        data: {'phone': phone, 'otp': otp},
+      );
+
+      final data = response.data;
+      if (data is Map) {
+        return {
+          'success': data['status'] == true,
+          'message': data['message'] ?? 'Something went wrong',
+          'data': data['user'],
+        };
+      }
+      return {'success': false, 'message': 'Unexpected server response'};
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      final msg = (resp is Map ? resp['message'] : null) ??
+          e.message ??
+          'Server error';
+      debugPrint('VERIFY ATTACH PHONE ERROR: $msg');
+      return {'success': false, 'message': msg.toString()};
+    } catch (e) {
+      debugPrint('VERIFY ATTACH PHONE ERROR: $e');
+      return {'success': false, 'message': 'Unexpected error'};
+    }
+  }
 }

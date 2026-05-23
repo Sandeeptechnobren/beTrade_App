@@ -80,5 +80,18 @@ class ApiEndpoints {
   static String  tradeDetail(String tradeId) =>
       '${EnvConfig.baseUrl}/trade/tradedetail/$tradeId';
 
+  // ── Google sign-in + post-Google phone attach ─────────────────────────────
+  // /login-with-google : open auth endpoint, trades a Google ID token for a
+  //                      Sanctum token. Throttled same as register/login.
+  // /profile/attach-phone + /profile/verify-attach-phone : Sanctum-protected,
+  //                      used when a brand-new Google user needs to add a
+  //                      phone number after first sign-in.
+  static String get loginWithGoogle =>
+      '${EnvConfig.baseUrl}/login-with-google';
+  static String get attachPhone =>
+      '${EnvConfig.baseUrl}/profile/attach-phone';
+  static String get verifyAttachPhone =>
+      '${EnvConfig.baseUrl}/profile/verify-attach-phone';
+
 
 }

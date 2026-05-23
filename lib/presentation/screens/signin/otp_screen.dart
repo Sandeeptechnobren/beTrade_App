@@ -11,10 +11,28 @@ import '../../../data/provider/signin_provider.dart';
 import '../../../data/services/local_storage.dart';
 import '../../widget/customSnackBar.dart';
 
+/// Two OTP flows reuse this screen — the original phone-login path, and the
+/// new "Google user attaches a phone" path. They differ only in which two
+/// API endpoints get called for verify + resend; the UI is identical.
+enum OtpScreenMode {
+  /// Verifies an OTP for `/api/login` and lands the user on MainScreen.
+  loginVerify,
+
+  /// Verifies an OTP for `/api/profile/verify-attach-phone` — the user is
+  /// already authenticated (Google-issued Sanctum token) and on success the
+  /// backend writes the phone onto their existing record.
+  attachPhone,
+}
+
 class OTPScreen extends StatefulWidget {
   final String phone;
+  final OtpScreenMode mode;
 
-  const OTPScreen({super.key, required this.phone});
+  const OTPScreen({
+    super.key,
+    required this.phone,
+    this.mode = OtpScreenMode.loginVerify,
+  });
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -126,31 +144,48 @@ class _OTPScreenState extends State<OTPScreen> {
 
     try {
       final provider = context.read<AuthProvider>();
-      final result = await provider.verifyOtp(widget.phone, otp);
+
+      // Branch on mode — same UI, different verify endpoint.
+      final Map<String, dynamic> result;
+      if (widget.mode == OtpScreenMode.attachPhone) {
+        result = await provider.verifyAttachPhoneOtp(widget.phone, otp);
+      } else {
+        result = await provider.verifyOtp(widget.phone, otp);
+      }
 
       if (_isDisposed || !mounted) return;
 
       final parsed = _safeParseResult(result);
 
       if (parsed['success'] == true) {
-        // AuthProvider.verifyOtp wraps the service result inside `data`, so
-        // doc_upload_status lives at result['data']['doc_upload_status'].
-        // The service itself already wrote the value to LocalStorage; we
-        // re-read it here only for the navigation argument. Defensive
-        // coercion handles int / String / bool encodings the backend may send.
-        final inner = result['data'];
-        final rawStatus =
-            inner is Map ? inner['doc_upload_status'] : null;
-        int docUploadStatus = 0;
-        if (rawStatus is int) {
-          docUploadStatus = rawStatus;
-        } else if (rawStatus is String) {
-          docUploadStatus = int.tryParse(rawStatus) ?? 0;
-        } else if (rawStatus is bool) {
-          docUploadStatus = rawStatus ? 1 : 0;
+        if (widget.mode == OtpScreenMode.attachPhone) {
+          // Phone is now attached on the backend. Navigate straight to home —
+          // the Sanctum token from the original Google sign-in is still valid
+          // and is already on the Dio header / in LocalStorage. We use 0 for
+          // doc_upload_status because a freshly-created Google user can't
+          // possibly have completed KYC yet.
+          _navigateToHome(0);
+        } else {
+          // Phone-OTP login path (unchanged). AuthProvider.verifyOtp wraps
+          // the service result inside `data`, so doc_upload_status lives at
+          // result['data']['doc_upload_status']. The service itself already
+          // wrote the value to LocalStorage; we re-read it here only for the
+          // navigation argument. Defensive coercion handles int / String /
+          // bool encodings the backend may send.
+          final inner = result['data'];
+          final rawStatus =
+              inner is Map ? inner['doc_upload_status'] : null;
+          int docUploadStatus = 0;
+          if (rawStatus is int) {
+            docUploadStatus = rawStatus;
+          } else if (rawStatus is String) {
+            docUploadStatus = int.tryParse(rawStatus) ?? 0;
+          } else if (rawStatus is bool) {
+            docUploadStatus = rawStatus ? 1 : 0;
+          }
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+          _navigateToHome(docUploadStatus);
         }
-        await LocalStorage.setDocUploadStatus(docUploadStatus);
-        _navigateToHome(docUploadStatus);
       } else {
         // Show the error but KEEP the user's input — a one-digit typo is easy
         // to fix without re-entering all 6 cells.
@@ -174,7 +209,16 @@ class _OTPScreenState extends State<OTPScreen> {
 
     try {
       final provider = context.read<AuthProvider>();
-      await provider.sendLoginOtp(widget.phone);
+
+      // Branch on mode — login path resends through /api/login, attach-phone
+      // path resends through /api/profile/attach-phone (different endpoint
+      // because the latter is authenticated and ties the OTP to the active
+      // Sanctum user, while the former is an open auth endpoint).
+      if (widget.mode == OtpScreenMode.attachPhone) {
+        await provider.sendAttachPhoneOtp(widget.phone);
+      } else {
+        await provider.sendLoginOtp(widget.phone);
+      }
 
       if (_isDisposed || !mounted) return;
 

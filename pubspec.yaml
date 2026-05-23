@@ -30,6 +30,11 @@ dependencies:
   firebase_messaging: ^15.0.0
   flutter_local_notifications: ^17.0.0
   pinput: ^6.0.2
+  # Google Sign-In — pinned to the 6.x line because that's the last release
+  # before the v7 redesign (v7 changed the API surface significantly and the
+  # rest of our auth pipeline assumes the v6 signIn() / authentication.idToken
+  # shape). Revisit when upgrading the Firebase iOS pod baseline.
+  google_sign_in: ^6.2.1
 
 
 

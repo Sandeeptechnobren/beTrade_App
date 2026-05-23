@@ -1,12 +1,11 @@
 import 'package:betrade/core/theme/app_text_style.dart';
-import 'package:betrade/presentation/screens/main_screen.dart';
-import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
@@ -14,14 +13,27 @@ import '../../../data/provider/signin_provider.dart';
 import '../../widget/customSnackBar.dart';
 import 'country_picker_sheet.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+/// Post-Google sign-in phone capture.
+///
+/// Reached when `/login-with-google` returned `needs_phone: true` — i.e. a
+/// brand-new Google user without an associated phone number, OR an existing
+/// Google-linked user that was migrated from an OTP-only account that never
+/// recorded a phone.
+///
+/// Flow on this screen:
+///   country picker + phone input → `_continue()` → backend `/profile/attach-phone`
+///   triggers WhApi OTP → push `OTPScreen(mode: OtpScreenMode.attachPhone)`.
+///
+/// The Sanctum token from the Google login is already on the Dio header by the
+/// time this screen mounts, so all calls from here on use it.
+class AttachPhoneScreen extends StatefulWidget {
+  const AttachPhoneScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<AttachPhoneScreen> createState() => _AttachPhoneScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _AttachPhoneScreenState extends State<AttachPhoneScreen> {
   late TextEditingController _phoneController;
   CountryModel? _selectedCountry;
   bool _isDisposed = false;
@@ -51,12 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_isDisposed || !mounted) return;
 
       if (provider.countries.isNotEmpty) {
-        setState(() {
-          _selectedCountry = provider.countries.first;
-        });
+        setState(() => _selectedCountry = provider.countries.first);
       }
     } catch (e) {
-      debugPrint(" Country load error: $e");
+      debugPrint("Country load error: $e");
     }
   }
 
@@ -79,9 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_isDisposed || !mounted) return;
 
       if (result != null) {
-        setState(() {
-          _selectedCountry = result;
-        });
+        setState(() => _selectedCountry = result);
       }
     } catch (e) {
       debugPrint("Country picker error: $e");
@@ -93,42 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return phone.isNotEmpty && phone.length >= 8;
   }
 
-  Map<String, dynamic> _safeParseResult(dynamic result) {
-    if (result is Map<String, dynamic>) {
-      // AuthProvider.sendLoginOtp returns {status, message}.
-      // AuthProvider.verifyOtp returns {success, message, data}.
-      // Accept either envelope so this helper is reusable across both flows.
-      return {
-        'success':
-            result['status'] == true || result['success'] == true,
-        'message':
-            result['message']?.toString() ?? 'Something went wrong',
-      };
-    }
-    return {
-      'success': false,
-      'message': 'Invalid response from server',
-    };
-  }
-
-  void _navigateToOtp(String phone) {
-    if (_isDisposed || !mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OTPScreen(phone: phone),
-          ),
-        );
-      }
-    });
-  }
-
-  Future<void> _handleContinue() async {
-    // Synchronous re-entry guard: rapid double-tap can fire this method twice
-    // before isLoading propagates through a setState frame. Bail immediately.
+  Future<void> _continue() async {
     if (_isDisposed || !mounted || _isLoading) return;
 
     if (!_isValidPhoneNumber()) {
@@ -155,98 +128,32 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final provider = context.read<AuthProvider>();
-      final result = await provider.sendLoginOtp(fullPhone);
-
-      if (_isDisposed || !mounted) return;
-
-      final parsed = _safeParseResult(result);
-      if (parsed['success'] == true) {
-        _navigateToOtp(fullPhone);
-      } else {
-        CustomSnackBar.showError(
-          context,
-          message: parsed['message'],
-          duration: const Duration(seconds: 3),
-        );
-      }
-    } catch (e) {
-      // Network failure / DNS / DioException — surface a user-friendly message
-      // rather than leaking the raw exception text.
-      debugPrint("Login error: $e");
-      if (_isDisposed || !mounted) return;
-      CustomSnackBar.showError(
-        context,
-        message: "Network error. Please check your connection.",
-        duration: const Duration(seconds: 3),
-      );
-    } finally {
-      if (!_isDisposed && mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  // void _showSnackBar(String message) {
-  //   if (_isDisposed || !mounted) return;
-  //   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-  //   CustomSnackBar.showError(
-  //     context,
-  //     message: message,
-  //     duration: const Duration(seconds: 3),
-  //   );
-  // }
-
-  /// Native Google account picker → backend → branch on `needs_phone`.
-  ///
-  /// Success paths:
-  ///   needs_phone = true  → push AttachPhoneScreen (collect + verify phone)
-  ///   needs_phone = false → pushAndRemoveUntil MainScreen (token already saved)
-  ///
-  /// User-cancelled the picker → silent (no snackbar) so the screen doesn't
-  /// scold someone who simply changed their mind.
-  Future<void> _handleGoogleSignIn() async {
-    if (_isDisposed || !mounted || _isLoading) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final provider = context.read<AuthProvider>();
-      final result = await provider.loginWithGoogle();
+      final result = await provider.sendAttachPhoneOtp(fullPhone);
 
       if (_isDisposed || !mounted) return;
 
       if (result["success"] == true) {
-        if (result["needs_phone"] == true) {
-          // Brand-new Google user with no phone yet → collect it.
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AttachPhoneScreen()),
-          );
-        } else {
-          // Returning user / Google attached to an OTP account that already
-          // had a phone. Jump to home; the Sanctum token is already saved.
-          final doc = result["doc_upload_status"];
-          final int docInt = doc is int ? doc : 0;
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MainScreen(
-                showWelcomePopup: true,
-                docUploadStatus: docInt,
-              ),
+        // Hand off to OTP screen in attach-phone mode. We use pushReplacement
+        // so a back-button press from the OTP screen returns the user to the
+        // app entry (not back to a stale phone-input view).
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OTPScreen(
+              phone: fullPhone,
+              mode: OtpScreenMode.attachPhone,
             ),
-            (route) => false,
-          );
-        }
-      } else if (result["cancelled"] != true) {
-        // Real failure — surface the backend's message.
+          ),
+        );
+      } else {
         CustomSnackBar.showError(
           context,
-          message: result["message"]?.toString() ?? "Google sign-in failed",
+          message: result["message"]?.toString() ?? "Could not send OTP",
           duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
-      debugPrint("Google sign-in error: $e");
+      debugPrint("Attach-phone error: $e");
       if (_isDisposed || !mounted) return;
       CustomSnackBar.showError(
         context,
@@ -258,22 +165,6 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Widget _safeImage(String path,
-      {double? height, double? width, Color? color}) {
-    if (path.isEmpty) return SizedBox(height: height);
-
-    return Image.asset(
-      path,
-      height: height,
-      width: width,
-      color: color,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint(" Missing asset: $path");
-        return SizedBox(height: height, width: width);
-      },
-    );
   }
 
   @override
@@ -300,9 +191,18 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             SizedBox(height: 10.h),
             Text(
-              "Enter Your Phone Number to Login",
+              "Add your phone number",
               style: AppTextStyle.heading.copyWith(
                 color: AppColors.textPrimaryDynamic(context),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              "We'll send a one-time code to verify it. Your phone keeps you "
+              "signed in if you ever lose access to your Google account.",
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade700,
               ),
             ),
             SizedBox(height: 20.h),
@@ -312,8 +212,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: _openCountryPicker,
                   child: Container(
                     height: 50.h,
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: AppColors.inputFieldBgDynamic(context),
                       borderRadius: BorderRadius.circular(12.r),
@@ -414,90 +314,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   )
                 : Button(
-                    title: "Continue",
-                    onPressed: _handleContinue,
+                    title: "Send code",
+                    onPressed: _continue,
                   ),
-            SizedBox(height: 15.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 50.h,
-                    margin: EdgeInsets.only(right: 5.w),
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.borderDynamic(context),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25.r),
-                        ),
-                        backgroundColor:
-                            AppColors.buttonSecondaryDynamic(context),
-                      ),
-                      onPressed: _isLoading ? null : _handleGoogleSignIn,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue with",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: AppColors.textPrimaryDynamic(context),
-                            ),
-                          ),
-                          SizedBox(width: 5.w),
-                          _safeImage(
-                            "assets/images/google.png",
-                            height: 19.h,
-                            width: 19.w,
-                            color: isDarkMode ? Colors.white : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Container(
-                    height: 50.h,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.borderDynamic(context),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25.r),
-                        ),
-                        backgroundColor:
-                            AppColors.buttonSecondaryDynamic(context),
-                      ),
-                      onPressed: () {},
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue with",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: AppColors.textPrimaryDynamic(context),
-                            ),
-                          ),
-                          SizedBox(width: 2.w),
-                          Icon(
-                            Icons.apple,
-                            size: 24.h,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
             SizedBox(height: 20.h),
           ],
         ),
