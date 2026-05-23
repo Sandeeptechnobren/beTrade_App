@@ -138,8 +138,11 @@ class AuthService {
           if (isSuccess) {
             final token = responseData['token'] ?? responseData['access_token'];
             if (token != null) {
-              DioClient.setToken(token);
+              // Persist to disk BEFORE setting the in-memory Dio header. If
+              // the app dies between these two lines, we'd rather be fully
+              // logged out than have a header without persistence.
               await LocalStorage.setToken(token);
+              DioClient.setToken(token);
             }
             print(" OTP verified successfully!");
             return true;
@@ -393,8 +396,10 @@ class AuthService {
         if (isSuccess) {
           final token = data['token'] ?? data['access_token'];
           if (token != null) {
-            DioClient.setToken(token);
+            // Persist to disk BEFORE setting the in-memory Dio header. See
+            // matching comment in verifyOtp above.
             await LocalStorage.setToken(token);
+            DioClient.setToken(token);
           }
         }
 
@@ -453,8 +458,6 @@ class AuthService {
           "token": token,
         },
       );
-      print(token);
-
       print("FCM SAVE STATUS: ${response.statusCode}");
       print("FCM SAVE RESPONSE: ${response.data}");
 

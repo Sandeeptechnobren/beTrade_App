@@ -138,8 +138,9 @@ class _OTPScreenState extends State<OTPScreen> {
         await LocalStorage.setDocUploadStatus(docUploadStatus);
         _navigateToHome(docUploadStatus);
       } else {
+        // Show the error but KEEP the user's input — a one-digit typo is easy
+        // to fix without re-entering all 6 cells.
         _showMessage(parsed['message']);
-        _clearOtpFields();
       }
     } catch (e) {
       if (_isDisposed || !mounted) return;
@@ -200,12 +201,31 @@ class _OTPScreenState extends State<OTPScreen> {
   }
   void _onOtpChanged(String value, int index) {
     if (_isDisposed || !mounted) return;
-    if (value.isNotEmpty) {
-      _controllers[index].text = value.substring(value.length - 1);
-      _controllers[index].selection = TextSelection.fromPosition(
-        const TextPosition(offset: 1),
-      );
 
+    // PASTE: multi-digit input lands in one cell when the user pastes an OTP
+    // from SMS. Distribute the digits across all cells starting from index 0.
+    if (value.length > 1) {
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      final paste = digits.length > otpLength
+          ? digits.substring(0, otpLength)
+          : digits;
+
+      for (int i = 0; i < otpLength; i++) {
+        _controllers[i].text = i < paste.length ? paste[i] : '';
+      }
+
+      if (paste.length >= otpLength) {
+        FocusScope.of(context).unfocus();
+      } else {
+        FocusScope.of(context).requestFocus(_focusNodes[paste.length]);
+      }
+
+      _checkOtpComplete();
+      return;
+    }
+
+    // SINGLE-CHAR TYPING: advance / retreat focus per cell.
+    if (value.isNotEmpty) {
       if (index < otpLength - 1) {
         FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
       } else {
@@ -214,12 +234,9 @@ class _OTPScreenState extends State<OTPScreen> {
     }
     if (value.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-      _controllers[index - 1].selection =
-          TextSelection.fromPosition(
-            TextPosition(
-              offset: _controllers[index - 1].text.length,
-            ),
-          );
+      _controllers[index - 1].selection = TextSelection.fromPosition(
+        TextPosition(offset: _controllers[index - 1].text.length),
+      );
     }
 
     _checkOtpComplete();
@@ -264,12 +281,12 @@ class _OTPScreenState extends State<OTPScreen> {
         autofocus: index == 0,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(otpLength),
         ],
         controller: _controllers[index],
         focusNode: _focusNodes[index],
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        maxLength: 1,
         style: TextStyle(
           fontSize: 18.sp,
           fontWeight: FontWeight.bold,

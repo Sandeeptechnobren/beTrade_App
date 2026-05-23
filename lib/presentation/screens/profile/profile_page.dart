@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
@@ -14,7 +15,6 @@ import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
 import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
-import '../../widget/customSnackBar.dart';
 import 'Payment_method.dart';
 import 'default_settings_page.dart';
 import 'help_support_page.dart';
@@ -40,38 +40,32 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void logoutUser() async {
-    String? token = LocalStorage.getToken();
-    if (token == null || token.isEmpty) {
-      CustomSnackBar.showError(
-        context,
-        message: "Token not found",
-        duration: const Duration(seconds: 3),
-      );
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(const SnackBar(content: Text("Token not found")));
-      return;
-    }
-
     setState(() => isLoading = true);
-    bool success = await AuthService.logout(token);
-    setState(() => isLoading = false);
-    if (success) {
+
+    final token = LocalStorage.getToken();
+    try {
+      if (token != null && token.isNotEmpty) {
+        await AuthService.logout(token);
+      }
+    } catch (e) {
+      // Server-side logout can fail (token already revoked, network down). We
+      // still need to clean up locally so the user actually gets logged out.
+      debugPrint("Logout server call failed (continuing local cleanup): $e");
+    } finally {
+      // ALWAYS clear local state, regardless of whether the server call
+      // succeeded. Otherwise the user is stuck signed in locally with a
+      // server-dead token, and the stale Authorization header would leak into
+      // the next user's multipart uploads via DioClient.multipartInstance.
       await LocalStorage.clearToken();
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const AuthScreen()),
-        (route) => false,
-      );
-    } else {
-      CustomSnackBar.showError(
-        context,
-        message: "Logout Failed",
-        duration: const Duration(seconds: 3),
-      );
-      // ScaffoldMessenger.of(
-      //   context,
-      // ).showSnackBar(const SnackBar(content: Text("Logout Failed")));
+      DioClient.removeToken();
+      if (mounted) {
+        setState(() => isLoading = false);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const AuthScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 

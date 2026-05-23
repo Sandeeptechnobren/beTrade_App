@@ -19,7 +19,14 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
-(none)
+- 2026-05-23 — **Login + OTP critical bugs (7 fixes)** on `feature/claude/docs-refresh`:
+  - `auth_service.dart` `verifyOtp` + `verifyLoginOtp` — persist token to `SharedPreferences` BEFORE setting the in-memory `DioClient` header. Prevents an inconsistent recovery state if the app dies between the two operations.
+  - `local_storage.dart` `setToken` + `auth_service.dart` `saveFcmToken` — dropped `print(token)` calls that were leaking bearer / FCM tokens to `adb logcat`.
+  - `profile_page.dart` `logoutUser` — always run `LocalStorage.clearToken()` + `DioClient.removeToken()` in `finally`, regardless of whether the server-side `/logout` call succeeded. Prevents stale `Authorization` header leaking into `DioClient.multipartInstance` for the next user's file uploads, and unblocks logout when the token is already server-revoked.
+  - `otp_screen.dart` (login OTP) + `OTP_step.dart` (signup OTP) — distribute pasted OTP digits across all 6 cells (was keeping only the last char). Removed `maxLength: 1` from each cell; added `LengthLimitingTextInputFormatter(6)` so paste survives into `onChanged`.
+  - `otp_screen.dart` `_verifyOtp` — stop calling `_clearOtpFields()` on verify failure. Users can now fix a one-digit typo without re-entering all six cells.
+  - `login_screen.dart` `_handleContinue` — `_isLoading` field was declared but never set, so the `CircularProgressIndicator` block was unreachable. Now set synchronously in a `setState` before the `await`, with `finally` reset. Replaces the stale `loginProvider.isLoading` gate (login flow doesn't use `LoginProvider`).
+  - `login_screen.dart` `_handleContinue` — synchronous re-entry guard (`if (_isLoading) return;`) prevents rapid double-taps from firing duplicate OTP-send requests. Network failures now show "Network error. Please check your connection." instead of leaking raw `DioException` text.
 
 ### Removed
 (none)

@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/provider/country_provider.dart';
-import '../../../data/provider/login_provider.dart';
 import '../../../data/provider/signin_provider.dart';
 import '../../widget/customSnackBar.dart';
 import 'country_picker_sheet.dart';
@@ -121,8 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleContinue() async {
-
-    if (_isDisposed || !mounted) return;
+    // Synchronous re-entry guard: rapid double-tap can fire this method twice
+    // before isLoading propagates through a setState frame. Bail immediately.
+    if (_isDisposed || !mounted || _isLoading) return;
 
     if (!_isValidPhoneNumber()) {
       CustomSnackBar.showError(
@@ -145,23 +145,37 @@ class _LoginScreenState extends State<LoginScreen> {
     final fullPhone =
         "${_selectedCountry!.phoneCode}${_phoneController.text.trim()}";
 
-    final provider = context.read<AuthProvider>();
+    setState(() => _isLoading = true);
+    try {
+      final provider = context.read<AuthProvider>();
+      final result = await provider.sendOtp(fullPhone);
 
-    final result = await provider.sendOtp(fullPhone);
+      if (_isDisposed || !mounted) return;
 
-    if (_isDisposed || !mounted) return;
-
-    if (result["success"]) {
-
-      _navigateToOtp(fullPhone);
-
-    } else {
-
+      final parsed = _safeParseResult(result);
+      if (parsed['success'] == true) {
+        _navigateToOtp(fullPhone);
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: parsed['message'],
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      // Network failure / DNS / DioException — surface a user-friendly message
+      // rather than leaking the raw exception text.
+      debugPrint("Login error: $e");
+      if (_isDisposed || !mounted) return;
       CustomSnackBar.showError(
         context,
-        message: result["message"],
+        message: "Network error. Please check your connection.",
         duration: const Duration(seconds: 3),
       );
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -194,7 +208,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final loginProvider = context.watch<LoginProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -331,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   )
                 : Button(
                     title: "Continue",
-                    onPressed: loginProvider.isLoading ? null : _handleContinue,
+                    onPressed: _handleContinue,
                   ),
             SizedBox(height: 15.h),
             Row(
