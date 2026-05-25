@@ -26,11 +26,8 @@ class _OTPScreenState extends State<OTPScreen> {
   Timer? _timer;
   bool isOtpComplete = false;
   final int otpLength = 6;
-
-  // ✅ Single controller for Pinput
-  late TextEditingController _otpController;
-  late FocusNode _focusNode;
-
+  late List<TextEditingController> _controllers;
+  late List<FocusNode> _focusNodes;
   bool _isDisposed = false;
   bool _isVerifying = false;
   bool _isResending = false;
@@ -38,12 +35,9 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   void initState() {
     super.initState();
-    _otpController = TextEditingController();
-    _focusNode = FocusNode();
+    _controllers = List.generate(otpLength, (_) => TextEditingController());
+    _focusNodes = List.generate(otpLength, (_) => FocusNode());
     _startTimer();
-
-    // Listen to OTP changes
-    _otpController.addListener(_checkOtpComplete);
   }
 
   void _startTimer() {
@@ -92,19 +86,12 @@ class _OTPScreenState extends State<OTPScreen> {
   void _showMessage(String message, {bool isError = true}) {
     if (_isDisposed || !mounted) return;
 
-    if (isError) {
-      CustomSnackBar.showError(
-        context,
-        message: message,
-        duration: const Duration(seconds: 3),
-      );
-    } else {
-      CustomSnackBar.showSuccess(
-        context,
-        message: message,
-        duration: const Duration(seconds: 3),
-      );
-    }
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    CustomSnackBar.showError(
+      context,
+      message: message,
+      duration: const Duration(seconds: 3),
+    );
   }
 
   void _navigateToHome(int docUploadStatus) {
@@ -129,7 +116,7 @@ class _OTPScreenState extends State<OTPScreen> {
   Future<void> _verifyOtp() async {
     if (_isDisposed || !mounted || _isVerifying) return;
 
-    final otp = _otpController.text.trim();
+    final otp = _getOtp();
     if (otp.length != otpLength) {
       _showMessage("Please enter complete OTP");
       return;
@@ -146,13 +133,28 @@ class _OTPScreenState extends State<OTPScreen> {
       final parsed = _safeParseResult(result);
 
       if (parsed['success'] == true) {
-        final rawStatus = result['doc_upload_status'];
-        final docUploadStatus = rawStatus is int ? rawStatus : 0;
+        // AuthProvider.verifyOtp wraps the service result inside `data`, so
+        // doc_upload_status lives at result['data']['doc_upload_status'].
+        // The service itself already wrote the value to LocalStorage; we
+        // re-read it here only for the navigation argument. Defensive
+        // coercion handles int / String / bool encodings the backend may send.
+        final inner = result['data'];
+        final rawStatus =
+        inner is Map ? inner['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
         await LocalStorage.setDocUploadStatus(docUploadStatus);
         _navigateToHome(docUploadStatus);
       } else {
+        // Show the error but KEEP the user's input — a one-digit typo is easy
+        // to fix without re-entering all 6 cells.
         _showMessage(parsed['message']);
-        _clearOtpFields();
       }
     } catch (e) {
       if (_isDisposed || !mounted) return;
@@ -191,72 +193,158 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   void _clearOtpFields() {
-    _otpController.clear();
-    _focusNode.requestFocus();
+    for (var controller in _controllers) {
+      controller.clear();
+    }
+    _focusNodes.first.requestFocus();
     setState(() {
       isOtpComplete = false;
     });
   }
 
+  String _getOtp() {
+    return _controllers.map((e) => e.text).join();
+  }
+
   void _checkOtpComplete() {
     if (_isDisposed) return;
-    final otp = _otpController.text.trim();
-    if (mounted) {
-      setState(() {
-        isOtpComplete = otp.length == otpLength;
-      });
-    }
+    final otp = _getOtp();
+    setState(() {
+      isOtpComplete = otp.length == otpLength;
+    });
   }
+  void _onOtpChanged(String value, int index) {
+    if (_isDisposed || !mounted) return;
+
+    // PASTE: multi-digit input lands in one cell when the user pastes an OTP
+    // from SMS. Distribute the digits across all cells starting from index 0.
+    if (value.length > 1) {
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      final paste = digits.length > otpLength
+          ? digits.substring(0, otpLength)
+          : digits;
+
+      for (int i = 0; i < otpLength; i++) {
+        _controllers[i].text = i < paste.length ? paste[i] : '';
+      }
+
+      if (paste.length >= otpLength) {
+        FocusScope.of(context).unfocus();
+      } else {
+        FocusScope.of(context).requestFocus(_focusNodes[paste.length]);
+      }
+
+      _checkOtpComplete();
+      return;
+    }
+
+    // SINGLE-CHAR TYPING: advance / retreat focus per cell.
+    if (value.isNotEmpty) {
+      if (index < otpLength - 1) {
+        FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+      } else {
+        FocusScope.of(context).unfocus();
+      }
+    }
+    if (value.isEmpty && index > 0) {
+      FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
+      _controllers[index - 1].selection = TextSelection.fromPosition(
+        TextPosition(offset: _controllers[index - 1].text.length),
+      );
+    }
+
+    _checkOtpComplete();
+  }
+  //
+  // void _onOtpChanged(String value, int index) {
+  //   if (_isDisposed) return;
+  //
+  //   if (value.length == 1) {
+  //     if (index < otpLength - 1) {
+  //       _focusNodes[index + 1].requestFocus();
+  //     } else {
+  //       _focusNodes[index].unfocus();
+  //     }
+  //   } else if (value.isEmpty) {
+  //     if (index > 0) {
+  //       _focusNodes[index - 1].requestFocus();
+  //     }
+  //   }
+  //   _checkOtpComplete();
+  // }
 
   @override
   void dispose() {
     _isDisposed = true;
     _timer?.cancel();
-    _otpController.removeListener(_checkOtpComplete);
-    _otpController.dispose();
-    _focusNode.dispose();
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    for (var focusNode in _focusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
+  }
+  Widget _otpBox(int index) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: 50.w,
+      height: 65.h,
+      child: TextField(
+        textInputAction: TextInputAction.next,
+        autofocus: index == 0,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(otpLength),
+        ],
+        controller: _controllers[index],
+        focusNode: _focusNodes[index],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDynamic(context),
+        ),
+        decoration: InputDecoration(
+          hintText: "0",
+          hintStyle: TextStyle(
+            color: isDarkMode ? Colors.grey.shade600 : Colors.grey,
+            fontWeight: FontWeight.w400,
+          ),
+          counterText: "",
+          filled: true,
+          fillColor: isDarkMode
+              ? const Color(0xFF2C2C2E)
+              : Colors.grey.shade100,
+          contentPadding: EdgeInsets.zero,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: BorderSide(
+              color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            borderSide: const BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
+            ),
+          ),
+        ),
+        onChanged: (value) => _onOtpChanged(value, index),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isButtonEnabled = isOtpComplete && !_isVerifying && !_isDisposed;
-
-    // ✅ Pinput themes - matching your UI
-    final defaultPinTheme = PinTheme(
-      width: 50.w,
-      height: 65.h,
-      textStyle: TextStyle(
-        fontSize: 18.sp,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimaryDynamic(context),
-      ),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2C2C2E) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
-        ),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: defaultPinTheme.decoration?.copyWith(
-        border: Border.all(
-          color: AppColors.primary,
-          width: 1.5,
-        ),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      decoration: defaultPinTheme.decoration?.copyWith(
-        border: Border.all(
-          color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
-        ),
-      ),
-    );
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -281,32 +369,11 @@ class _OTPScreenState extends State<OTPScreen> {
               ),
             ),
             SizedBox(height: 20.h),
-
-            // ✅ PINPUT WIDGET - UI same as before
-            Pinput(
-              controller: _otpController,
-              focusNode: _focusNode,
-              length: otpLength,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              defaultPinTheme: defaultPinTheme,
-              focusedPinTheme: focusedPinTheme,
-              submittedPinTheme: submittedPinTheme,
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              hapticFeedbackType: HapticFeedbackType.lightImpact,
-              closeKeyboardWhenCompleted: true,
-              onCompleted: (pin) {
-                // Auto verify jab 6 digit complete ho
-                if (pin.length == otpLength && !_isVerifying) {
-                  _verifyOtp();
-                }
-              },
+              children: List.generate(otpLength, (index) => _otpBox(index)),
             ),
-
-            SizedBox(height: 10.h),
+            SizedBox(height:10.h),
             Row(
               children: [
                 Text(
