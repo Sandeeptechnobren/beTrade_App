@@ -147,7 +147,11 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
 
   Widget _menuItem(String text) {
     final isSelected = selectedType == text;
+    // Without `width: double.infinity` the Container shrinks to the Text
+    // width, so the selected-row highlight only covered the label and
+    // left an empty strip on the right (QA #7).
     return Container(
+      width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(

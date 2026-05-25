@@ -141,9 +141,13 @@ class _TradePageState extends State<TradePage> {
     _scheduleQuoteFetch();
   }
 
-  void addQuickAmount(double value) {
+  /// Quick-amount chip tap: REPLACES the current amount with the chip's
+  /// value (10 / 20 / 50 / 100 GHS). Previously this incremented (`+=`),
+  /// which produced wrong order amounts when the user tapped multiple
+  /// chips in sequence — e.g. tap 10 then 20 gave 30 GHS instead of 20.
+  void selectQuickAmount(double value) {
     setState(() {
-      amount += value;
+      amount = value;
       amountController.text = amount.toStringAsFixed(0);
     });
     _scheduleQuoteFetch();
@@ -442,21 +446,35 @@ class _TradePageState extends State<TradePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [10, 20, 50, 100].map((e) {
+                          // A chip is "selected" when the current amount
+                          // matches its value. If the user types a custom
+                          // amount, no chip is selected (correct).
+                          final isSelected = amount == e.toDouble();
                           return GestureDetector(
-                            onTap: () => addQuickAmount(e.toDouble()),
-                            child: Container(
+                            onTap: () => selectQuickAmount(e.toDouble()),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
                               padding: EdgeInsets.symmetric(
                                 horizontal: 10.w,
                                 vertical: 5.h,
                               ),
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.grey,
+                                ),
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
                               child: Text(
                                 "$e GHS",
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.primary,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 16.sp,
                                 ),

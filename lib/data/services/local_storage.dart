@@ -12,7 +12,6 @@ class LocalStorage {
     _prefs = await SharedPreferences.getInstance();
   }
   static Future setToken(String token) async {
-    print(token);
     await _prefs.setString("token", token);
   }
   static String? getToken() {

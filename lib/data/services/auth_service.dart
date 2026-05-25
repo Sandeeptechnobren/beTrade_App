@@ -85,8 +85,11 @@ class AuthService {
           if (isSuccess) {
             final token = responseData['token'] ?? responseData['access_token'];
             if (token != null) {
-              DioClient.setToken(token);
+              // Persist to disk BEFORE setting the in-memory Dio header. If
+              // the app dies between these two lines, we'd rather be fully
+              // logged out than have a header without persistence.
               await LocalStorage.setToken(token);
+              DioClient.setToken(token);
             }
             print(" OTP verified successfully!");
             return true;
@@ -265,6 +268,16 @@ class AuthService {
       }
 
       return false; // real invalid
+    } on DioException catch (e) {
+      // 401 = server rejected the token — treat as invalid, force re-login.
+      if (e.response?.statusCode == 401) {
+        return false;
+      }
+      // 404 = backend hasn't deployed /verify-token yet — fall through
+      // to the network-issue branch so users aren't locked out during
+      // a rolling deploy. Once the route ships everywhere this can be
+      // tightened.
+      return null; // ⚠️ network issue or transitional 404
     } catch (e) {
       return null; // ⚠️ network issue
     }
@@ -314,8 +327,10 @@ class AuthService {
         if (isSuccess) {
           final token = data['token'] ?? data['access_token'];
           if (token != null) {
-            DioClient.setToken(token);
+            // Persist to disk BEFORE setting the in-memory Dio header. See
+            // matching comment in verifyOtp above.
             await LocalStorage.setToken(token);
+            DioClient.setToken(token);
           }
         }
 
@@ -374,8 +389,6 @@ class AuthService {
           "token": token,
         },
       );
-      print(token);
-
       print("FCM SAVE STATUS: ${response.statusCode}");
       print("FCM SAVE RESPONSE: ${response.data}");
 
