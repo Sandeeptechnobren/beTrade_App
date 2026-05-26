@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/trade_model.dart';
@@ -440,6 +441,38 @@ class _PollCardState extends State<PollCard> {
     // );
   }
 
+  /// Open the OS share sheet for this trade card. The user picks where
+  /// to send it (WhatsApp, Messages, Mail, etc.) — share_plus handles
+  /// the platform integration. Includes the market description and
+  /// category so the recipient knows what's being shared even without
+  /// a deep link to the app (no URL scheme is wired up yet).
+  void _shareTradeCard(TradeModel trade) {
+    // TradeModel.description and categoryName default to '' in fromJson —
+    // they're non-nullable, so no `?? ''` needed.
+    final desc = trade.description.trim();
+    final category = trade.categoryName.trim();
+
+    final buf = StringBuffer()
+      ..writeln('Check out this prediction market on BeTrade:');
+    if (desc.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln(desc);
+    }
+    if (category.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln('Category: $category');
+    }
+    if (trade.image != null && trade.image!.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln(trade.image!);
+    }
+
+    Share.share(buf.toString(), subject: 'BeTrade Market');
+  }
+
   bool _ensureReadyToTrade() {
     final provider = context.read<DefaultAmountProvider>();
 
@@ -565,8 +598,10 @@ class _PollCardState extends State<PollCard> {
                 ),
                 Positioned(
                   top: 14.h,
-                  right:14.w,
-                  child: CommonShareButton(onTap: () {}),
+                  right: 14.w,
+                  child: CommonShareButton(
+                    onTap: () => _shareTradeCard(trade),
+                  ),
                 ),
                 Positioned(
                   bottom: 12.h,

@@ -19,6 +19,10 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-23 — **PollCard share button now actually shares** on `feature/vandana_claude`:
+  - Added `share_plus: ^10.1.4` dependency.
+  - `HomeScreen.dart` `_shareTradeCard(trade)` — opens the OS share sheet (WhatsApp, Messages, Mail, etc.) with the trade description, category, and image URL. Wired into the previously-stubbed `CommonShareButton(onTap: () {})` on PollCard. No deep-link URL scheme yet — recipient sees text content only.
+  - Other `CommonShareButton` stub at `info_chart_screen.dart:81` still TODO (not in scope for this commit).
 - 2026-05-23 — **Chart-page Buy Yes/No now opens the quote view** on `feature/vandana_claude`:
   - `trade_details_page.dart` `_openNewTrade` — taps on the chart/info page's Buy Yes / Buy No buttons now open `TradePage` with `useDefaultAmount: true`, so the user lands directly on the quote view (shares, price, max payout, potential profit) instead of an empty amount input. Mirrors the home-screen swipe path.
   - Added the same readiness gate `HomeScreen._ensureReadyToTrade()` uses (purple `showLoader` while default amount is still fetching; red `showError` + open `DefaultSettingsPage` if loaded-but-zero). Imports `DefaultAmountProvider`, `DefaultSettingsPage`, `CustomSnackBar`.
