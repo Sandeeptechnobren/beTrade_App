@@ -117,8 +117,6 @@ class _ProfilePageState extends State<ProfilePage> {
               await provider.fetchProfile();
             },
             child: SingleChildScrollView(
-              // AlwaysScrollable required for RefreshIndicator to fire even
-              // when content fits on one screen.
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
@@ -155,7 +153,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          // Avatar with 4px purple ring (Figma #D9ADFF)
           Container(
             width: 84.w,
             height: 84.w,

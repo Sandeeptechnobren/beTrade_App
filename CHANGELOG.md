@@ -4,6 +4,24 @@ Format: [DATE] [AUTHOR] Description
 
 ## [Unreleased]
 
+### Added
+- 2026-05-26 — **"Continue with Apple" sign-in wired end-to-end** on `feature/abhiCloude`:
+  - `pubspec.yaml` — added `sign_in_with_apple: ^6.1.4`.
+  - `ios/Runner/Runner.entitlements` (new) — declares `com.apple.developer.applesignin = [Default]`. Pair with Xcode's "Sign In with Apple" capability on the Runner target so debug+release builds pick it up.
+  - `lib/data/services/apple_auth_service.dart` (new) — wraps `SignInWithApple.getAppleIDCredential` and returns a typed `AppleAuthCredential` record. Heavily commented re: why email/name are null on second login and why Firebase Auth is intentionally not used.
+  - `lib/data/services/notification_services.dart` — added `static Future<String?> getFcmToken()` helper so auth flows can fetch the current FCM token without touching `FirebaseMessaging` directly.
+  - `lib/data/services/auth_service.dart` — added `socialLogin({provider, identityToken, authorizationCode, email?, firstName?, lastName?})` instance method. Mirrors `verifyLoginOtp` for token persistence (`LocalStorage.setToken` → `DioClient.setToken`) and `doc_upload_status` parsing. Backend payload: `{provider, identity_token, authorization_code, fcm_token, device_type, email?, first_name?, last_name?}` → `POST /auth/apple`.
+  - `lib/core/config/api_endpoint.dart` — added `socialLogin` endpoint constant (`/auth/apple`).
+  - `lib/data/provider/signin_provider.dart` — added `signInWithApple()` on `AuthProvider`. Orchestrates Apple sheet → backend, maps `SignInWithAppleAuthorizationException.canceled` to a silent `{cancelled: true}` response (no snackbar), maps other Apple/Dio/unknown errors to user-friendly messages.
+  - `lib/presentation/screens/signin/login_screen.dart` — Apple `OutlinedButton.onPressed` now calls `_handleAppleSignIn` (re-entry guarded via existing `_isLoading`). On success: `Navigator.pushAndRemoveUntil` to `MainScreen` (mirrors OTP-verified login). Apple button + its leading spacer wrapped in `if (Platform.isIOS)` so Android gets a full-width Google button.
+  - `lib/presentation/screens/splash/signup_screen.dart` — same wiring inside `_buildSocialAuthButtons`; on success skips OTP/gender/name/profile steps and lands the user on `MainScreen`.
+  - Backend contract: existing `/verify-otp/login` envelope reused — `{status|success, token|access_token, user.doc_upload_status, message}`. **TODO(backend):** confirm `/auth/apple` path and that the response shape matches.
+
+- 2026-05-26 — **Continue with Google / Apple buttons on signup phone step** on `feature/abhiCloude`:
+  - `authlayout.dart` — added optional `Widget? bottomExtra` slot rendered inside the bottom bar's `SafeArea`, directly under the Continue button (12.h gap). Default null preserves prior behavior for every other call site.
+  - `signup_screen.dart` — when `step == 1` (StepPhone), passes a `_buildSocialAuthButtons` row to `bottomExtra`: two equal-width `OutlinedButton`s ("Continue with [Google]" / "Continue with [Apple]") mirroring the existing `LoginScreen` styling (50.h height, 25.r pill, `borderDynamic` outline, `buttonSecondaryDynamic` bg). `onPressed` are stubs — real OAuth wiring isn't in this layout pass.
+  - Other signup steps (OTP, gender, name, profile) unaffected — `bottomExtra` resolves to null.
+
 ### Changed
 - 2026-05-26 — **Rankings tab now shows a "Coming Soon" dialog** on `feature/abhiCloude`:
   - `main_screen.dart` — `CustomBottomNav` onTap now intercepts `index == 2` and shows a centered Material `Dialog` (leaderboard icon, "Coming Soon" + "The Rankings feature is on its way. Stay tuned!" + Got it button) instead of switching tabs. The selected tab stays where it was.

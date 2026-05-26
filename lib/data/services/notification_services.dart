@@ -19,6 +19,22 @@ class NotificationService {
     await _setupNotificationClickHandling();
   }
 
+  /// On-demand FCM token retrieval for auth flows.
+  ///
+  /// The init() pipeline above generates the token once at app start, but
+  /// auth requests (OTP login, social login) need to attach it to the
+  /// backend call at the moment of sign-in — so they call this method
+  /// to grab the current token. Returns null if Firebase isn't ready or
+  /// the device hasn't granted notification permission.
+  static Future<String?> getFcmToken() async {
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      debugPrint("🔥 FCM token fetch failed: $e");
+      return null;
+    }
+  }
+
   static Future<void> _requestPermission() async {
     NotificationSettings settings =
     await _messaging.requestPermission(

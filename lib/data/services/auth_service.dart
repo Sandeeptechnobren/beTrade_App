@@ -6,6 +6,7 @@ import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
 import '../provider/default_amount_provider.dart';
 import 'local_storage.dart';
+import 'notification_services.dart';
 import 'package:provider/provider.dart';
 
 class AuthService {
@@ -409,6 +410,106 @@ class AuthService {
         print("FCM SAVE ERROR: $e");
       }
       return false;
+    }
+  }
+
+  /// POSTs a verified social-auth credential (currently Apple) to the
+  /// backend. Mirrors [verifyLoginOtp] exactly:
+  ///   - persists the returned JWT to disk BEFORE setting the in-memory
+  ///     Dio header (so a crash between the two leaves us logged-out,
+  ///     not header-only),
+  ///   - parses `doc_upload_status` into an int and saves it to
+  ///     [LocalStorage] so the KYC banner survives an app relaunch,
+  ///   - returns the same `{success, message, data, doc_upload_status}`
+  ///     shape so callers can reuse the OTP success path.
+  ///
+  /// FCM token is included in the request body (per the agreed contract)
+  /// so the backend can register push at the same moment it mints the
+  /// JWT — that's why we skip the separate /fcm/save-token call that
+  /// verifyLoginOtp makes.
+  ///
+  /// `provider` is the literal string the backend expects, e.g. "apple".
+  /// `email`/`firstName`/`lastName` are nullable because Apple only
+  /// returns them on the FIRST sign-in for an app — subsequent sign-ins
+  /// pass null. The backend identifies returning users via the
+  /// identity-token's `sub` claim, so these fields are creation-only
+  /// hints, not authentication material.
+  Future<Map<String, dynamic>> socialLogin({
+    required String provider,
+    required String identityToken,
+    required String authorizationCode,
+    String? email,
+    String? firstName,
+    String? lastName,
+  }) async {
+    try {
+      final fcmToken = await NotificationService.getFcmToken();
+
+      final response = await DioClient.instance.post(
+        ApiEndpoints.socialLogin,
+        data: {
+          "provider": provider,
+          "identity_token": identityToken,
+          "authorization_code": authorizationCode,
+          "fcm_token": fcmToken ?? "",
+          "device_type": Platform.isIOS ? "ios" : "android",
+          if (email != null) "email": email,
+          if (firstName != null) "first_name": firstName,
+          if (lastName != null) "last_name": lastName,
+        },
+      );
+
+      print("SOCIAL LOGIN STATUS: ${response.statusCode}");
+      print("SOCIAL LOGIN RESPONSE: ${response.data}");
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+
+        if (isSuccess) {
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            await LocalStorage.setToken(token);
+            DioClient.setToken(token);
+          }
+        }
+
+        // Same defensive parse as verifyLoginOtp — backend has been seen
+        // to return doc_upload_status as int, string, or bool.
+        final user = data['user'];
+        final rawStatus = user is Map ? user['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
+
+        if (isSuccess) {
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+        }
+
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+          "data": user,
+          "doc_upload_status": docUploadStatus,
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("SOCIAL LOGIN ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("SOCIAL LOGIN ERROR: $e");
+      return {"success": false, "message": "Server error"};
     }
   }
 

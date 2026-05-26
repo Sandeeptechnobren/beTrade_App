@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../services/apple_auth_service.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -44,6 +47,75 @@ class AuthProvider extends ChangeNotifier {
         "success": result["success"] == true,
         "message": result["message"] ?? "Verified",
         "data": result,
+      };
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Orchestrates a full Continue-with-Apple flow:
+  ///   1. Launches Apple's native sheet via [AppleAuthService].
+  ///   2. Forwards the resulting tokens (+ optional profile fields) to
+  ///      the backend via [AuthService.socialLogin].
+  ///   3. Returns the same `{success, message, data, doc_upload_status,
+  ///      cancelled}` envelope callers expect — the `cancelled` flag
+  ///      is set when the user dismissed Apple's sheet so the UI can
+  ///      stay silent (no snackbar).
+  ///
+  /// Errors are caught and mapped to user-friendly messages here so
+  /// the screens don't have to know about [SignInWithAppleAuthorizationException]
+  /// or [DioException] types.
+  Future<Map<String, dynamic>> signInWithApple() async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final credential = await AppleAuthService.signIn();
+      debugPrint(
+          "🍎 Apple credential: sub=${credential.userIdentifier}, "
+          "email=${credential.email}, "
+          "givenName=${credential.givenName}, "
+          "familyName=${credential.familyName}");
+
+      final result = await _authService.socialLogin(
+        provider: "apple",
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        email: credential.email,
+        firstName: credential.givenName,
+        lastName: credential.familyName,
+      );
+
+      return {
+        "success": result["success"] == true,
+        "message": result["message"] ?? "",
+        "data": result["data"],
+        "doc_upload_status": result["doc_upload_status"] ?? 0,
+      };
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // User cancelled the sheet — keep the UI silent and don't show an
+      // error. Other Apple error codes do warrant a snackbar.
+      if (e.code == AuthorizationErrorCode.canceled) {
+        debugPrint("🍎 Apple sign-in cancelled by user");
+        return {"success": false, "message": "", "cancelled": true};
+      }
+      debugPrint("🍎 Apple auth error: code=${e.code} message=${e.message}");
+      return {
+        "success": false,
+        "message": "Apple sign-in failed. Please try again.",
+      };
+    } on DioException catch (e) {
+      debugPrint("🍎 Apple backend error: ${e.message}");
+      return {
+        "success": false,
+        "message": "Network error. Please check your connection.",
+      };
+    } catch (e) {
+      debugPrint("🍎 Unexpected Apple sign-in error: $e");
+      return {
+        "success": false,
+        "message": "Something went wrong. Please try again.",
       };
     } finally {
       isLoading = false;

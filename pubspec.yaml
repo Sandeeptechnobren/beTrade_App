@@ -30,6 +30,8 @@ dependencies:
   firebase_messaging: ^15.0.0
   flutter_local_notifications: ^17.0.0
   pinput: ^6.0.2
+  intl: ^0.18.0
+  sign_in_with_apple: ^6.1.4
 
 
 

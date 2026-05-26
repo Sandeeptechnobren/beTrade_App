@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
@@ -175,6 +178,53 @@ class _LoginScreenState extends State<LoginScreen> {
       CustomSnackBar.showError(
         context,
         message: "Network error. Please check your connection.",
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Continue-with-Apple entry point for the Login screen.
+  ///
+  /// Shares the `_isLoading` flag with the OTP flow so the screen can't
+  /// fire both in parallel. On success we route to MainScreen the same
+  /// way OTPScreen does on a verified login.
+  Future<void> _handleAppleSignIn() async {
+    if (_isDisposed || !mounted || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await context.read<AuthProvider>().signInWithApple();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed the Apple sheet — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: (result['message'] as String?)?.isNotEmpty == true
+              ? result['message']
+              : "Sign-in failed. Please try again.",
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      debugPrint("Apple sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      CustomSnackBar.showError(
+        context,
+        message: "Something went wrong. Please try again.",
         duration: const Duration(seconds: 3),
       );
     } finally {
@@ -393,43 +443,47 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Container(
-                    height: 50.h,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.borderDynamic(context),
+                // Apple sign-in is iOS-only. On Android the Google button
+                // expands to fill the row.
+                if (Platform.isIOS) ...[
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50.h,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: AppColors.borderDynamic(context),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25.r),
+                          ),
+                          backgroundColor:
+                              AppColors.buttonSecondaryDynamic(context),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25.r),
-                        ),
-                        backgroundColor:
-                            AppColors.buttonSecondaryDynamic(context),
-                      ),
-                      onPressed: () {},
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue with",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: AppColors.textPrimaryDynamic(context),
+                        onPressed: _isLoading ? null : _handleAppleSignIn,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Continue with",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: AppColors.textPrimaryDynamic(context),
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 2.w),
-                          Icon(
-                            Icons.apple,
-                            size: 24.h,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ],
+                            SizedBox(width: 2.w),
+                            Icon(
+                              Icons.apple,
+                              size: 24.h,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
             SizedBox(height: 20.h),

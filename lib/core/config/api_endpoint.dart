@@ -68,6 +68,12 @@ class ApiEndpoints {
   static String get countries => '${EnvConfig.baseUrl}/countries';
   static String get saveFcmToken => '${EnvConfig.baseUrl}/fcm/save-token';
 
+  // Social auth (Apple, future: Google). Backend verifies the identity
+  // token, creates-or-fetches the user, returns the same JWT envelope as
+  // /verify-otp/login.
+  // TODO(backend): confirm path — could be /social-login or /sign-in/apple.
+  static String get socialLogin => '${EnvConfig.baseUrl}/auth/apple';
+
   static String get notificationPreferences =>
       '${EnvConfig.baseUrl}/notificationPreferences';
 
