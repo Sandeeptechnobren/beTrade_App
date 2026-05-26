@@ -158,7 +158,36 @@ class AuthService {
       );
       print("SIGNUP STATUS: ${response.statusCode}");
       // Response body redacted — contains the user profile + token.
-      return response.statusCode == 200;
+
+      if (response.statusCode == 200) {
+        // CRITICAL: capture the final session token issued at
+        // complete-profile. The /verify-otp/register token from step 2
+        // of signup is a limited "registration" token. Without saving
+        // the newer token here, the user lands on MainScreen with the
+        // old credential, /profile silently 401s, and they're forced
+        // to log out + back in to see their data. Reported as the
+        // "no profile after signup, re-login fixes it" bug.
+        final data = response.data;
+        if (data is Map) {
+          String? token = data['token']?.toString() ??
+              data['access_token']?.toString();
+          if (token == null && data['data'] is Map) {
+            final inner = data['data'] as Map;
+            token = inner['token']?.toString() ??
+                inner['access_token']?.toString();
+          }
+          if (token != null && token.isNotEmpty) {
+            // Persist to disk BEFORE setting the in-memory Dio header —
+            // same ordering as verifyOtp / verifyLoginOtp so an app
+            // death between the two ops leaves us cleanly signed out
+            // instead of in a header-but-no-disk limbo.
+            await LocalStorage.setToken(token);
+            DioClient.setToken(token);
+          }
+        }
+        return true;
+      }
+      return false;
     } catch (e) {
       if (e is DioException) {
         print("Signup Error: ${e.message}");

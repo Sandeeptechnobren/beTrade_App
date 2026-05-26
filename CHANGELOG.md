@@ -19,6 +19,9 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-26 — **Post-signup profile shows nothing without re-login** on `feature/vandana_claude`:
+  - Root cause: `auth_service.dart` `completeSignup` returned `bool` and discarded the response body. The backend issues the FINAL session token at `/complete-profile` (the `/verify-otp/register` token from step 2 is only a limited "registration" token). Without capturing the new token, the user landed on MainScreen still holding the registration token, `/profile` silently 401'd, and the only way to see profile data was logout + re-login.
+  - Fix: parse the `completeSignup` response; extract `data['token']` / `data['access_token']` (with fallback to nested `data['data']['token']`); persist via `LocalStorage.setToken()` then `DioClient.setToken()` (same disk-first ordering as `verifyOtp` / `verifyLoginOtp`). `completeSignup` still returns `bool` so no caller refactor needed.
 - 2026-05-26 — **Play Store release readiness pass** on `feature/vandana_claude`:
   - **QA #14** placeholder text too dark — added `AppColors.hintTextDynamic` token (grey.shade400 in light, grey.shade500 in dark). Applied across `login_screen`, `OTP_step`, `newDeposit`, `new_Payment_method`, `explore_page`. Hints now read as hints in both themes.
   - **QA #15** dark mode inconsistencies — only 2 active static `AppColors.inputFieldBg` usages found (`wallet_history` border + `country_picker_sheet` spinner color). Both replaced with theme-aware variants (`borderDynamic` and `AppColors.primary` respectively).
