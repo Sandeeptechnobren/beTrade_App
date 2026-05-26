@@ -157,6 +157,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:betrade/data/services/local_storage.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/verification/verify_account.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -258,25 +259,31 @@ class _SuccessScreenState extends State<SuccessScreen>
         }
       });
     });
-    // After the success animation finishes, drop the user into the main
-    // app. The signup OTP verify in step 2 has already persisted the
-    // token, so they're already authenticated — sending them back to
-    // AuthScreen here (the old behaviour) forced a redundant login.
+    // After the success animation finishes, route the user straight into
+    // KYC. Earlier behaviour dropped them on MainScreen with a banner
+    // saying "verify your account" — tester reported this is too easy to
+    // skip and verification should "start immediately after signup" (QA
+    // #13). VerificationFlow itself pushes to MainScreen on completion
+    // (verify_account.dart:186), so the eventual destination is
+    // unchanged.
     //
-    // docUploadStatus = 0 surfaces the KYC banner inside MainScreen, which
-    // satisfies the "verification should start immediately after signup"
-    // requirement (issue #13).
+    // Users that already have doc_upload_status > 0 (e.g. returning via
+    // Google sign-in on an already-verified account) skip straight to
+    // MainScreen instead.
     Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
       final docUploadStatus = LocalStorage.getDocUploadStatus() ?? 0;
+      // VerificationFlow has no const constructor today — instantiated
+      // without `const` so analyzer doesn't choke (const_with_non_const).
+      final Widget destination = docUploadStatus == 0
+          ? VerificationFlow()
+          : MainScreen(
+              showWelcomePopup: true,
+              docUploadStatus: docUploadStatus,
+            );
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => MainScreen(
-            showWelcomePopup: true,
-            docUploadStatus: docUploadStatus,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => destination),
         (route) => false,
       );
     });
