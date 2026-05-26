@@ -120,6 +120,13 @@ class CustomBottomNav extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
+      // Anchor the navbar colour so scrolling content underneath does
+      // not bleed the Material 3 surface tint into the nav and turn it
+      // grey (QA #16). Setting backgroundColor explicitly + elevation 0
+      // is enough on the classic BottomNavigationBar widget — it does
+      // not expose surfaceTintColor.
+      backgroundColor: AppColors.bottomNavBackgroundDynamic(context),
+      elevation: 0,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: Colors.grey,
       selectedLabelStyle: AppTextStyle.smallNav,

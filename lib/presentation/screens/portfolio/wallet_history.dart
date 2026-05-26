@@ -80,7 +80,12 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                       ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(25.r),
-                        border: Border.all(color: AppColors.inputFieldBg),
+                        // Was AppColors.inputFieldBg (static light grey) -- in
+                        // dark mode that was a near-invisible light line on a
+                        // dark surface (QA #15).
+                        border: Border.all(
+                          color: AppColors.borderDynamic(context),
+                        ),
                       ),
                       child: Row(
                         children: [

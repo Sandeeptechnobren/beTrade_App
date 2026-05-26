@@ -308,9 +308,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         fillColor: AppColors.inputFieldBgDynamic(context),
                         counterText: "",
                         hintText: "000 000 0000",
+                        // Centralised hint colour — was Colors.grey in
+                        // light mode (too dark, read as real input) and
+                        // grey.shade500 in dark mode (decent). The
+                        // hintTextDynamic token uses grey.shade400 in
+                        // light mode for proper placeholder contrast
+                        // (QA #14).
                         hintStyle: TextStyle(
-                          color:
-                              isDarkMode ? Colors.grey.shade500 : Colors.grey,
+                          color: AppColors.hintTextDynamic(context),
                         ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 15.w,

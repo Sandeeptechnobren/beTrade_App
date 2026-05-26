@@ -136,9 +136,12 @@ class _NewPaymentMethodPageState extends State<NewPaymentMethodPage> {
       controller: controller,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: AppTextStyle.body,
+        // Was AppTextStyle.body (bold, dark) — replaced with the
+        // centralised hint colour so placeholders read as placeholders
+        // (QA #14).
+        hintStyle: TextStyle(color: AppColors.hintTextDynamic(context)),
         filled: true,
-        fillColor:AppColors.inputFieldBgDynamic(context),
+        fillColor: AppColors.inputFieldBgDynamic(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(50.r),
           borderSide: BorderSide.none,

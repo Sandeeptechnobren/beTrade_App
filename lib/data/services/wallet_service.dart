@@ -20,15 +20,15 @@ class WalletService {
       if (response.statusCode == 200 && response.data is Map) {
         final body = response.data as Map;
         if (body['status'] == true && body['data'] is Map) {
-          print(response.data);
+          // Body redacted — wallet balance + currency are sensitive.
           return Map<String, dynamic>.from(body['data'] as Map);
         }
       }
 
       return null;
     } on DioException catch (e) {
-      print('WalletService.getBalance DioException: ${e.message}; '
-          'response=${e.response?.data}');
+      // Response body redacted — backend errors may echo balance hints.
+      print('WalletService.getBalance DioException: ${e.message}');
       return null;
     } catch (e) {
       print('WalletService.getBalance error: $e');
@@ -66,8 +66,8 @@ class WalletService {
       }
       return [];
     } on DioException catch (e) {
-      print('WalletService.getTransactions DioException: ${e.message}; '
-          'response=${e.response?.data}');
+      // Response body redacted — transaction history is sensitive.
+      print('WalletService.getTransactions DioException: ${e.message}');
       return [];
     } catch (e) {
       print('WalletService.getTransactions error: $e');
@@ -146,8 +146,9 @@ class WalletService {
       final body = e.response?.data;
       final code = body is Map ? body['code']?.toString() : null;
       final message = body is Map ? body['message']?.toString() : null;
-      print('WalletService intent DioException: code=$code '
-          'message=$message; response=$body');
+      // Full response body redacted — keep only the typed code and the
+      // user-facing message, which we surface to the UI anyway.
+      print('WalletService intent DioException: code=$code message=$message');
       return {
         'success': false,
         'code': code,

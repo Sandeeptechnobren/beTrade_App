@@ -35,7 +35,8 @@ class ProfileService {
       );
 
       debugPrint("📌 Response Status Code: ${response.statusCode}");
-      debugPrint("📌 Response Body: ${response.data}");
+      // Response body redacted (contains user PII — name, phone,
+      // avatar URL, etc.).
 
       if (response.statusCode == 200) {
         final dynamic raw = response.data;
@@ -63,16 +64,12 @@ class ProfileService {
         }
 
         if (profile != null) {
-          debugPrint("\n✅✅✅ PROFILE DATA SUCCESSFULLY LOADED ✅✅✅");
-          debugPrint("👤 First Name: '${profile.firstName}'");
-          debugPrint("👤 Last Name: '${profile.lastName}'");
-          debugPrint("🖼️ Avatar URL: '${profile.avatar}'");
-          debugPrint("📞 Phone: '${profile.phone}'");
-          debugPrint("⚧ Gender: '${profile.gender}'");
-          debugPrint("🌍 Country: '${profile.country}'");
-          debugPrint("💵 Currency: '${profile.currency}'");
-          debugPrint("🔤 Language: '${profile.language}'");
-          debugPrint("==========================================\n");
+          // Previously logged every profile field (first/last name,
+          // avatar URL, phone, gender, country, currency, language) —
+          // direct PII leak into logcat. Replaced with a neutral
+          // success marker. Use the in-app inspector or backend logs
+          // for field-level debugging.
+          debugPrint("✅ Profile loaded successfully");
         } else {
           debugPrint("❌ Profile is null after parsing!");
         }
@@ -92,7 +89,9 @@ class ProfileService {
         debugPrint("❌ API Endpoint not found! Check URL: ${ApiEndpoints.profile}");
       } else {
         debugPrint(
-            "❌ DioException in getProfile: ${e.message}; code=$code; response=${e.response?.data}");
+            "❌ DioException in getProfile: ${e.message}; code=$code");
+        // Response body intentionally NOT logged — backend errors may
+        // echo user fields back in their detail.
       }
       return null;
     } catch (e) {
@@ -130,13 +129,9 @@ class ProfileService {
         // 'country': country,
       };
 
-      debugPrint(" Update Data:");
-      debugPrint("   first_name: $firstName");
-      debugPrint("   last_name: $lastName");
-      debugPrint("   phone: $phone");
-      // print("   email: $email");
-      // print("   gender: $gender");
-      // print("   country: $country");
+      // Update fields intentionally NOT logged — they're user PII
+      // (name + phone). Confirm them in the in-app form, not in logs.
+      debugPrint(" Update request prepared");
 
       if (image != null) {
         debugPrint("📌 Image: ${image.path}");
@@ -159,7 +154,7 @@ class ProfileService {
       );
 
       debugPrint("📌 Response Status: ${response.statusCode}");
-      debugPrint("📌 Response Body: ${response.data}");
+      // Body redacted (echoes updated user fields).
 
       if (response.statusCode == 200) {
         debugPrint("✅ Profile updated successfully!");
@@ -172,7 +167,8 @@ class ProfileService {
       }
     } on DioException catch (e) {
       debugPrint(
-          "❌ DioException in updateProfile: ${e.message}; code=${e.response?.statusCode}; response=${e.response?.data}");
+          "❌ DioException in updateProfile: ${e.message}; code=${e.response?.statusCode}");
+      // Body redacted.
       return false;
     } catch (e) {
       debugPrint("❌ EXCEPTION in updateProfile: $e");

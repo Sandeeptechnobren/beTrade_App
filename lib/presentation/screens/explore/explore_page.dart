@@ -357,7 +357,16 @@ class _ExplorePageState extends State<ExplorePage> {
                       onSubmitted: _onSearchSubmitted,
                       decoration: InputDecoration(
                         hintText: "Search",
-                        hintStyle: AppTextStyle.subHeading,
+                        // Was AppTextStyle.subHeading (w500 + null colour)
+                        // which rendered the "Search" hint as bold near-
+                        // black text — looked like a search target rather
+                        // than an empty input (QA #14). Keep the 18sp size
+                        // for the larger search bar but use the centralised
+                        // hint colour.
+                        hintStyle: TextStyle(
+                          fontSize: 18.sp,
+                          color: AppColors.hintTextDynamic(context),
+                        ),
                         border: InputBorder.none,
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(

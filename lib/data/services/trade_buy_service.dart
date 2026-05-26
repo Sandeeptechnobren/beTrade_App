@@ -49,7 +49,9 @@ class TradeBuyService {
       //   BELOW/ABOVE_*COST  → in-line cost validation hint
       //   UNKNOWN_OUTCOME    → developer bug; show generic
       final body = e.response?.data;
-      print('TradeBuyService DioException: ${e.message}; response=$body');
+      // Response body intentionally NOT logged — contains the typed
+      // error code we surface to the UI plus balance hints.
+      print('TradeBuyService DioException: ${e.message}');
       if (body is Map) {
         return BuyResponse.fromJson(Map<String, dynamic>.from(body));
       }

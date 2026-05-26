@@ -72,6 +72,31 @@ class AppColors {
           ? const Color(0xFF2C2C2E) // Dark mode secondary button
           : inputFieldBg; //// Light mode secondary button
 
+  /// Placeholder / hint text color for `TextField.decoration.hintStyle`.
+  /// Previously every input set its own ad-hoc colour (`Colors.grey`,
+  /// `Colors.grey.shade500`, `AppTextStyle.body`, etc.) — many landed
+  /// too dark in light mode and read as real data instead of a hint
+  /// (QA #14). This token centralises a single production-grade value
+  /// per brightness:
+  ///
+  ///   * light → `grey.shade400` — clearly lighter than body text
+  ///   * dark  → `grey.shade500` — readable on the dark surface but
+  ///     still distinguishable from primary text
+  static Color hintTextDynamic(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey.shade500
+          : Colors.grey.shade400;
+
+  /// Bottom-navigation background. The default Material 3
+  /// `BottomNavigationBar` background is `Theme.canvasColor` plus a
+  /// surface tint that bleeds in as the body scrolls, which is what
+  /// caused the "navbar turns grey on scroll" report (QA #16). Set this
+  /// explicitly on the nav widget to anchor the colour.
+  static Color bottomNavBackgroundDynamic(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1C1C1E)
+          : Colors.white;
+
   // ✅ NEW - Add these methods
   static Color snackbarErrorDynamic(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark

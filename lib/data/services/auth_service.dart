@@ -21,7 +21,8 @@ class AuthService {
       );
 
       print("STATUS: ${response.statusCode}");
-      print("RESPONSE: ${response.data}");
+      // Sensitive — body could contain a token or backend error
+      // payload. Don't dump it to logcat in release builds.
 
       // SUCCESS
       if (response.statusCode == 200) {
@@ -47,7 +48,8 @@ class AuthService {
 
     } on DioException catch (e) {
       print("ERROR: ${e.message}");
-      print("RESPONSE: ${e.response?.data}");
+      // Response body redacted — may contain backend error fields
+      // that echo OTPs or user metadata.
 
       return {
         "success": false,
@@ -75,7 +77,8 @@ class AuthService {
       );
 
       print("OTP VERIFY STATUS: ${response.statusCode}");
-      print("OTP VERIFY RESPONSE: ${response.data}");
+      // Response body redacted — the success response CONTAINS THE
+      // BEARER TOKEN. Never dump in any environment.
       if (response.statusCode == 200) {
         final responseData = response.data;
         if (responseData is Map) {
@@ -105,7 +108,8 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
         print("OTP ERROR: ${e.message}");
-        print("OTP ERROR RESPONSE: ${e.response?.data}");
+        // Response body redacted (potential OTP echo / token in 200
+        // path masquerading as exception).
 
         // Even if status code is 200, check response data
         if (e.response?.statusCode == 200 && e.response?.data != null) {
@@ -153,12 +157,12 @@ class AuthService {
         data: formData,
       );
       print("SIGNUP STATUS: ${response.statusCode}");
-      print("SIGNUP RESPONSE: ${response.data}");
+      // Response body redacted — contains the user profile + token.
       return response.statusCode == 200;
     } catch (e) {
       if (e is DioException) {
         print("Signup Error: ${e.message}");
-        print("Signup Error Response: ${e.response?.data}");
+        // Response body redacted — echoes form fields (PII).
       } else {
         print("Signup Error: $e");
       }
@@ -208,7 +212,7 @@ class AuthService {
         ApiEndpoints.chart,
       );
       print("CHART DATA STATUS: ${response.statusCode}");
-      print("CHART DATA RESPONSE: ${response.data}");
+      // Body redacted to avoid noisy log dumps in production.
       if (response.statusCode == 200) {
         final List data = response.data;
         return data.map((e) => ChartData.fromJson(e)).toList();
@@ -218,7 +222,7 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
         print("CHART ERROR: ${e.message}");
-        print("CHART ERROR RESPONSE: ${e.response?.data}");
+        // Body redacted.
         throw Exception("Chart Error: ${e.message}");
       } else {
         print("CHART ERROR: $e");
@@ -238,13 +242,13 @@ class AuthService {
           },
         ),
       );
-      print("Logout Response: ${response.data}");
+      // Logout response body redacted (may echo session info).
       print("Logout Status: ${response.statusCode}");
       return response.statusCode == 200;
     } catch (e) {
       if (e is DioException) {
         print("Logout Error: ${e.message}");
-        print("Logout Error Response: ${e.response?.data}");
+        // Body redacted.
       } else {
         print("Logout Error: $e");
       }
@@ -390,7 +394,7 @@ class AuthService {
         },
       );
       print("FCM SAVE STATUS: ${response.statusCode}");
-      print("FCM SAVE RESPONSE: ${response.data}");
+      // FCM-save response body redacted.
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -404,7 +408,7 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
         print("FCM SAVE ERROR: ${e.message}");
-        print("FCM SAVE RESPONSE: ${e.response?.data}");
+        // Body redacted.
       } else {
         print("FCM SAVE ERROR: $e");
       }

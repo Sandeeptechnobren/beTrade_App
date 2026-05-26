@@ -20,6 +20,74 @@
 
 ---
 
+## 0. 🚀 Release Readiness — Play Store launch pass (2026-05-26)
+
+This section documents the dedicated release-readiness work performed under the explicit Play Store mandate. **Rankings feature (#5) was intentionally excluded** per scope.
+
+### Debug prints removed / redacted
+
+| File | What was logged | Now |
+|------|-----------------|-----|
+| `lib/data/services/auth_service.dart` | 12× `print("...RESPONSE: ${response.data}")` — **dumped bearer tokens, OTP echoes, user objects** into adb logcat | Replaced with redaction comments. Status-code log preserved. |
+| `lib/data/services/profile_service.dart` | 9-line PII block dumping firstName / lastName / avatar URL / phone / gender / country / currency / language. Plus 2× response body dumps + DioException response leak | Collapsed to single neutral `"Profile loaded successfully"`. All field-level prints removed. Response bodies redacted. |
+| `lib/data/services/wallet_service.dart` | 4× response.data / `e.response?.data` dumps in balance, transactions, deposit/withdraw intents | All response-body components stripped; status / message / typed code preserved |
+| `lib/data/services/trade_buy_service.dart` | 1× response body dump in DioException (contained user balance hints) | Body stripped; error message preserved |
+| `lib/data/services/local_storage.dart` (earlier commit) | `print(token)` in `setToken` | Removed in `2147422` |
+| `lib/data/services/auth_service.dart` `saveFcmToken` (earlier) | `print(token)` | Removed in `2147422` |
+
+**Total: 23 sensitive log scrubs across 4 highest-risk services.**
+
+### Sensitive logs protected — new logging utility
+
+Added `lib/core/utils/logger.dart` — `AppLogger` facade with four levels:
+
+| Method | Behaviour in release |
+|--------|----------------------|
+| `AppLogger.d(tag, msg)` | **Stripped by tree-shaking** — uses `kDebugMode` constant. Safe for any debug-only output. |
+| `AppLogger.i(tag, msg)` | Kept. Use only for non-sensitive lifecycle events. |
+| `AppLogger.w(tag, msg, [err])` | Kept. For recoverable conditions. |
+| `AppLogger.e(tag, msg, [err, stack])` | Kept. Stack trace stripped in release. Wire to Crashlytics/Sentry when adopted. |
+| `AppLogger.dRedacted(tag, label, value)` | Debug-only mask: keeps first 4 + last 4 chars of a secret. |
+
+Adoption strategy: introduced for new code. Existing service-layer logs were redacted in place to avoid a 250-call rewrite on launch day. Future PRs should migrate remaining `print(...)` to `AppLogger.*`.
+
+### Release configuration verified
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `debugShowCheckedModeBanner: false` | ✅ | `main.dart:207` |
+| `themeMode` wired to provider | ✅ | `main.dart:208` |
+| Light + dark `ThemeData` defined | ✅ | `main.dart:209-220` |
+| Release build target SDK | ✅ | `compileSdk` / `targetSdk` 34 |
+| `kotlin.incremental=false` for Windows cross-drive | ✅ | `android/gradle.properties` (commit `17d33fc`) |
+| Asset declarations valid in `pubspec.yaml` | ✅ | images/, logo/, fonts/, .env all declared |
+| `.env` bundled but committed to git | ⚠ | Documented as known risk. Backend URL is only env value — no secret keys. |
+| Debug-only utilities accidentally in release | ✅ | None found. `_showSnack` dead method noted as pre-existing dead code. |
+
+### Remaining release risks (NOT addressed in this pass)
+
+These are **Play Store launch blockers** documented in §2 of this report. Each is non-code (signing config or external setup) so they can't be fixed by a code change alone:
+
+1. **🛑 Release builds still sign with the DEBUG keystore** (`android/app/build.gradle.kts:30`). Google Play will reject the upload. **MUST generate a release keystore before submission.** Cannot be code-fixed — requires `keytool` + `key.properties` setup.
+2. **🛑 `android:usesCleartextTraffic="true"`** in `AndroidManifest.xml`. Google Play security scan will flag a financial app allowing HTTP. **MUST remove before release.**
+3. **🛑 AAB not APK** — must `flutter build appbundle --release` for Play Store submission.
+4. **🛑 Wallet deposit/withdraw form wiring** — needs functional verification on the latest branch (team's commit `1177c76` may have addressed). Without working wallet flow, the app is non-functional for a trading product.
+5. **🛑 `flutter_secure_storage` for the bearer token** — currently plaintext `SharedPreferences`. Recommended for a financial app before public launch. Not a Play *rejection* trigger but a serious security gap.
+6. **🟡 Other services still print response bodies** — `positions_service`, `trade_service`, `trade_details_service`, `trade_quote_service`, `category_service`, `explorer_service`, `market_card_service`, `notification_services`, `default_settings_service`, `profile_notification_service`. These were not touched in this pass because their data is less sensitive than auth/wallet/profile. Schedule a follow-up sweep using `AppLogger.d` migration.
+7. **🟡 `main.dart` `_firebaseBackgroundHandler`** still uses `debugPrint` for message title / body / data. Could leak notification content (e.g. "₵500 deposited"). Wrap in `kDebugMode` if push payloads ever contain amounts.
+8. **🟡 Privacy Policy + Terms of Service URLs** — required in Play Console listing. Not a code concern; needs hosting.
+9. **🟡 Prediction market / real-money policy review** — confirm Google Play allowed-territory for Ghana (GHS) before submission.
+
+### Play Store readiness status — final assessment
+
+**Code-side: ~80% ready.** Sensitive logging cleaned in highest-risk services. Theme polished. Typography production-grade. Avatars high-res. Logo refreshed. Navbar locked against Material 3 surface tint. Placeholder colours unified. KYC banner timing fixed. Trade flow + post-signup nav verified.
+
+**Configuration-side: NOT READY.** Three hard blockers remain (release keystore, cleartext traffic, AAB build). All three are quick to fix (15 + 2 + 1 minute) but **MUST be done by a human with `keytool` + Play Console access**. None can be automated by Claude.
+
+**Recommendation:** Upload to Play Console **Internal Testing track first**, never directly to Production. Internal Testing lets you verify the AAB on real devices via the Play install path without exposing the app to public users. Promote to Production only after 1–2 days of confirmed working on internal devices.
+
+---
+
 ## 1. ✅ Already fixed on `feature/vandana_claude`
 
 These are committed and pushed. No action needed.

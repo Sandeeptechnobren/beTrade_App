@@ -19,6 +19,12 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-26 — **Play Store release readiness pass** on `feature/vandana_claude`:
+  - **QA #14** placeholder text too dark — added `AppColors.hintTextDynamic` token (grey.shade400 in light, grey.shade500 in dark). Applied across `login_screen`, `OTP_step`, `newDeposit`, `new_Payment_method`, `explore_page`. Hints now read as hints in both themes.
+  - **QA #15** dark mode inconsistencies — only 2 active static `AppColors.inputFieldBg` usages found (`wallet_history` border + `country_picker_sheet` spinner color). Both replaced with theme-aware variants (`borderDynamic` and `AppColors.primary` respectively).
+  - **QA #16** navbar turns grey on scroll — root cause was Material 3 surface tinting bleeding into the unset `BottomNavigationBar.backgroundColor`. Added `AppColors.bottomNavBackgroundDynamic` token + `backgroundColor` + `elevation: 0` on `bottom_nav.dart`.
+  - **Production logging hygiene** — created `lib/core/utils/logger.dart` (`AppLogger` facade with `d`/`i`/`w`/`e`/`dRedacted` levels gated by `kDebugMode`). Then redacted **23 sensitive log statements** across `auth_service.dart` (12× response/token dumps), `profile_service.dart` (full PII profile dump + response bodies), `wallet_service.dart` (4× balance/transaction body dumps), `trade_buy_service.dart` (1× response body). Status codes / error messages preserved; data bodies and field-level PII stripped.
+  - **Scope discipline** — explicitly did NOT modify anything ranking-related (#5 deferred): the `Rankings` label in `bottom_nav.dart` lines 144 + 54 untouched, IndexedStack routing in `main_screen.dart` untouched, `info_chart_screen.dart` untouched.
 - 2026-05-26 — **Production typography pass (QA #2)** on `feature/vandana_claude`:
   - `lib/core/theme/app_text_style.dart` — bumped three heading presets to align with Material 3 / Cred / PhonePe / Zomato production scale:
     - `heading`: **20 → 22sp** (screen titles, matches Material 3 `titleLarge`)

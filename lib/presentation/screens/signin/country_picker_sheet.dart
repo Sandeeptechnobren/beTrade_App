@@ -786,7 +786,11 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                 if (provider.isLoading) {
                   return Center(
                     child: CircularProgressIndicator(
-                      color:AppColors.inputFieldBg,
+                      // Was AppColors.inputFieldBg (very light grey) which
+                      // rendered nearly invisible against the white sheet
+                      // background in light mode (QA #15). Use the brand
+                      // primary so the spinner is always visible.
+                      color: AppColors.primary,
                     ),
                   );
                 }

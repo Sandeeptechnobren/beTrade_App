@@ -250,10 +250,12 @@ class _StepOtpState extends State<StepOtp> {
         ),
         decoration: InputDecoration(
           hintText: "0",
+          // Centralised hint colour — light-mode value (Colors.grey)
+          // was too dark, dark-mode value (grey.shade600) was too dim.
+          // hintTextDynamic uses grey.shade400 / grey.shade500 for
+          // proper contrast in both themes (QA #14).
           hintStyle: TextStyle(
-            color: isDarkMode
-                ? Colors.grey.shade600
-                : Colors.grey,
+            color: AppColors.hintTextDynamic(context),
             fontWeight: FontWeight.w400,
           ),
           counterText: "",

@@ -312,7 +312,11 @@ class _DepositPageState extends State<DepositPage> {
       child: TextField(
         controller: controller,
         decoration: InputDecoration(
-          hintStyle: AppTextStyle.body,
+          // Was AppTextStyle.body (w600 + null colour) — the hint
+          // rendered as bold near-black text indistinguishable from
+          // real input (QA #14). Use the dedicated placeholder colour
+          // and let Material pick a normal font weight.
+          hintStyle: TextStyle(color: AppColors.hintTextDynamic(context)),
           hintText: hint,
           border: InputBorder.none,
         ),
