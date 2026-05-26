@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
