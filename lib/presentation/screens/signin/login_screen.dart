@@ -44,17 +44,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final provider = Provider.of<CountryProvider>(context, listen: false);
-      await provider.fetchCountries();
 
-      if (_isDisposed || !mounted) return;
-
+      // Fast path: SplashScreen pre-warms countries (cache + network) so by
+      // the time we mount here the provider usually has data. Read it
+      // synchronously so the picker renders a flag immediately on first
+      // paint instead of a spinner.
       if (provider.countries.isNotEmpty) {
-        setState(() {
-          _selectedCountry = provider.countries.first;
-        });
+        _selectedCountry =
+            provider.selectedCountry ?? provider.countries.first;
+      } else {
+        // Cold path: cache was missing AND splash's network call hasn't
+        // returned yet. Trigger our own fetch and await — same behaviour as
+        // before this optimisation, but on a tiny minority of launches.
+        await provider.fetchCountries();
+        if (_isDisposed || !mounted) return;
+        if (provider.countries.isNotEmpty) {
+          _selectedCountry =
+              provider.selectedCountry ?? provider.countries.first;
+        }
+      }
+
+      if (mounted && !_isDisposed) {
+        setState(() {});
       }
     } catch (e) {
-      debugPrint(" Country load error: $e");
+      debugPrint("LoginScreen: country load error: $e");
     }
   }
 
