@@ -133,90 +133,105 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Column(
               children: [
+                // ── Top bar (matches Figma "Home - V2") ──────────────
+                // Three children laid out by Stack so the dropdown can be
+                // TRULY centered (a Row with spaceBetween would only centre
+                // it visually if the left + right children have identical
+                // widths, which they don't). The logo bubble anchors left,
+                // the bell anchors right, the dropdown sits dead-centre.
+                // The previous layout had "BeTrade™" wordmark beside the
+                // logo and the dropdown wedged between — Figma drops the
+                // wordmark entirely.
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: 16.w,
                     vertical: 9.h,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Image.asset("assets/logo/IconLogo.png", height: 35.h),
-                          SizedBox(width: 5.w),
-                          Builder(
-                            builder: (context) {
-                              final isDark =
-                                  Theme.of(context).brightness == Brightness.dark;
-                              final textColor =
-                              isDark ? Colors.white : const Color(0xFF1A0D2B);
+                  child: SizedBox(
+                    height: 44.h,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Left — small asterisk logo bubble. The logo PNG
+                        // already has the purple-circle background baked
+                        // in, so no wrapper container needed.
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Image.asset(
+                            "assets/logo/IconLogo.png",
+                            height: 36.h,
+                            errorBuilder: (_, __, ___) => SizedBox(
+                              width: 36.h,
+                              height: 36.h,
+                            ),
+                          ),
+                        ),
 
-                              return RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: "BeTrade",
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
-                                        fontWeight: FontWeight.w700,
-                                        color: textColor,
-                                      ),
+                        // Centre — Category / "Trending ⌄" dropdown.
+                        GestureDetector(
+                          onTap: () => _openFilterBottomSheet(context),
+                          behavior: HitTestBehavior.opaque,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.watch<TradeProvider>().selectedCategory,
+                                style: AppTextStyle.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16.sp,
+                                ),
+                              ),
+                              SizedBox(width: 2.w),
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 22.sp,
+                                color: AppColors.textPrimaryDynamic(context),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Right — bell-in-neutral-circle. Previous code
+                        // used `inputFieldBgDynamic` which is a darker
+                        // grey on the light theme; Figma shows a very
+                        // light grey neutral. shade100 (light) /
+                        // shade800 (dark) gives the right contrast.
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Builder(
+                            builder: (context) {
+                              final isDark = Theme.of(context).brightness ==
+                                  Brightness.dark;
+                              return Container(
+                                width: 40.w,
+                                height: 40.h,
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.grey.shade800
+                                      : Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Image.asset(
+                                    "assets/images/Bell.png",
+                                    width: 20.w,
+                                    height: 20.h,
+                                    fit: BoxFit.contain,
+                                    color: isDark ? Colors.white : null,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      Icons.notifications_none,
+                                      size: 20.sp,
+                                      color: AppColors.textPrimaryDynamic(
+                                          context),
                                     ),
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.top,
-                                      child: Transform.translate(
-                                        offset: const Offset(1, -5),
-                                        child: Text(
-                                          "™",
-                                          style: TextStyle(
-                                            fontSize: 10.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               );
                             },
                           ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () => _openFilterBottomSheet(context),
-                        child: Row(
-                          children: [
-                            Text(
-                              context.watch<TradeProvider>().selectedCategory,
-                              style: AppTextStyle.body,
-                            ),
-                            Icon(Icons.keyboard_arrow_down),
-                          ],
                         ),
-                      ),
-                      Container(
-                        width: 40.w,
-                        height: 40.h,
-                        decoration: BoxDecoration(
-                          color: AppColors.inputFieldBgDynamic(context),
-                          shape: BoxShape.circle,
-                        ),
-                        child:
-                        // Center(
-                        //   child: Icon(Icons.notifications_none, size: 20.sp),
-                        // ),
-                        Center(
-                          child: Image.asset(
-                            "assets/images/Bell.png",
-                            width: 20.w,
-                            height: 20.h,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 if (widget.showKycBanner)
