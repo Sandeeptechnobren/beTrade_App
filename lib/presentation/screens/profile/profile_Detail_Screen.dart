@@ -62,14 +62,23 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           ),
                           child: Row(
                             children: [
+                              // Prefer the thumbnail (200×200) for this
+                              // small circle; falls back to the full
+                              // avatar if no thumbnail is set.
                               CircleAvatar(
                                 radius: 35.r,
                                 backgroundColor: Colors.white,
-                                backgroundImage: profile.avatar.isNotEmpty
-                                    ? NetworkImage(profile.avatar)
-                                    : null,
-                                child: profile.avatar.isEmpty
-                                    ? Icon(Icons.person, size: 30.sp, color: Colors.grey,)
+                                backgroundImage:
+                                    profile.displayAvatar.isNotEmpty
+                                        ? NetworkImage(profile.displayAvatar)
+                                        : null,
+                                onBackgroundImageError:
+                                    profile.displayAvatar.isNotEmpty
+                                        ? (_, __) {}
+                                        : null,
+                                child: profile.displayAvatar.isEmpty
+                                    ? Icon(Icons.person,
+                                        size: 30.sp, color: Colors.grey)
                                     : null,
                               ),
                               SizedBox(width: 15.w),
