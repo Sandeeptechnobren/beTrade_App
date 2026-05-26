@@ -461,10 +461,14 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Bumped from 26sp → 32sp to match the Figma's prominent
+              // "X% Chance" heading on the Chart tab. w800 mirrors the
+              // weight in the design.
               Text(
                 "$chancePct% Chance",
                 style: AppTextStyle.heading.copyWith(
-                  fontSize: 26.sp,
+                  fontSize: 32.sp,
+                  fontWeight: FontWeight.w800,
                   color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
