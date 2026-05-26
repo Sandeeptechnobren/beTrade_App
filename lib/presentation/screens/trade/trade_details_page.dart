@@ -8,6 +8,7 @@ import '../../../core/theme/app_text_style.dart';
 import '../../../data/model/trade_detail_model.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
+import '../../../data/services/trade_chart_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/customSnackBar.dart';
 import '../profile/default_settings_page.dart';
@@ -47,6 +48,45 @@ class TradeDetailsPage extends StatefulWidget {
 class _TradeDetailsPageState extends State<TradeDetailsPage> {
   bool _isInfoTab = true;
   String _selectedRange = '1D';
+
+  // Chart state — populated lazily when the user opens the Chart tab
+  // or switches range. Null until the first successful fetch; falls
+  // back to the sample shape in `_chart()` when empty so the chart
+  // area isn't a void.
+  ChartResponse? _chartData;
+  bool _chartLoading = false;
+  int _chartFetchId = 0; // ignore stale results when user changes range
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-warm the 1D chart so switching to the Chart tab feels instant.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadChart(_selectedRange);
+    });
+  }
+
+  Future<void> _loadChart(String range) async {
+    if (!mounted) return;
+    final requestId = ++_chartFetchId;
+    setState(() {
+      _chartLoading = true;
+      _selectedRange = range;
+    });
+
+    final result = await TradeChartService.fetch(
+      tradeUuid: widget.tradeUuid,
+      range: range,
+    );
+
+    // Drop stale response if the user changed range mid-fetch.
+    if (!mounted || requestId != _chartFetchId) return;
+
+    setState(() {
+      _chartData = result;
+      _chartLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -449,9 +489,16 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   // ───────────────── Chart tab ─────────────────
 
   Widget _buildChartTab(TradeDetailModel detail) {
-    // Chance % derived from current price (LMSR price = implied probability)
-    final chance = (detail.currentPricePerShare * 100).clamp(0, 100);
+    // Chance % — prefer the freshly-fetched chart's `latest` (most
+    // accurate, range-specific), fall back to detail.currentPricePerShare.
+    final latestPrice =
+        _chartData?.latest ?? detail.currentPricePerShare;
+    final chance = (latestPrice * 100).clamp(0, 100);
     final chancePct = chance.toStringAsFixed(0);
+
+    // Real delta from the fetched chart window. Backend buckets the
+    // window per range, so this is "1D %change" for the 1D tab, etc.
+    final delta = _chartData?.deltaPct;
 
     return Padding(
       padding: EdgeInsets.all(16.w),
@@ -461,9 +508,6 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Bumped from 26sp → 32sp to match the Figma's prominent
-              // "X% Chance" heading on the Chart tab. w800 mirrors the
-              // weight in the design.
               Text(
                 "$chancePct% Chance",
                 style: AppTextStyle.heading.copyWith(
@@ -472,33 +516,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                   color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
-              // Hardcoded 24h delta badge — needs backend chart endpoint
-              // (`/trade/{uuid}/chart`) wired to compute the real delta.
-              // See tasks/todo.md.
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      "20%",
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_drop_down,
-                      color: Colors.red.shade700,
-                      size: 18.sp,
-                    ),
-                  ],
-                ),
-              ),
+              _deltaBadge(delta),
             ],
           ),
           SizedBox(height: 16.h),
@@ -512,12 +530,65 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     );
   }
 
+  /// Range-window delta badge — green when price is up, red when
+  /// down, grey when we don't have enough data to compute. Matches
+  /// the Figma "20% ⌄" pill style.
+  Widget _deltaBadge(double? deltaPct) {
+    if (deltaPct == null) {
+      // Not enough history yet — show a neutral placeholder rather
+      // than a misleading 0% delta or a stale hardcoded value.
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(
+          "—",
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w600,
+            fontSize: 12.sp,
+          ),
+        ),
+      );
+    }
+    final isDown = deltaPct < 0;
+    final color = isDown ? Colors.red.shade700 : Colors.green.shade700;
+    final bg = isDown ? Colors.red.shade50 : Colors.green.shade50;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "${deltaPct.abs().toStringAsFixed(0)}%",
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 12.sp,
+            ),
+          ),
+          Icon(
+            isDown ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+            color: color,
+            size: 18.sp,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _rangeChip(String range) {
     final selected = _selectedRange == range;
     return Padding(
       padding: EdgeInsets.only(right: 8.w),
       child: GestureDetector(
-        onTap: () => setState(() => _selectedRange = range),
+        onTap: () => _loadChart(range),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
@@ -545,31 +616,61 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     );
   }
 
-  /// Placeholder chart with hardcoded sample data shaped like the
-  /// design mock. Real data should come from `/trade/{uuid}/chart` —
-  /// tracked in tasks/todo.md.
+  /// Renders the LMSR price-over-time chart for the current range.
+  ///
+  /// Data comes from `TradeChartService.fetch(...)` (the backend's
+  /// `/api/trade/{uuid}/chart` endpoint, bucketed per range). When
+  /// the network call is in flight we show a spinner; on failure /
+  /// empty data we render the sample shape so the chart pane still
+  /// has something visible.
   Widget _chart() {
-    final spots = <FlSpot>[
-      const FlSpot(0, 60),
-      const FlSpot(1, 64),
-      const FlSpot(2, 50),
-      const FlSpot(3, 55),
-      const FlSpot(4, 38),
-      const FlSpot(5, 50),
-      const FlSpot(6, 60),
-      const FlSpot(7, 52),
-      const FlSpot(8, 67),
-      const FlSpot(9, 50),
-      const FlSpot(10, 55),
-      const FlSpot(11, 60),
-      const FlSpot(12, 58),
-      const FlSpot(13, 40),
-    ];
+    if (_chartLoading && _chartData == null) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    final livePoints = _chartData?.points ?? const [];
+    final spots = <FlSpot>[];
+
+    if (livePoints.length >= 2) {
+      // Map each timestamped point to (index, price-as-percent). We
+      // index by sequence rather than epoch time because fl_chart
+      // labels look cleaner with evenly-spaced X values, and the
+      // backend already bucketed the data per range so spacing is
+      // uniform.
+      for (int i = 0; i < livePoints.length; i++) {
+        final p = livePoints[i];
+        spots.add(FlSpot(i.toDouble(), (p.price * 100).clamp(0, 100)));
+      }
+    } else {
+      // Fallback — sample shape so the chart pane isn't blank when
+      // there's no snapshot history yet (e.g. brand-new market with
+      // < 2 buckets of price_snapshots).
+      spots.addAll(const [
+        FlSpot(0, 60),
+        FlSpot(1, 64),
+        FlSpot(2, 50),
+        FlSpot(3, 55),
+        FlSpot(4, 38),
+        FlSpot(5, 50),
+        FlSpot(6, 60),
+        FlSpot(7, 52),
+        FlSpot(8, 67),
+        FlSpot(9, 50),
+        FlSpot(10, 55),
+        FlSpot(11, 60),
+        FlSpot(12, 58),
+        FlSpot(13, 40),
+      ]);
+    }
+
+    final maxX = (spots.length - 1).toDouble();
 
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX: 13,
+        maxX: maxX,
         minY: 0,
         maxY: 100,
         gridData: FlGridData(
