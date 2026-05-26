@@ -104,14 +104,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 42.r,
-                        backgroundImage: profile?.avatar.isNotEmpty == true
-                            ? NetworkImage(profile!.avatar)
-                            : null,
-                        child: profile?.avatar.isEmpty ?? true
-                            ? Icon(Icons.person, size: 30.sp)
-                            : null,
+                      // Profile avatar — uses the server-rendered 200×200
+                      // thumbnail when present (cheaper to fetch on every
+                      // tab open) and falls back to the full-resolution
+                      // upload otherwise. Wrapped in ClipOval + Image.network
+                      // so we get a proper errorBuilder fallback when the
+                      // image fails to load (previously a bare NetworkImage
+                      // would silently render an empty circle).
+                      _ProfileCircle(
+                        url: profile?.displayAvatar ?? '',
+                        diameter: 84.r,
                       ),
                       SizedBox(height: 10.h),
                       Text(
@@ -425,6 +427,58 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         );
       },
+    );
+  }
+}
+
+/// Reusable circular avatar with a graceful fallback.
+///
+/// CircleAvatar+NetworkImage silently shows an empty circle when the URL
+/// fails to load. This wrapper uses Image.network's loadingBuilder +
+/// errorBuilder so the user always sees either a progress indicator
+/// (while loading) or a person glyph (on failure / missing URL), never an
+/// invisible avatar.
+class _ProfileCircle extends StatelessWidget {
+  final String url;
+  final double diameter;
+  const _ProfileCircle({required this.url, required this.diameter});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: diameter,
+      height: diameter,
+      child: ClipOval(
+        child: url.isEmpty
+            ? _fallback()
+            : Image.network(
+                url,
+                width: diameter,
+                height: diameter,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: Colors.grey.shade200,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) => _fallback(),
+              ),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: Colors.grey.shade300,
+      alignment: Alignment.center,
+      child: Icon(Icons.person, size: diameter * 0.55, color: Colors.white),
     );
   }
 }

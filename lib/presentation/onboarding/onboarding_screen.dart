@@ -46,10 +46,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void nextPage() async {
     if (currentIndex == data.length - 1) {
       await LocalStorage.setOnboardingDone();
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => const AuthScreen(),
+      if (!mounted) return;
+      // AuthScreen is a full Scaffold (background + logo + its own
+      // AuthBottomSheet). Showing it via `showModalBottomSheet` rendered it
+      // as a modal over OnboardingScreen, causing a double-bottom-sheet
+      // visual and clipping the logo. Replace the route stack so AuthScreen
+      // becomes the new root, matching what the splash routes to when the
+      // user already has `onboardingDone` set.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
       );
     } else {
       _controller.nextPage(

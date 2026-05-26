@@ -183,22 +183,34 @@ class _EditProfileState extends State<EditProfile> {
                           Center(
                             child: Stack(
                               children: [
+                                // Use displayAvatar (thumbnail-with-fallback)
+                                // — edit screen only needs to show what the
+                                // user currently has; full-res isn't useful
+                                // here.
                                 CircleAvatar(
                                   radius: 50.r,
                                   backgroundColor: Colors.grey.shade200,
                                   backgroundImage: selectedImage != null
                                       ? FileImage(selectedImage!)
                                           as ImageProvider
-                                      : (provider.profile?.avatar != null &&
-                                              provider
-                                                  .profile!.avatar.isNotEmpty)
-                                          ? NetworkImage(
-                                                  provider.profile!.avatar)
+                                      : (provider.profile != null &&
+                                              provider.profile!.displayAvatar
+                                                  .isNotEmpty)
+                                          ? NetworkImage(provider
+                                                  .profile!.displayAvatar)
                                               as ImageProvider
                                           : null,
+                                  onBackgroundImageError: (selectedImage ==
+                                              null &&
+                                          provider.profile != null &&
+                                          provider
+                                              .profile!.displayAvatar.isNotEmpty)
+                                      ? (_, __) {}
+                                      : null,
                                   child: selectedImage == null &&
-                                          (provider.profile?.avatar == null ||
-                                              provider.profile!.avatar.isEmpty)
+                                          (provider.profile == null ||
+                                              provider.profile!.displayAvatar
+                                                  .isEmpty)
                                       ? Icon(
                                           Icons.person,
                                           size: 40.sp,

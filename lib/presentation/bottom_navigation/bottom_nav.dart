@@ -1,97 +1,22 @@
-// import 'package:betrade/core/theme/app_text_style.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_screenutil/flutter_screenutil.dart';
-// import 'package:iconsax/iconsax.dart';
-// import 'package:provider/provider.dart';
-// import '../../../data/provider/profile_provider.dart';
-// import '../../core/theme/app_colors.dart';
-//
-// class CustomBottomNav extends StatelessWidget {
-//   final int currentIndex;
-//   final Function(int) onTap;
-//
-//   const CustomBottomNav({
-//     super.key,
-//     required this.currentIndex,
-//     required this.onTap,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return BottomNavigationBar(
-//       currentIndex: currentIndex,
-//       onTap: onTap,
-//       type: BottomNavigationBarType.fixed,
-//       selectedItemColor: AppColors.primary,
-//       unselectedItemColor: Colors.grey,
-//       selectedLabelStyle: AppTextStyle.smallNav,
-//       unselectedLabelStyle: AppTextStyle.smallNav,
-//       items: [
-//         BottomNavigationBarItem(
-//           icon: Image.asset(
-//             "assets/images/home.png",
-//             width: 22.w,
-//             height: 22.h,
-//           ),
-//           label: "Home",
-//         ),
-//
-//         BottomNavigationBarItem(
-//           icon: Image.asset(
-//             "assets/images/ser.png",
-//             width: 22.w,
-//             height: 22.h,
-//           ),
-//           label: "Explore",
-//         ),
-//
-//         BottomNavigationBarItem(
-//           icon: Image.asset(
-//             "assets/images/medal.png",
-//             width: 22.w,
-//             height: 22.h,
-//           ),
-//           label: "Rankings",
-//         ),
-//
-//         BottomNavigationBarItem(
-//           icon: Image.asset(
-//             "assets/images/pay.png",
-//             width: 22.w,
-//             height: 22.h,
-//           ),
-//           label: "Portfolio",
-//         ),
-//
-//         BottomNavigationBarItem(
-//           icon: Consumer<ProfileProvider>(
-//             builder: (context, provider, child) {
-//               final profile = provider.profile;
-//               return CircleAvatar(
-//                 radius: 11.r,
-//                 backgroundImage: profile != null && profile.avatar.isNotEmpty
-//                     ? NetworkImage(profile.avatar)
-//                     : null,
-//                 child: profile == null || profile.avatar.isEmpty
-//                     ? Icon(Icons.person, size: 22.sp)
-//                     : null,
-//               );
-//             },
-//           ),
-//           label: "Profile",
-//         ),
-//       ],
-//     );
-//   }
-// }
-
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
+
 import '../../../data/provider/profile_provider.dart';
 import '../../core/theme/app_colors.dart';
 
+/// Bottom-navigation chrome for [MainScreen]'s IndexedStack.
+///
+/// Uses vector glyphs from `lucide_icons` for the four primary tabs.
+/// Vector renders are sharp at any DPI; the previous `Image.asset` route
+/// pointed at 442–624 byte raster sprites which pixelated on high-DPI
+/// devices (QA bug #3 — tester report 2026-05-26).
+///
+/// Profile tab still uses a CircleAvatar so an uploaded user photo can
+/// show through; fallback to a person glyph when no avatar is set or the
+/// network image fails to load.
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
@@ -101,18 +26,6 @@ class CustomBottomNav extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
   });
-
-  /// 🔥 Reusable Image Icon Widget
-  Widget buildNavImage(String path, int index) {
-    return Image.asset(
-      path,
-      width: 22.w,
-      height: 22.h,
-      color: currentIndex == index
-          ? AppColors.primary
-          : Colors.grey,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,63 +37,56 @@ class CustomBottomNav extends StatelessWidget {
       unselectedItemColor: Colors.grey,
       selectedLabelStyle: AppTextStyle.smallNav,
       unselectedLabelStyle: AppTextStyle.smallNav,
+      selectedIconTheme: IconThemeData(size: 24.sp),
+      unselectedIconTheme: IconThemeData(size: 24.sp),
 
       items: [
-        /// Home
-        BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/home.png", 0),
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.home),
           label: "Home",
         ),
-
-        /// Explore
-        BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/ser.png", 1),
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.search),
           label: "Explore",
         ),
-
-        /// Rankings
-        BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/medal.png", 2),
-          label: "Rankings",
+        // 3rd tab actually hosts InfoChartScreen — labelled "Chart" until
+        // a real Rankings/leaderboard surface lands (QA #5).
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.trophy),
+          label: "Chart",
         ),
-
-        /// Portfolio
-        BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/pay.png", 3),
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.wallet),
           label: "Portfolio",
         ),
-
-        /// Profile
         BottomNavigationBarItem(
           icon: Consumer<ProfileProvider>(
             builder: (context, provider, child) {
               final profile = provider.profile;
+              final isSelected = currentIndex == 4;
+              final color = isSelected ? AppColors.primary : Colors.grey;
 
+              // Use displayAvatar (thumbnail-with-fallback) for the
+              // 22 px circle. Original avatar is way too big for this
+              // size — wastes bandwidth on every cold open.
               return Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: currentIndex == 4
-                        ? AppColors.primary
-                        : Colors.grey,
-                    width: 2,
-                  ),
+                  border: Border.all(color: color, width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 11.r,
                   backgroundColor: Colors.transparent,
                   backgroundImage:
-                  profile != null && profile.avatar.isNotEmpty
-                      ? NetworkImage(profile.avatar)
-                      : null,
-                  child: profile == null || profile.avatar.isEmpty
-                      ? Icon(
-                    Icons.person,
-                    size: 18.sp,
-                    color: currentIndex == 4
-                        ? AppColors.primary
-                        : Colors.grey,
-                  )
+                      profile != null && profile.displayAvatar.isNotEmpty
+                          ? NetworkImage(profile.displayAvatar)
+                          : null,
+                  onBackgroundImageError:
+                      profile != null && profile.displayAvatar.isNotEmpty
+                          ? (_, __) {}
+                          : null,
+                  child: profile == null || profile.displayAvatar.isEmpty
+                      ? Icon(Icons.person, size: 18.sp, color: color)
                       : null,
                 ),
               );

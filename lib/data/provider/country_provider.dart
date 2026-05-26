@@ -1,465 +1,29 @@
-// // // import 'dart:convert';
-// // // import 'package:flutter/material.dart';
-// // // import 'package:http/http.dart' as http;
-// // // import '../model/country_model.dart';
-// // // class CountryProvider with ChangeNotifier {
-// // //   List<CountryModel> _countries = [];
-// // //   List<CountryModel> _filtered = [];
-// // //   bool isLoading = false;
-// // //   List<CountryModel> get countries => _filtered;
-// // //   CountryModel? selectedCountry;
-// // //   bool _isFetched = false;
-// // //   Future<void> fetchCountries() async {
-// // //     if (_isFetched) return;
-// // //     try {
-// // //       isLoading = true;
-// // //       notifyListeners();
-// // //       final url = Uri.parse("https://api.easycoders.in/projects/betrade/public/api/countries");
-// // //       final response = await http.get(url);
-// // //       if (response.statusCode == 200) {
-// // //         _isFetched = true;
-// // //         final data = jsonDecode(response.body);
-// // //         _countries = (data['data'] as List).map((e) => CountryModel.fromJson(e)).toList();
-// // //         _filtered = _countries;
-// // //         selectedCountry = _countries.isNotEmpty ? _countries.first : null;
-// // //       }
-// // //     } catch (e) {
-// // //       debugPrint("Error: $e");
-// // //     }
-// // //     isLoading = false;
-// // //     notifyListeners();
-// // //   }
-// // //   void search(String value) {
-// // //     if (value.isEmpty) {
-// // //       _filtered = _countries;
-// // //     } else {
-// // //       _filtered = _countries.where((e) {return e.name.toLowerCase().contains(value.toLowerCase()) || e.phoneCode.contains(value);
-// // //       }).toList();
-// // //     }
-// // //     notifyListeners();
-// // //   }
-// // //   void selectCountry(CountryModel country) {
-// // //     selectedCountry = country;
-// // //     notifyListeners();
-// // //   }
-// // // }
-// //
-// // import 'package:dio/dio.dart';
-// // import 'package:flutter/material.dart';
-// // import '../../core/config/api_endpoint.dart';
-// // import '../../core/network/dio_client.dart';
-// // import '../model/country_model.dart';
-// //
-// // class CountryProvider with ChangeNotifier {
-// //   List<CountryModel> _countries = [];
-// //   List<CountryModel> _filtered = [];
-// //   bool _isLoading = false;
-// //   bool _isFetched = false;
-// //   bool _isDisposed = false;
-// //   CountryModel? _selectedCountry;
-// //   List<CountryModel> get countries => List.unmodifiable(_filtered);
-// //   bool get isLoading => _isLoading;
-// //   CountryModel? get selectedCountry => _selectedCountry;
-// //   bool get isFetched => _isFetched;
-// //   void _safeNotify() {
-// //     if (!_isDisposed && hasListeners) {
-// //       notifyListeners();
-// //     }
-// //   }
-// //
-// //   Future<void> fetchCountries() async {
-// //     if (_isDisposed || _isFetched || _isLoading) return;
-// //     try {
-// //       _isLoading = true;
-// //       _safeNotify();
-// //       final response = await DioClient.instance.get(
-// //         ApiEndpoints.countries,
-// //       );
-// //       if (_isDisposed) return;
-// //       if (response.statusCode == 200) {
-// //         final data = response.data;
-// //         if (data is Map<String, dynamic> && data['data'] is List) {
-// //           _countries = (data['data'] as List)
-// //               .map((item) {
-// //                 try {
-// //                   return CountryModel.fromJson(item as Map<String, dynamic>);
-// //                 } catch (e) {
-// //                   debugPrint("Parse error: $e");
-// //                   return null;
-// //                 }
-// //               })
-// //               .whereType<CountryModel>()
-// //               .toList();
-// //         } else {
-// //           _countries = [];
-// //         }
-// //         _filtered = List.from(_countries);
-// //         _isFetched = true;
-// //       } else {
-// //         _countries = [];
-// //         _filtered = [];
-// //       }
-// //     } catch (e, stack) {
-// //       if (e is DioException) {
-// //         debugPrint("Dio Error: ${e.message}");
-// //         debugPrint("Response: ${e.response?.data}");
-// //       } else {
-// //         debugPrint("Error: $e");
-// //         debugPrint("Stack: $stack");
-// //       }
-// //       _countries = [];
-// //       _filtered = [];
-// //     } finally {
-// //       if (!_isDisposed) {
-// //         _isLoading = false;
-// //         _safeNotify();
-// //       }
-// //     }
-// //   }
-// //
-// //   void search(String value) {
-// //     if (_isDisposed) return;
-// //     final term = value.trim();
-// //     if (term.isEmpty) {
-// //       _filtered = List.from(_countries);
-// //     } else {
-// //       _filtered = _countries.where((country) {
-// //         final name = country.name ?? '';
-// //         final code = country.phoneCode ?? '';
-// //         return name.toLowerCase().contains(term.toLowerCase()) ||
-// //             code.contains(term);
-// //       }).toList();
-// //     }
-// //     _safeNotify();
-// //   }
-// //   void selectCountry(CountryModel? country) {
-// //     if (_isDisposed) return;
-// //     if (country != null && _countries.contains(country)) {
-// //       _selectedCountry = country;
-// //       _safeNotify();
-// //     }
-// //   }
-// //   CountryModel? getCountryById(String id) {
-// //     if (_isDisposed || id.isEmpty) return null;
-// //     try {
-// //       return _countries.firstWhere((c) => c.id == id);
-// //     } catch (_) {
-// //       return null;
-// //     }
-// //   }
-// //   int get totalCount => _countries.length;
-// //   int get filteredCount => _filtered.length;
-// //   void reset() {
-// //     if (_isDisposed) return;
-// //     _countries = [];
-// //     _filtered = [];
-// //     _selectedCountry = null;
-// //     _isFetched = false;
-// //     _isLoading = false;
-// //     _safeNotify();
-// //   }
-// //   @override
-// //   void dispose() {
-// //     _isDisposed = true;
-// //     _countries = [];
-// //     _filtered = [];
-// //     super.dispose();
-// //   }
-// // }
-//
-//
-// import 'package:dio/dio.dart';
-// import 'package:flutter/material.dart';
-// import '../../core/config/api_endpoint.dart';
-// import '../../core/network/dio_client.dart';
-// import '../model/country_model.dart';
-//
-// class CountryProvider with ChangeNotifier {
-//   List<CountryModel> _countries = [];
-//   List<CountryModel> _filtered = [];
-//   bool _isLoading = false;
-//   bool _isFetched = false;
-//   bool _isDisposed = false;
-//   CountryModel? _selectedCountry;
-//
-//   List<CountryModel> get countries => List.unmodifiable(_filtered);
-//   bool get isLoading => _isLoading;
-//   CountryModel? get selectedCountry => _selectedCountry;
-//   bool get isFetched => _isFetched;
-//
-//   void _safeNotify() {
-//     if (!_isDisposed && hasListeners) {
-//       notifyListeners();
-//     }
-//   }
-//
-//   Future<void> fetchCountries() async {
-//     if (_isDisposed || _isFetched || _isLoading) return;
-//     try {
-//       _isLoading = true;
-//       _safeNotify();
-//
-//       final response = await DioClient.instance.get(
-//         ApiEndpoints.countries,
-//       );
-//
-//       if (_isDisposed) return;
-//
-//       if (response.statusCode == 200) {
-//         final data = response.data;
-//         if (data is Map<String, dynamic> && data['data'] is List) {
-//           _countries = (data['data'] as List)
-//               .map((item) {
-//             try {
-//               return CountryModel.fromJson(item as Map<String, dynamic>);
-//             } catch (e) {
-//               debugPrint("Parse error: $e");
-//               return null;
-//             }
-//           })
-//               .whereType<CountryModel>()
-//               .toList();
-//         } else {
-//           _countries = [];
-//         }
-//         _filtered = List.from(_countries);
-//         _isFetched = true;
-//       } else {
-//         _countries = [];
-//         _filtered = [];
-//       }
-//     } catch (e, stack) {
-//       if (e is DioException) {
-//         debugPrint("Dio Error: ${e.message}");
-//         debugPrint("Response: ${e.response?.data}");
-//       } else {
-//         debugPrint("Error: $e");
-//         debugPrint("Stack: $stack");
-//       }
-//       _countries = [];
-//       _filtered = [];
-//     } finally {
-//       if (!_isDisposed) {
-//         _isLoading = false;
-//         _safeNotify();
-//       }
-//     }
-//   }
-//
-//   void search(String value) {
-//     if (_isDisposed) return;
-//     final term = value.trim();
-//     if (term.isEmpty) {
-//       _filtered = List.from(_countries);
-//     } else {
-//       _filtered = _countries.where((country) {
-//         final name = country.name ?? '';
-//         final code = country.phoneCode ?? '';
-//         return name.toLowerCase().contains(term.toLowerCase()) ||
-//             code.contains(term);
-//       }).toList();
-//     }
-//     _safeNotify();
-//   }
-//
-//   // ✅ FIXED: Removed _countries.contains(country) check which was always
-//   // returning false because Dart compares objects by reference, not by value.
-//   // Now we match by phoneCode to find the correct country from the list.
-//   void selectCountry(CountryModel? country) {
-//     if (_isDisposed) return;
-//     if (country != null) {
-//       final matched = _countries.firstWhere(
-//             (c) => c.phoneCode == country.phoneCode,
-//         orElse: () => country,
-//       );
-//       _selectedCountry = matched;
-//       _safeNotify();
-//     }
-//   }
-//
-//   CountryModel? getCountryById(String id) {
-//     if (_isDisposed || id.isEmpty) return null;
-//     try {
-//       return _countries.firstWhere((c) => c.id == id);
-//     } catch (_) {
-//       return null;
-//     }
-//   }
-//
-//   int get totalCount => _countries.length;
-//   int get filteredCount => _filtered.length;
-//
-//   void reset() {
-//     if (_isDisposed) return;
-//     _countries = [];
-//     _filtered = [];
-//     _selectedCountry = null;
-//     _isFetched = false;
-//     _isLoading = false;
-//     _safeNotify();
-//   }
-//
-//   @override
-//   void dispose() {
-//     _isDisposed = true;
-//     _countries = [];
-//     _filtered = [];
-//     super.dispose();
-//   }
-// }
-
-// import 'package:dio/dio.dart';
-// import 'package:flutter/material.dart';
-// import '../../core/config/api_endpoint.dart';
-// import '../../core/network/dio_client.dart';
-// import '../model/country_model.dart';
-//
-// class CountryProvider with ChangeNotifier {
-//   List<CountryModel> _countries = [];
-//   List<CountryModel> _filtered = [];
-//   bool _isLoading = false;
-//   bool _isFetched = false;
-//   bool _isDisposed = false;
-//   CountryModel? _selectedCountry;
-//
-//   List<CountryModel> get countries => List.unmodifiable(_filtered);
-//   bool get isLoading => _isLoading;
-//   CountryModel? get selectedCountry => _selectedCountry;
-//   bool get isFetched => _isFetched;
-//
-//   void _safeNotify() {
-//     if (!_isDisposed && hasListeners) {
-//       notifyListeners();
-//     }
-//   }
-//
-//   Future<void> fetchCountries() async {
-//     if (_isDisposed || _isFetched || _isLoading) return;
-//     try {
-//       _isLoading = true;
-//       _safeNotify();
-//
-//       final response = await DioClient.instance.get(
-//         ApiEndpoints.countries,
-//       );
-//
-//       if (_isDisposed) return;
-//
-//       if (response.statusCode == 200) {
-//         final data = response.data;
-//         if (data is Map<String, dynamic> && data['data'] is List) {
-//           _countries = (data['data'] as List)
-//               .map((item) {
-//             try {
-//               return CountryModel.fromJson(item as Map<String, dynamic>);
-//             } catch (e) {
-//               debugPrint("Parse error: $e");
-//               return null;
-//             }
-//           })
-//               .whereType<CountryModel>()
-//               .toList();
-//         } else {
-//           _countries = [];
-//         }
-//
-//         _filtered = List.from(_countries);
-//         _isFetched = true;
-//
-//         // ✅ FIX 1: Fetch ke baad selectedCountry null hai toh
-//         // list ki PEHLI country set karo — India hardcode NAHI karo
-//         if (_selectedCountry == null && _countries.isNotEmpty) {
-//           _selectedCountry = _countries.first;
-//         }
-//
-//       } else {
-//         _countries = [];
-//         _filtered = [];
-//       }
-//     } catch (e, stack) {
-//       if (e is DioException) {
-//         debugPrint("Dio Error: ${e.message}");
-//         debugPrint("Response: ${e.response?.data}");
-//       } else {
-//         debugPrint("Error: $e");
-//         debugPrint("Stack: $stack");
-//       }
-//       _countries = [];
-//       _filtered = [];
-//     } finally {
-//       if (!_isDisposed) {
-//         _isLoading = false;
-//         _safeNotify();
-//       }
-//     }
-//   }
-//
-//   void search(String value) {
-//     if (_isDisposed) return;
-//     final term = value.trim();
-//     if (term.isEmpty) {
-//       _filtered = List.from(_countries);
-//     } else {
-//       _filtered = _countries.where((country) {
-//         final name = country.name ?? '';
-//         final code = country.phoneCode ?? '';
-//         return name.toLowerCase().contains(term.toLowerCase()) ||
-//             code.contains(term);
-//       }).toList();
-//     }
-//     _safeNotify();
-//   }
-//
-//   // ✅ FIX 2: contains() hataya, phoneCode se match karo
-//   void selectCountry(CountryModel? country) {
-//     if (_isDisposed) return;
-//     if (country != null) {
-//       final matched = _countries.firstWhere(
-//             (c) => c.phoneCode == country.phoneCode,
-//         orElse: () => country,
-//       );
-//       _selectedCountry = matched;
-//       _safeNotify();
-//     }
-//   }
-//
-//   CountryModel? getCountryById(String id) {
-//     if (_isDisposed || id.isEmpty) return null;
-//     try {
-//       return _countries.firstWhere((c) => c.id == id);
-//     } catch (_) {
-//       return null;
-//     }
-//   }
-//
-//   int get totalCount => _countries.length;
-//   int get filteredCount => _filtered.length;
-//
-//   void reset() {
-//     if (_isDisposed) return;
-//     _countries = [];
-//     _filtered = [];
-//     _selectedCountry = null;
-//     _isFetched = false;
-//     _isLoading = false;
-//     _safeNotify();
-//   }
-//
-//   @override
-//   void dispose() {
-//     _isDisposed = true;
-//     _countries = [];
-//     _filtered = [];
-//     super.dispose();
-//   }
-// }
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/country_model.dart';
+import '../services/local_storage.dart';
 
+/// Country list provider — drives the country picker on LoginScreen +
+/// AttachPhoneScreen.
+///
+/// Two-tier fetch:
+///   1. **Disk cache**: on first read, `loadFromCacheIfFresh()` synchronously
+///      hydrates from SharedPreferences if a recent cached JSON blob exists.
+///      Avoids any spinner on the country picker.
+///   2. **Network refresh**: `fetchCountries()` hits `/api/countries`. If
+///      the cache was empty (cold first launch), the call blocks the UI.
+///      Otherwise it runs in the background and only re-paints if the new
+///      list differs.
+///
+/// The `/api/countries` endpoint takes ~800 ms (Laravel cold-boot) for a
+/// payload of 2 rows. The cache turns the second-and-onward launches into
+/// instant first paint; the splash pre-fetch hides the first-launch latency
+/// behind the splash screen's natural display time.
 class CountryProvider with ChangeNotifier {
   List<CountryModel> _countries = [];
   List<CountryModel> _filtered = [];
@@ -479,94 +43,97 @@ class CountryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchCountries() async {
-    if (_isDisposed || _isFetched || _isLoading) return;
+  /// Read the cached countries JSON from disk and hydrate the in-memory
+  /// list if it's still within TTL. Safe to call multiple times; idempotent.
+  /// Returns true if cache was applied, false if cache was missing/stale.
+  bool loadFromCacheIfFresh() {
+    if (_isDisposed || _isFetched) return _isFetched;
+
+    final cached = LocalStorage.readCachedCountries();
+    if (cached == null) return false;
+
+    try {
+      final decoded = jsonDecode(cached);
+      if (decoded is Map && decoded['data'] is List) {
+        _countries = (decoded['data'] as List)
+            .map((item) {
+              try {
+                return CountryModel.fromJson(item as Map<String, dynamic>);
+              } catch (_) {
+                return null;
+              }
+            })
+            .whereType<CountryModel>()
+            .toList();
+        _filtered = List.from(_countries);
+        _isFetched = true;
+        if (_selectedCountry == null && _countries.isNotEmpty) {
+          _selectedCountry = _countries.first;
+        }
+        _safeNotify();
+        return true;
+      }
+    } catch (e) {
+      debugPrint("CountryProvider: cache decode failed: $e");
+    }
+    return false;
+  }
+
+  /// Fetch from `/api/countries`. Skips itself if already loaded for the
+  /// current app session — pair with `loadFromCacheIfFresh()` for the
+  /// "cold-first-launch only blocks once" effect.
+  ///
+  /// Pass `force: true` to refetch even when in-memory data is present.
+  /// Used by the splash pre-warm path so the in-memory list is always
+  /// current after a cold start, even if the cache served the first paint.
+  Future<void> fetchCountries({bool force = false}) async {
+    if (_isDisposed) return;
+    if (!force && (_isFetched || _isLoading)) return;
+
     try {
       _isLoading = true;
       _safeNotify();
 
-      final response = await DioClient.instance.get(
-        ApiEndpoints.countries,
-      );
-
+      final response = await DioClient.instance.get(ApiEndpoints.countries);
       if (_isDisposed) return;
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map;
+        if (data['data'] is List) {
+          // Persist the raw JSON to disk for next launch. Re-encoding here
+          // rather than passing the original response body around keeps the
+          // cache shape decoupled from the Dio response object.
+          await LocalStorage.cacheCountries(jsonEncode({
+            'status': data['status'] ?? true,
+            'data': data['data'],
+          }));
 
-        // ✅ FULL API RESPONSE print karo
-        debugPrint("==============================");
-        debugPrint("📦 API RAW RESPONSE: $data");
-        debugPrint("==============================");
-
-        if (data is Map<String, dynamic> && data['data'] is List) {
-          final list = data['data'] as List;
-
-          // ✅ Pehle 3 items ka structure print karo
-          debugPrint("📋 TOTAL COUNTRIES FROM API: ${list.length}");
-          debugPrint("------------------------------");
-          for (int i = 0; i < list.length && i < 3; i++) {
-            final item = list[i];
-            debugPrint("🌍 COUNTRY [$i]: $item");
-            debugPrint("   ➤ id:         ${item['id']}");
-            debugPrint("   ➤ name:       ${item['name']}");
-            debugPrint("   ➤ phone_code: ${item['phone_code']}");
-            debugPrint("   ➤ flag:       ${item['flag']}");
-            debugPrint("   ➤ currency:   ${item['currency']}");
-            debugPrint("   ➤ ALL KEYS:   ${item.keys.toList()}");
-            debugPrint("------------------------------");
-          }
-
-          _countries = list
+          _countries = (data['data'] as List)
               .map((item) {
-            try {
-              return CountryModel.fromJson(item as Map<String, dynamic>);
-            } catch (e) {
-              debugPrint("❌ Parse error: $e");
-              return null;
-            }
-          })
+                try {
+                  return CountryModel.fromJson(item as Map<String, dynamic>);
+                } catch (e) {
+                  debugPrint("CountryProvider: parse error on item: $e");
+                  return null;
+                }
+              })
               .whereType<CountryModel>()
               .toList();
+          _filtered = List.from(_countries);
+          _isFetched = true;
 
-          // ✅ Parsed model print karo
-          if (_countries.isNotEmpty) {
-            final first = _countries.first;
-            debugPrint("✅ FIRST PARSED CountryModel:");
-            debugPrint("   ➤ id:        ${first.id}");
-            debugPrint("   ➤ name:      ${first.name}");
-            debugPrint("   ➤ phoneCode: ${first.phoneCode}");
-            debugPrint("   ➤ flag:      ${first.flag}");
-            debugPrint("   ➤ currency:  ${first.currency}");
+          if (_selectedCountry == null && _countries.isNotEmpty) {
+            _selectedCountry = _countries.first;
           }
-
-        } else {
-          debugPrint("⚠️ Unexpected data format: ${data.runtimeType}");
-          _countries = [];
         }
-
-        _filtered = List.from(_countries);
-        _isFetched = true;
-
-        if (_selectedCountry == null && _countries.isNotEmpty) {
-          _selectedCountry = _countries.first;
-        }
-
-      } else {
-        debugPrint("❌ API Error - Status: ${response.statusCode}");
-        _countries = [];
-        _filtered = [];
       }
-    } catch (e, stack) {
-      if (e is DioException) {
-        debugPrint("❌ Dio Error: ${e.message}");
-        debugPrint("❌ Response: ${e.response?.data}");
-      } else {
-        debugPrint("❌ Error: $e");
-        debugPrint("❌ Stack: $stack");
-      }
-      _countries = [];
-      _filtered = [];
+    } on DioException catch (e) {
+      // Network failure on a cold-first-launch leaves the picker empty but
+      // is recoverable on retry. Don't blow away an existing cache-hydrated
+      // list — keep showing stale data over no data.
+      debugPrint("CountryProvider: dio error ${e.message}");
+    } catch (e) {
+      debugPrint("CountryProvider: unexpected error $e");
     } finally {
       if (!_isDisposed) {
         _isLoading = false;
@@ -581,32 +148,37 @@ class CountryProvider with ChangeNotifier {
     if (term.isEmpty) {
       _filtered = List.from(_countries);
     } else {
+      final lower = term.toLowerCase();
       _filtered = _countries.where((country) {
-        final name = country.name;
-        final code = country.phoneCode;
-        return name.toLowerCase().contains(term.toLowerCase()) ||
-            code.contains(term);
+        return country.name.toLowerCase().contains(lower) ||
+            country.phoneCode.contains(term);
       }).toList();
     }
     _safeNotify();
   }
 
+  /// Compare by `phoneCode` rather than object identity — picker callers
+  /// often pass a freshly-built `CountryModel` from the filtered list that
+  /// isn't `==` to the canonical entry in `_countries`.
   void selectCountry(CountryModel? country) {
-    if (_isDisposed) return;
-    if (country != null) {
-      final matched = _countries.firstWhere(
-            (c) => c.phoneCode == country.phoneCode,
-        orElse: () => country,
-      );
-      _selectedCountry = matched;
-      _safeNotify();
-    }
+    if (_isDisposed || country == null) return;
+    final matched = _countries.firstWhere(
+      (c) => c.phoneCode == country.phoneCode,
+      orElse: () => country,
+    );
+    _selectedCountry = matched;
+    _safeNotify();
   }
 
+  /// Lookup by primary key. `CountryModel.id` is an int on the wire but
+  /// callers (legacy code paths) pass it around as a String — parse defensively
+  /// rather than constraining the signature.
   CountryModel? getCountryById(String id) {
     if (_isDisposed || id.isEmpty) return null;
+    final parsed = int.tryParse(id);
+    if (parsed == null) return null;
     try {
-      return _countries.firstWhere((c) => c.id == id);
+      return _countries.firstWhere((c) => c.id == parsed);
     } catch (_) {
       return null;
     }

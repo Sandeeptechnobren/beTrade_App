@@ -249,14 +249,27 @@ class _SignupScreenState extends State<SignupScreen> {
             setState(() => isLoading = true);
           }
 
-          final success = await provider.completeSignup();
+          // completeSignup returns a typed envelope:
+          //   { success, message, data?, doc_upload_status? }
+          // AuthService already persisted the Sanctum token + FCM token
+          // + doc_upload_status by the time we reach this branch, so on
+          // success we can route straight to SuccessScreen → MainScreen
+          // (the user is already authenticated).
+          final result = await provider.completeSignup();
 
           if (_isDisposed || !mounted) return;
 
-          if (_isSuccess(success)) {
+          if (_isSuccess(result)) {
             _navigateToSuccess();
           } else {
-            _showError("Signup failed. Please try again.");
+            // Surface the backend's actual error message — "Email already
+            // taken", "OTP expired", etc. — instead of the previous
+            // generic "Signup failed" snackbar.
+            final rawMessage = result['message'];
+            final message = rawMessage is String && rawMessage.isNotEmpty
+                ? rawMessage
+                : "Signup failed. Please try again.";
+            _showError(message);
             if (mounted) {
               setState(() {
                 isLoading = false;

@@ -494,19 +494,36 @@ class _TradePageState extends State<TradePage> {
                       ),
                       child: Column(
                         children: [
-                          buildRow("Shares", shares.toStringAsFixed(2)),
-                          buildRow("Price per Share", "₵$price"),
+                          buildRow("Price per Share", "${price.toStringAsFixed(0)} GHS"),
+                          // Highlight the "Yes"/"No" side word in purple
+                          // so the user can see which outcome the shares
+                          // belong to (matches Figma "Your Yes Shares" /
+                          // "Your No Shares" treatment).
+                          buildSharesRow(
+                            outcome: isYesSelected ? "Yes" : "No",
+                            shares: shares.toStringAsFixed(3),
+                          ),
                           buildRow(
                             "Max Payout",
-                            "₵${payout.toStringAsFixed(2)}",
+                            "${payout.toStringAsFixed(2)} GHS",
                           ),
                           buildRow(
                             "Potential Profit",
-                            "₵${profit.toStringAsFixed(2)}",
+                            "+${profit.toStringAsFixed(2)} GHS",
                             isProfit: true,
                           ),
                         ],
                       ),
+                    ),
+                    SizedBox(height: 12.h),
+                    // Info banner — matches Figma. Light-purple chip with
+                    // a contextual explanation of what the user is about
+                    // to buy. The first sentence is dynamic (shares +
+                    // price-per-share rounded as cents); the rest is
+                    // static prose.
+                    _buildInfoBanner(
+                      shares: shares,
+                      pricePerShareGhs: price,
                     ),
                   ],
                 ),
@@ -528,11 +545,101 @@ class _TradePageState extends State<TradePage> {
           Text(
             value,
             style: TextStyle(
-              color: isProfit ? Colors.green : AppColors.textSecondaryDynamic(context),
-              fontWeight: FontWeight.w500,
+              color: isProfit ? Colors.green : AppColors.textPrimaryDynamic(context),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// "Your Yes Shares" / "Your No Shares" row — same layout as buildRow
+  /// but the side word is rendered in the brand purple so the user
+  /// can tell at a glance which outcome these shares belong to.
+  Widget buildSharesRow({required String outcome, required String shares}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: AppColors.textPrimaryDynamic(context),
+                fontSize: 14.sp,
+              ),
+              children: [
+                const TextSpan(text: "Your "),
+                TextSpan(
+                  text: outcome,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const TextSpan(text: " Shares"),
+              ],
+            ),
+          ),
+          Text(
+            shares,
+            style: TextStyle(
+              color: AppColors.textPrimaryDynamic(context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Light-purple "what you're buying" explanation chip shown beneath
+  /// the price summary. Per Figma "New Trade — Success".
+  Widget _buildInfoBanner({
+    required double shares,
+    required double pricePerShareGhs,
+  }) {
+    // Convert price-per-share (GHS) to cents-style display ("48¢").
+    // Below 1 GHS price we round to the nearest cent; above we still
+    // show the cents value so the sentence reads consistently.
+    final cents = (pricePerShareGhs * 100).round();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.18),
+          width: 0.5,
+        ),
+      ),
+      child: Text.rich(
+        TextSpan(
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: AppColors.textPrimaryDynamic(context),
+            height: 1.45,
+          ),
+          children: [
+            const TextSpan(text: "You're buying "),
+            TextSpan(
+              text: shares.toStringAsFixed(2),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const TextSpan(text: " shares at "),
+            TextSpan(
+              text: "$cents¢",
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const TextSpan(
+              text: " each. This market will close when the event "
+                  "occurs. If you're right, payout is expected 2 hours later.",
+            ),
+          ],
+        ),
       ),
     );
   }

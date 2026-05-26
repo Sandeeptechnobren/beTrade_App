@@ -44,17 +44,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final provider = Provider.of<CountryProvider>(context, listen: false);
-      await provider.fetchCountries();
 
-      if (_isDisposed || !mounted) return;
-
+      // Fast path: SplashScreen pre-warms countries (cache + network) so by
+      // the time we mount here the provider usually has data. Read it
+      // synchronously so the picker renders a flag immediately on first
+      // paint instead of a spinner.
       if (provider.countries.isNotEmpty) {
-        setState(() {
-          _selectedCountry = provider.countries.first;
-        });
+        _selectedCountry =
+            provider.selectedCountry ?? provider.countries.first;
+      } else {
+        // Cold path: cache was missing AND splash's network call hasn't
+        // returned yet. Trigger our own fetch and await — same behaviour as
+        // before this optimisation, but on a tiny minority of launches.
+        await provider.fetchCountries();
+        if (_isDisposed || !mounted) return;
+        if (provider.countries.isNotEmpty) {
+          _selectedCountry =
+              provider.selectedCountry ?? provider.countries.first;
+        }
+      }
+
+      if (mounted && !_isDisposed) {
+        setState(() {});
       }
     } catch (e) {
-      debugPrint(" Country load error: $e");
+      debugPrint("LoginScreen: country load error: $e");
     }
   }
 
@@ -194,6 +208,87 @@ class _LoginScreenState extends State<LoginScreen> {
   //   );
   // }
 
+  /// Country-flag bubble for the phone-input pill.
+  ///
+  /// States:
+  ///   - country not yet resolved: small spinner so the layout doesn't jump
+  ///   - flag URL present: network image inside a ClipOval, with both a
+  ///     loadingBuilder (small spinner) and an errorBuilder (a Material
+  ///     flag glyph) so the slot is never empty
+  ///   - flag URL missing: fall back to the iso-code as a 2-letter pill
+  Widget _buildFlag() {
+    const double diameter = 24;
+    final country = _selectedCountry;
+    if (country == null) {
+      return SizedBox(
+        width: diameter.w,
+        height: diameter.h,
+        child: const Center(
+          child: SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    final url = country.flag.trim();
+    if (url.isEmpty) {
+      // Last-resort fallback: 2-letter country mark on a coloured chip.
+      return Container(
+        width: diameter.w,
+        height: diameter.h,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          country.name.isNotEmpty
+              ? country.name.substring(0, country.name.length >= 2 ? 2 : 1).toUpperCase()
+              : "??",
+          style: TextStyle(
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: diameter.w,
+        height: diameter.h,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return SizedBox(
+            width: diameter.w,
+            height: diameter.h,
+            child: const Center(
+              child: SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => Container(
+          width: diameter.w,
+          height: diameter.h,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Colors.grey,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.flag, size: 14.sp, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
   Widget _safeImage(String path,
       {double? height, double? width, Color? color}) {
     if (path.isEmpty) return SizedBox(height: height);
@@ -240,100 +335,90 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             SizedBox(height: 20.h),
+            // ── Phone-number row (matches Figma) ─────────────────────
+            // Two visually-separate rounded chips with a small gap:
+            //   - LEFT: country-picker chip — flag + chevron
+            //   - RIGHT: phone-input chip — TextField with placeholder
+            // Both have the same height + light-grey fill + soft rounded
+            // corners. The previous version was a single unified pill —
+            // Figma actually shows two distinct cards.
             Row(
               children: [
-                GestureDetector(
+                // Country-picker chip
+                InkWell(
                   onTap: _openCountryPicker,
+                  borderRadius: BorderRadius.circular(14.r),
                   child: Container(
-                    height: 50.h,
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                    height: 56.h,
+                    padding: EdgeInsets.symmetric(horizontal: 14.w),
                     decoration: BoxDecoration(
                       color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: AppColors.borderDynamic(context),
-                      ),
+                      borderRadius: BorderRadius.circular(14.r),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _selectedCountry == null
-                            ? SizedBox(
-                                width: 20.w,
-                                height: 20.h,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : ClipOval(
-                                child: Image.network(
-                                  _selectedCountry!.flag,
-                                  width: 23.4.w,
-                                  height: 23.4.h,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    Icons.flag,
-                                    size: 16.sp,
-                                  ),
-                                ),
-                              ),
-                        SizedBox(width: 5.w),
+                        _buildFlag(),
+                        SizedBox(width: 8.w),
                         Icon(
                           Icons.keyboard_arrow_down,
-                          size: 18.sp,
-                          color:
-                              isDarkMode ? Colors.grey.shade400 : Colors.grey,
+                          size: 20.sp,
+                          color: AppColors.primary,
                         ),
                       ],
                     ),
                   ),
                 ),
                 SizedBox(width: 10.w),
+                // Phone-input chip
                 Expanded(
                   child: Container(
-                    height: 50.h,
+                    height: 56.h,
+                    alignment: Alignment.center, // centers the TextField vertically
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.r),
+                      color: AppColors.inputFieldBgDynamic(context),
+                      borderRadius: BorderRadius.circular(14.r),
                     ),
+                    // The canonical Flutter recipe for vertically centering
+                    // a TextField inside a fixed-height Container is the
+                    // combination below — Container.alignment +
+                    // textAlignVertical + isCollapsed:true. Any of the
+                    // three alone leaves residual top/bottom space because
+                    // InputDecorator reserves room for label/helper/counter
+                    // even when none are configured. isCollapsed strips
+                    // that reservation; the alignment + textAlignVertical
+                    // then anchor the glyph baseline to the chip's centre.
                     child: TextField(
                       controller: _phoneController,
                       cursorColor: AppColors.primary,
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
+                      textAlignVertical: TextAlignVertical.center,
                       style: TextStyle(
                         color: AppColors.textPrimaryDynamic(context),
+                        fontSize: 16.sp,
                       ),
                       decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.inputFieldBgDynamic(context),
+                        isCollapsed: true,
                         counterText: "",
                         hintText: "000 000 0000",
+                        // QA #14 — placeholder used to read `Colors.grey`
+                        // (`#9E9E9E`) which felt too dark vs the input bg.
+                        // Lightened to shade400 (`#BDBDBD`) in light mode,
+                        // shade600 in dark mode for the same relative
+                        // contrast.
                         hintStyle: TextStyle(
-                          color:
-                              isDarkMode ? Colors.grey.shade500 : Colors.grey,
+                          fontSize: 16.sp,
+                          color: isDarkMode
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade400,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 15.w,
-                          vertical: 14.h,
+                          horizontal: 18.w,
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                          borderSide: BorderSide(
-                            color: AppColors.borderDynamic(context),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                          borderSide: BorderSide(
-                            color: AppColors.borderDynamic(context),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                          ),
-                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                       ),
                     ),
                   ),
@@ -382,11 +467,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           SizedBox(width: 5.w),
+                          // Google logo is multi-coloured — do NOT pass
+                          // `color:` here or the tint flattens it into a
+                          // monochrome blob and the brand becomes
+                          // unrecognisable.
                           _safeImage(
                             "assets/images/google.png",
                             height: 19.h,
                             width: 19.w,
-                            color: isDarkMode ? Colors.white : null,
                           ),
                         ],
                       ),

@@ -25,6 +25,13 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       backgroundColor:
       backgroundColor ?? (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+      // Material 3 AppBars apply a surface-tint overlay that darkens the
+      // bar when content scrolls under it — this is the cause of QA #2.2
+      // ("scrolling on the homepage turns the navbar grey"). Disable both
+      // the tint and the under-scroll elevation so the navbar stays at the
+      // backgroundColor we picked.
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
 
       automaticallyImplyLeading: false,
       leading: leading,
