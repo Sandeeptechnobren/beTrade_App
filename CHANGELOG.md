@@ -4,6 +4,33 @@ Format: [DATE] [AUTHOR] Description
 
 ## [Unreleased]
 
+### Changed
+- 2026-05-26 — **Rankings tab now shows a "Coming Soon" dialog** on `feature/abhiCloude`:
+  - `main_screen.dart` — `CustomBottomNav` onTap now intercepts `index == 2` and shows a centered Material `Dialog` (leaderboard icon, "Coming Soon" + "The Rankings feature is on its way. Stay tuned!" + Got it button) instead of switching tabs. The selected tab stays where it was.
+  - `IndexedStack` slot 2 changed from `InfoChartScreen()` to `const SizedBox.shrink()` so the chart screen is no longer instantiated; `info_chart_screen.dart` import removed.
+  - Rationale: Rankings is absent from the current Figma cut, so we surface "Coming Soon" rather than ship the legacy chart placeholder.
+- 2026-05-26 — **Achievements sheet (`achivement_Sheet.dart`) aligned to Figma spec** on `feature/abhiCloude`:
+  - Badge swapped from a transparent `CircleAvatar(radius: 30)` to a 64×64 `Container` with `1px #F4F4F5` border and `DecorationImage` (matches Figma's bordered circle badges).
+  - Title text restyled from 12sp/500/black87 to 16sp/500/`#52525B` with `height: 1.2` per Figma's 120% line-height.
+  - Replaced `GridView.builder` with two `Row`s of 4 `Expanded` cells (24.h gap between rows, 8.w between columns). The grid's `childAspectRatio` was clipping the 2-line title by ~1px on narrower devices; natural cell sizing eliminates the overflow entirely.
+  - Outer padding `8/8/8/16` → `20/24/20/24` (matches Figma's 20px side padding and 24px header→content gap).
+  - Removed orphan `AppColors` import and trailing `SizedBox(height: 12.h)`.
+  - `profile_page.dart` — Achievements bottom-sheet size reduced from `0.55/0.45/0.6` to `0.5/0.45/0.55` to hug the now-tighter content and eliminate the empty band below row 2.
+- 2026-05-26 — **Personal Info sheet (`edit_profile.dart`) rewritten to Figma spec** on `feature/abhiCloude`:
+  - Removed avatar + camera-picker block and Email field — sheet now shows only the 5 Figma fields (First Name, Last Name, Country of residence, Preferred Currency, Language) plus the Save button.
+  - Re-enabled the Country dropdown (was commented out); selection now defaults to the user's saved country when available instead of always picking `countries.first`.
+  - Field styling tokens: label 16/600/`#09090B`, input box bg `#F4F4F5`, radius 16, height 62, content padding 24/20; input text 16/500/`#09090B`; dropdown chevron `#1C274C` 24sp; 23px gap between fields.
+  - Save button is now a custom 60-tall `#8E10FC` pill (radius 32, text 16/700/white), with `withOpacity(0.5)` in the disabled state per Figma — replacing the shared `Button` (50-tall, 25-radius) for this screen only.
+  - Removed `dart:io` / `image_picker` imports and the `selectedImage`/`pickImage` plumbing now that avatar editing is gone.
+- 2026-05-26 — **Profile page UI aligned with Figma spec** on `feature/abhiCloude`:
+  - `lib/presentation/screens/profile/profile_page.dart` rewritten end-to-end against Figma frames 1171276434/35/36. Card bg `#FAFAFA`, hairline border `1px #F4F4F5`, radius 20; inner stat/icon boxes white with same hairline + radius 12.
+  - Avatar now wears the 4px `#D9ADFF` ring (84×84 outer); name 20/600/`#09090B`; stat value 16/600/`#09090B`; stat label 14/400/`#3F3F46`.
+  - Stats row uses 3 `Expanded` boxes with 4px gaps (Figma flex-grow), replacing the prior fixed `90.w` + `spaceBetween`.
+  - Achievement title `#52525B` 16/600; badges 64×64 with 1px hairline (purple translucent bg removed).
+  - Settings card: row gap unified to 20.h between items (was 12.h vertical padding = 24 between); text 16/400/`#3F3F46`; icon container white + 1px hairline; icon/arrow `#52525B`.
+  - Replaced default `Switch` with `_FigmaSwitch` (57×32 `#E4E4E7` off track, primary on track, 24×24 white thumb, animated slide).
+  - Dark mode preserved via per-token light/dark resolvers; functional surface (refresh, sheets, logout, all 8 rows) untouched.
+
 ### Added
 - 2026-04-30 — Initial Claude Code documentation layer (`CLAUDE.md`, `docs/`, `tasks/`, `.claude/`).
 - 2026-04-30 — `docs/CODEBASE_AUDIT.md` — read-only audit covering structure, tech stack, data flow, models, endpoints, tests, build/deploy, env vars, integrations, and dead code.
@@ -19,6 +46,9 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-26 — **`GlobalAppBar` no longer turns gray when content scrolls underneath** on `feature/abhiCloude`:
+  - `Common_header_withlogo.dart` — added `scrolledUnderElevation: 0` and `surfaceTintColor: Colors.transparent` to the `AppBar`. Without them, Material 3 applies a tinted surface overlay (and a 3pt elevation) once body content scrolls past the AppBar — that's what was turning the profile-page header from white to gray on scroll. Fix applies to every screen that uses `GlobalAppBar`.
+
 - 2026-05-23 — **Chart-page Buy Yes/No now opens the quote view** on `feature/vandana_claude`:
   - `trade_details_page.dart` `_openNewTrade` — taps on the chart/info page's Buy Yes / Buy No buttons now open `TradePage` with `useDefaultAmount: true`, so the user lands directly on the quote view (shares, price, max payout, potential profit) instead of an empty amount input. Mirrors the home-screen swipe path.
   - Added the same readiness gate `HomeScreen._ensureReadyToTrade()` uses (purple `showLoader` while default amount is still fetching; red `showError` + open `DefaultSettingsPage` if loaded-but-zero). Imports `DefaultAmountProvider`, `DefaultSettingsPage`, `CustomSnackBar`.

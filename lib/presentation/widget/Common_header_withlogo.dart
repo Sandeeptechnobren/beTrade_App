@@ -23,6 +23,11 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       elevation: 0,
+      // Material 3 applies a surfaceTint overlay (and a 3pt elevation) when
+      // body content scrolls under the AppBar — that's what was turning the
+      // header gray. Zero both out so the bg stays the bg we set.
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       backgroundColor:
       backgroundColor ?? (isDark ? const Color(0xFF2A2A2A) : Colors.white),
 

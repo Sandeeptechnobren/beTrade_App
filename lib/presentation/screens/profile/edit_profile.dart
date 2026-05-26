@@ -1,19 +1,15 @@
-import 'dart:io';
-import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:betrade/presentation/widget/customSnackBar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
-import '../../widget/purple_button.dart';
 import '../verification/country_services_step_one.dart';
 
 class EditProfile extends StatefulWidget {
@@ -24,14 +20,18 @@ class EditProfile extends StatefulWidget {
 }
 
 class _EditProfileState extends State<EditProfile> {
+  // Figma tokens (Frame 2609813)
+  static const Color _sheetBg = Color(0xFFFFFFFF);
+  static const Color _labelColor = Color(0xFF09090B);
+  static const Color _inputBg = Color(0xFFF4F4F5);
+  static const Color _inputText = Color(0xFF09090B);
+  static const Color _chevron = Color(0xFF1C274C);
+  static const Color _btnPrimary = Color(0xFF8E10FC);
+
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final phoneController = TextEditingController();
-  final emailController = TextEditingController();
 
-  String gender = "male";
-  File? selectedImage;
-  final picker = ImagePicker();
   List<CountryModel> countries = [];
   CountryModel? selectedCountry;
   List<DropdownItem> languages = [];
@@ -39,61 +39,47 @@ class _EditProfileState extends State<EditProfile> {
   String? selectedCurrency;
   bool isLoading = true;
 
-  // Originals captured once profile + lookup data are loaded.
-  String _originalFirstName = "";
-  String _originalLastName = "";
-  String _originalPhone = "";
-  // String _originalEmail = "";
-  String _originalGender = "male";
-  String _originalCountryName = "";
+  // Originals — captured once profile + lookups load, used to gate Save.
+  String _originalFirstName = '';
+  String _originalLastName = '';
+  String _originalCountryName = '';
+  String? _originalCurrency;
+  int? _originalLanguageId;
   bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
-
-    final profile = Provider.of<ProfileProvider>(
-      context,
-      listen: false,
-    ).profile;
-
+    final profile =
+        Provider.of<ProfileProvider>(context, listen: false).profile;
     if (profile != null) {
       firstNameController.text = profile.firstName;
       lastNameController.text = profile.lastName;
       phoneController.text = profile.phone ?? '';
-      // emailController.text = profile.email ?? '';
-      gender = profile.gender ?? "male";
-
       _originalFirstName = profile.firstName;
       _originalLastName = profile.lastName;
-      _originalPhone = profile.phone ?? '';
-      // _originalEmail = profile.email ?? '';
-      _originalGender = profile.gender ?? "male";
-      _originalCountryName = profile.country ?? "";
+      _originalCountryName = profile.country ?? '';
+      _originalCurrency = profile.currency;
     }
-
     firstNameController.addListener(_recomputeHasChanges);
     lastNameController.addListener(_recomputeHasChanges);
-    phoneController.addListener(_recomputeHasChanges);
-    // emailController.addListener(_recomputeHasChanges);
-    if (profile != null) {
-      emailController.text = profile.email ?? '';
-    }
+    Future.microtask(loadAllData);
+  }
 
-    Future.microtask(() {
-      loadAllData();
-    });
+  @override
+  void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    phoneController.dispose();
+    super.dispose();
   }
 
   void _recomputeHasChanges() {
-    final countryName = selectedCountry?.name ?? "";
     final changed = firstNameController.text != _originalFirstName ||
         lastNameController.text != _originalLastName ||
-        phoneController.text != _originalPhone ||
-        // emailController.text != _originalEmail ||
-        gender != _originalGender ||
-        countryName != _originalCountryName ||
-        selectedImage != null;
+        (selectedCountry?.name ?? '') != _originalCountryName ||
+        (selectedCurrency ?? '') != (_originalCurrency ?? '') ||
+        language?.id != _originalLanguageId;
     if (changed != _hasChanges && mounted) {
       setState(() => _hasChanges = changed);
     }
@@ -102,18 +88,18 @@ class _EditProfileState extends State<EditProfile> {
   Future<void> loadAllData() async {
     try {
       if (!mounted) return;
-
       setState(() => isLoading = true);
 
       final countryRes = await CountryService.fetchCountries();
-
       if (!mounted) return;
-
       countries = countryRes;
 
       if (countries.isNotEmpty) {
-        selectedCountry = countries.first;
-        selectedCurrency = selectedCountry?.currency;
+        // Prefer the user's saved country; fall back to first.
+        final matches =
+            countries.where((c) => c.name == _originalCountryName).toList();
+        selectedCountry = matches.isNotEmpty ? matches.first : countries.first;
+        selectedCurrency = selectedCountry?.currency ?? _originalCurrency;
       }
 
       final token = LocalStorage.getToken();
@@ -126,7 +112,6 @@ class _EditProfileState extends State<EditProfile> {
           },
         ),
       );
-
       if (!mounted) return;
 
       if (response.statusCode == 200) {
@@ -136,234 +121,142 @@ class _EditProfileState extends State<EditProfile> {
           languages = list
               .map((e) => DropdownItem(id: e['id'], name: e['name']))
               .toList();
-
           if (languages.isNotEmpty) {
             language = languages.first;
+            _originalLanguageId = language?.id;
           }
         }
       }
-
-      if (!mounted) return;
-
-      setState(() => isLoading = false);
-    } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (!mounted) return;
-    if (pickedFile != null) {
-      setState(() {
-        selectedImage = File(pickedFile.path);
-      });
       _recomputeHasChanges();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ProfileProvider>(context);
-
     return Scaffold(
-      body: SafeArea(
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const CommonHeader(title: "Personal Info"),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.w),
-                      child: Column(
-                        children: [
-                          SizedBox(height: 20.h),
-                          Center(
-                            child: Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 50.r,
-                                  backgroundColor: Colors.grey.shade200,
-                                  backgroundImage: selectedImage != null
-                                      ? FileImage(selectedImage!)
-                                          as ImageProvider
-                                      : (provider.profile?.avatar != null &&
-                                              provider
-                                                  .profile!.avatar.isNotEmpty)
-                                          ? NetworkImage(
-                                                  provider.profile!.avatar)
-                                              as ImageProvider
-                                          : null,
-                                  child: selectedImage == null &&
-                                          (provider.profile?.avatar == null ||
-                                              provider.profile!.avatar.isEmpty)
-                                      ? Icon(
-                                          Icons.person,
-                                          size: 40.sp,
-                                          color: Colors.grey,
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: pickImage,
-                                    child: Container(
-                                      padding: EdgeInsets.all(6.w),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 18.sp,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 20.h,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24.r),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildField("First Name", firstNameController),
-                                _buildField("Last Name", lastNameController),
-                                _buildField(
-                                  "Email",
-                                  emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  enabled: false,
-                                ),
-                                // buildCountryDropdown(),
-                                buildCurrencyDropdown(),
-                                buildLanguageDropdown(),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 100.h),
-                        ],
-                      ),
+      backgroundColor: _sheetBg,
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const CommonHeader(title: "Personal Info"),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _labeledTextField("First Name", firstNameController),
+                        SizedBox(height: 23.h),
+                        _labeledTextField("Last Name", lastNameController),
+                        SizedBox(height: 23.h),
+                        _countryField(),
+                        SizedBox(height: 23.h),
+                        _currencyField(),
+                        SizedBox(height: 23.h),
+                        _languageField(),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Button(
-              title: "Save Changes",
-              isLoading: provider.isLoading,
-              onPressed: (selectedCountry == null || !_hasChanges)
-                  ? null
-                  : () async {
-                      bool success = await provider.updateProfile(
-                        firstName: firstNameController.text,
-                        lastName: lastNameController.text,
-                        phone: phoneController.text,
-                        // email: emailController.text,
-                        // gender: gender,
-                        // country: selectedCountry?.name ?? "",
-                        image: selectedImage,
-                      );
-                      if (!mounted) return;
-                      if (success) {
-                        // ScaffoldMessenger.of(context).showSnackBar(
-                        //   const SnackBar(content: Text("Profile Updated")),
-                        // );
-                        CustomSnackBar.showSuccess(
-                          context,
-                          message: "Profile Updated",
-                          duration: const Duration(seconds: 3),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-            )),
-      ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
+                  child: _saveButton(provider),
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _buildField(
-    String title,
-    TextEditingController controller, {
-    TextInputType? keyboardType,
-        bool enabled = true,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: AppTextStyle.body),
-          SizedBox(height: 6.h),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.inputFieldBgDynamic(context),
-              borderRadius: BorderRadius.circular(14.r),
-            ),
-            child: TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              enabled: enabled,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(14.w),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _label(String text) => Text(
+        text,
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: _labelColor,
+          fontFamily: AppTextStyle.fontFamily,
+        ),
+      );
 
-  Widget buildCountryDropdown() {
+  BoxDecoration get _inputDecoration => BoxDecoration(
+        color: _inputBg,
+        borderRadius: BorderRadius.circular(16.r),
+      );
+
+  TextStyle get _inputTextStyle => TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+        color: _inputText,
+        fontFamily: AppTextStyle.fontFamily,
+      );
+
+  Widget _labeledTextField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Country of residence", style: AppTextStyle.body),
-        SizedBox(height: 8),
+        _label(label),
+        SizedBox(height: 12.h),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(12),
+          height: 62.h,
+          decoration: _inputDecoration,
+          child: TextField(
+            controller: controller,
+            style: _inputTextStyle,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              isCollapsed: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+            ),
           ),
-          child: DropdownButton<CountryModel>(
+        ),
+      ],
+    );
+  }
+
+  Widget _countryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label("Country of residence"),
+        SizedBox(height: 12.h),
+        Container(
+          height: 62.h,
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          decoration: _inputDecoration,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<CountryModel>(
               value: selectedCountry,
               isExpanded: true,
-              underline: SizedBox(),
+              icon: Icon(Icons.keyboard_arrow_down,
+                  size: 24.sp, color: _chevron),
+              dropdownColor: _sheetBg,
               items: countries.map((e) {
-                return DropdownMenuItem(
+                return DropdownMenuItem<CountryModel>(
                   value: e,
                   child: Row(
                     children: [
-                      e.flag != null && e.flag!.startsWith("http")
-                          ? ClipOval(
-                              child: Image.network(
-                                e.flag!,
-                                width: 23.4.w,
-                                height: 23.4.h,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    Icon(Icons.flag, size: 16),
-                              ),
-                            )
-                          : Icon(Icons.flag, size: 16),
-                      SizedBox(width: 8),
-                      Text(e.name ?? 'Unknown'),
+                      if (e.flag.startsWith("http"))
+                        ClipOval(
+                          child: Image.network(
+                            e.flag,
+                            width: 24.w,
+                            height: 24.w,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Icon(Icons.flag, size: 16.sp),
+                          ),
+                        )
+                      else
+                        Icon(Icons.flag, size: 16.sp),
+                      SizedBox(width: 8.w),
+                      Text(e.name, style: _inputTextStyle),
                     ],
                   ),
                 );
@@ -375,73 +268,120 @@ class _EditProfileState extends State<EditProfile> {
                   selectedCurrency = val.currency;
                 });
                 _recomputeHasChanges();
-              }),
+              },
+            ),
+          ),
         ),
-        SizedBox(height: 16),
       ],
     );
   }
 
-  Widget buildCurrencyDropdown() {
+  Widget _currencyField() {
+    // Currency is derived from selectedCountry; the chevron is decorative.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Preferred Currency", style: AppTextStyle.body),
-        SizedBox(height: 8),
+        _label("Preferred Currency"),
+        SizedBox(height: 12.h),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButton<String>(
-            value: selectedCurrency,
-            isExpanded: true,
-            underline: SizedBox(),
-            items: selectedCurrency != null
-                ? [
-                    DropdownMenuItem(
-                      value: selectedCurrency,
-                      child: Text(selectedCurrency!),
-                    ),
-                  ]
-                : [],
-            onChanged: null,
+          height: 62.h,
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          decoration: _inputDecoration,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(selectedCurrency ?? '', style: _inputTextStyle),
+              Icon(Icons.keyboard_arrow_down, size: 24.sp, color: _chevron),
+            ],
           ),
         ),
-        SizedBox(height: 16),
       ],
     );
   }
 
-  Widget buildLanguageDropdown() {
+  Widget _languageField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Language", style: AppTextStyle.body),
-        SizedBox(height: 8),
+        _label("Language"),
+        SizedBox(height: 12.h),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButton<DropdownItem>(
+          height: 62.h,
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          decoration: _inputDecoration,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<DropdownItem>(
               value: language,
               isExpanded: true,
-              underline: SizedBox(),
+              icon: Icon(Icons.keyboard_arrow_down,
+                  size: 24.sp, color: _chevron),
+              dropdownColor: _sheetBg,
               items: languages.map((e) {
-                return DropdownMenuItem(value: e, child: Text(e.name));
+                return DropdownMenuItem<DropdownItem>(
+                  value: e,
+                  child: Text(e.name, style: _inputTextStyle),
+                );
               }).toList(),
               onChanged: (val) {
                 if (val == null) return;
-                setState(() {
-                  language = val;
-                });
-              }),
+                setState(() => language = val);
+                _recomputeHasChanges();
+              },
+            ),
+          ),
         ),
-        SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _saveButton(ProfileProvider provider) {
+    final enabled =
+        selectedCountry != null && _hasChanges && !provider.isLoading;
+    return GestureDetector(
+      onTap: enabled
+          ? () async {
+              final success = await provider.updateProfile(
+                firstName: firstNameController.text,
+                lastName: lastNameController.text,
+                phone: phoneController.text,
+              );
+              if (!mounted) return;
+              if (success) {
+                CustomSnackBar.showSuccess(
+                  context,
+                  message: "Profile Updated",
+                  duration: const Duration(seconds: 3),
+                );
+                Navigator.pop(context);
+              }
+            }
+          : null,
+      child: Container(
+        height: 60.h,
+        decoration: BoxDecoration(
+          color: enabled ? _btnPrimary : _btnPrimary.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(32.r),
+        ),
+        alignment: Alignment.center,
+        child: provider.isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                "Save changes",
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontFamily: AppTextStyle.fontFamily,
+                ),
+              ),
+      ),
     );
   }
 }
@@ -449,6 +389,5 @@ class _EditProfileState extends State<EditProfile> {
 class DropdownItem {
   final int id;
   final String name;
-
   DropdownItem({required this.id, required this.name});
 }

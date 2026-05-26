@@ -4,7 +4,6 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/explore/explore_page.dart';
 import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
-import 'package:betrade/presentation/screens/profile/info_chart_screen.dart';
 import 'package:betrade/presentation/screens/profile/profile_page.dart';
 import 'package:betrade/presentation/screens/verification/verify_account.dart';
 import 'package:flutter/material.dart';
@@ -290,6 +289,71 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  Future<void> _showComingSoonDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackgroundDynamic(context),
+          insetPadding: EdgeInsets.all(20.w),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.leaderboard_outlined,
+                  size: 48.sp,
+                  color: AppColors.primary,
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  "Coming Soon",
+                  style: AppTextStyle.subHeading.copyWith(
+                    color: AppColors.textPrimaryDynamic(context),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  "The Rankings feature is on its way. Stay tuned!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppColors.textSecondaryDynamic(context),
+                    fontFamily: 'SFProRounded',
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(30.r),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30.r),
+                      color: AppColors.primary,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "Got it",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _tokenTimer?.cancel();
@@ -309,7 +373,9 @@ class _MainScreenState extends State<MainScreen> {
             onBannerTap: _showWelcomePopup,
           ),
           ExplorePage(),
-          InfoChartScreen(),
+          // Rankings slot — tap is intercepted below; placeholder keeps
+          // the tab indices stable without instantiating a real screen.
+          const SizedBox.shrink(),
           PortfolioPage(),
           ProfilePage(),
         ],
@@ -317,6 +383,12 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: CustomBottomNav(
         currentIndex: currentIndex,
         onTap: (index) {
+          if (index == 2) {
+            // Rankings isn't in the Figma yet — show Coming Soon and
+            // keep the currently selected tab highlighted.
+            _showComingSoonDialog();
+            return;
+          }
           setState(() {
             currentIndex = index;
           });
