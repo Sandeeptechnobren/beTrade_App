@@ -3,6 +3,7 @@ import 'package:betrade/data/provider/category_provider.dart';
 import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
+import 'package:betrade/data/provider/rankings_provider.dart';
 import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
@@ -188,6 +189,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => PositionsProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RankingsProvider(),
         ),
       ],
       child: ScreenUtilInit(

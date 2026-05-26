@@ -5,6 +5,7 @@ Format: [DATE] [AUTHOR] Description
 ## [Unreleased]
 
 ### Added
+- 2026-05-27 — Rankings leaderboard tab (`feature/rankings-screen-2026-05-27`). New `RankingsScreen` replaces the simulated `InfoChartScreen` at bottom-nav index 2. 4 TabBar tabs (Overall / Profit / Win Rate / Hot Streak) driven by `GET /api/rankings?category=`. New files: `data/model/ranking_entry.dart` (`RankingEntry` + `RankingResponse` with unit-aware `formatValue` → `₵12.5k` / `85%` / `6 days` / `40 trades`), `data/services/rankings_service.dart`, `data/provider/rankings_provider.dart` (per-category cache + loading + error state), `presentation/screens/rankings/rankings_screen.dart` (520 lines: podium card with purple gradient + splash overlay, crown icons on top-3, leaderboard list with current-user row highlighted, pull-to-refresh, lazy per-tab fetch). Bottom-nav label `"Chart" → "Rankings"`. Provider registered in `MultiProvider`. `flutter analyze` clean; debug APK builds.
 - 2026-04-30 — Initial Claude Code documentation layer (`CLAUDE.md`, `docs/`, `tasks/`, `.claude/`).
 - 2026-04-30 — `docs/CODEBASE_AUDIT.md` — read-only audit covering structure, tech stack, data flow, models, endpoints, tests, build/deploy, env vars, integrations, and dead code.
 - 2026-04-30 — `docs/ARCHITECTURE.md` — system overview, layered architecture, directory map, API surface, auth model, deployment notes.

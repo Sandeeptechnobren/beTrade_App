@@ -49,11 +49,12 @@ class CustomBottomNav extends StatelessWidget {
           icon: Icon(LucideIcons.search),
           label: "Explore",
         ),
-        // 3rd tab actually hosts InfoChartScreen — labelled "Chart" until
-        // a real Rankings/leaderboard surface lands (QA #5).
+        // 3rd tab hosts the Rankings leaderboard (Overall / Profit /
+        // Win Rate / Hot Streak). Replaced the legacy "Chart" label
+        // when the real leaderboard surface landed (2026-05-27).
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.trophy),
-          label: "Chart",
+          label: "Rankings",
         ),
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.wallet),
