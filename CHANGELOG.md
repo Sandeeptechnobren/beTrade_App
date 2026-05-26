@@ -19,6 +19,13 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-26 — **Production typography pass (QA #2)** on `feature/vandana_claude`:
+  - `lib/core/theme/app_text_style.dart` — bumped three heading presets to align with Material 3 / Cred / PhonePe / Zomato production scale:
+    - `heading`: **20 → 22sp** (screen titles, matches Material 3 `titleLarge`)
+    - `headingWhite`: **20 → 22sp** (variant — kept consistent)
+    - `headingWhitebig`: **22 → 26sp** (onboarding marketing copy, hero text)
+  - Body (16), subHeading (18), small/smallGrey/smallNav (14), button (16), bodyBig (16), subHeadingBold (18) **left unchanged** — already at production-norm. `smallNav` doubles as the KYC form-label style ("Country", "Currency", "Language"), so shrinking it to 12sp (typical bottom-nav norm) would have shrunk form labels too — kept at 14sp.
+  - No layout breakage expected: the 3 bumped presets are used in headers, screen titles, and onboarding hero text — all width-flexible containers. Analyzer: "No issues found!" Static code review showed no width-constrained Row siblings that would overflow.
 - 2026-05-26 — **High-res avatars + logo refresh + avatar off-by-one bug** on `feature/vandana_claude`:
   - **QA #4 (avatars)** — replaced all 16 `assets/images/avt1 (1)..(16).png` files with designer-provided high-res versions (~30–56 KB each, was ~7–10 KB). All clear character portraits — mix of genders, ethnicities, styles (hijab, kimono, hoodies, etc.).
   - **QA #3 (in-app logo)** — replaced `assets/logo/IconLogo.png` and `assets/images/IconLogo.png` (143×176, used in headers and splash) with new `Frame 18.png` exported by designer. **Intentionally did NOT replace `assets/logo/app_icon.png`** (the launcher icon source) because the new file is 143×176 while current `app_icon.png` is 1024×1024 — replacing would have caused a blurry launcher on every device.

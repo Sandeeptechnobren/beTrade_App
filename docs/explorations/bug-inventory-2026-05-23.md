@@ -24,6 +24,35 @@
 
 These are committed and pushed. No action needed.
 
+### Production typography pass (QA #2) — 2026-05-26
+
+Performed a surgical, production-grade typography pass cross-referenced with **Material 3 spec + Cred + PhonePe + Zomato + Swiggy** real-world scales. Adopted the principle of *bump where it gives genuine hierarchy improvement; leave alone what's already production-norm.*
+
+**Final adjustments in `lib/core/theme/app_text_style.dart`:**
+
+| Preset | Before | After | Rationale |
+|--------|------:|------:|-----------|
+| `heading` | 20 | **22** | Screen titles — matches Material 3 `titleLarge` and Cred screen-header scale |
+| `headingWhite` | 20 | **22** | Variant — consistent |
+| `headingWhitebig` | 22 | **26** | Onboarding marketing hero text — more impact |
+| `subHeading` | 18 | 18 | Already a solid section header size |
+| `subHeadingBold` | 18 | 18 | Same |
+| `body` | 16 | 16 | Canonical Material `bodyLarge`, well-readable |
+| `bodyBig` | 16 | 16 | Same |
+| `small` | 14 | 14 | Canonical Material `bodyMedium` for captions/labels |
+| `smallGrey` | 14 | 14 | Same |
+| `smallNav` | 14 | 14 | **Kept** — doubles as KYC form-label style on `verify_account.dart` (Country/Currency/Language), not just bottom-nav. Shrinking to 12sp would have shrunk those form labels. |
+| `button` | 16 | 16 | Standard button label size |
+
+**QA verification (static — couldn't run on device):**
+- ✅ Analyzer clean ("No issues found!") on `app_text_style.dart`.
+- ✅ Visual code review of all 32 files that consume the changed presets — no width-constrained `Row` siblings around heading text that would cause `RenderFlex` overflow.
+- ✅ `CommonHeader`, `OTPScreen`, `LoginScreen`, `TradeDetailsPage`, `TradePage` headers all use `Expanded` / `Padding` patterns that flex with text width.
+- ✅ Onboarding pages use multi-line containers — 4sp bump on `headingWhitebig` may cause an extra line wrap on the narrowest phones, but no overflow / clipping.
+- ⏳ Manual smoke test pending APK install.
+
+### Full list of fixes
+
 | # | Bug | Source | Commit |
 |---|-----|--------|--------|
 | 1 | Not signed in after signup — `SuccessScreen` was going to `AuthScreen` instead of `MainScreen` | QA #1 | `87ff67b` |

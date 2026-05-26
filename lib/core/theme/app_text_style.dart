@@ -5,21 +5,28 @@ import 'app_colors.dart';
 class AppTextStyle {
   static const String fontFamily = 'SFProRounded';
 
+  // Production typography pass (QA #2). Reference scale aligned with
+  // Material 3 titleLarge (22sp) and the heading sizes used by Cred /
+  // PhonePe / Zomato. Body (16sp), small (14sp), subHeading (18sp) and
+  // button (16sp) are already at the production sweet spot and were
+  // left unchanged to avoid layout shifts. smallNav stays at 14sp
+  // because it doubles as the form-label style on the KYC screen, not
+  // just the bottom nav.
   static TextStyle heading = TextStyle(
-    fontSize: 20.sp,
+    fontSize: 22.sp,
     fontWeight: FontWeight.w700,
     fontFamily: fontFamily,
   );
 
   static TextStyle headingWhite = TextStyle(
-    fontSize: 20.sp,
+    fontSize: 22.sp,
     fontWeight: FontWeight.w700,
     fontFamily: fontFamily,
     color: Colors.white,
   );
 
   static TextStyle headingWhitebig = TextStyle(
-    fontSize: 22.sp,
+    fontSize: 26.sp,
     fontWeight: FontWeight.w700,
     fontFamily: fontFamily,
     color: Colors.white,
