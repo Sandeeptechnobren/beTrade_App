@@ -19,6 +19,11 @@ Format: [DATE] [AUTHOR] Description
 - 2026-05-05 — `lib/presentation/screens/signin/otp_screen.dart` migrated to `pinput` (^5.0.0) for the 6-cell OTP input. Replaces the manual `List<TextEditingController>` + `List<FocusNode>` + per-cell `TextField` with a single `Pinput` widget; gains paste-fill, haptics, fade animation, and platform SMS-autofill hooks. All business logic (timer, verify, resend, navigate, error handling) preserved unchanged.
 
 ### Fixed
+- 2026-05-26 — **High-res avatars + logo refresh + avatar off-by-one bug** on `feature/vandana_claude`:
+  - **QA #4 (avatars)** — replaced all 16 `assets/images/avt1 (1)..(16).png` files with designer-provided high-res versions (~30–56 KB each, was ~7–10 KB). All clear character portraits — mix of genders, ethnicities, styles (hijab, kimono, hoodies, etc.).
+  - **QA #3 (in-app logo)** — replaced `assets/logo/IconLogo.png` and `assets/images/IconLogo.png` (143×176, used in headers and splash) with new `Frame 18.png` exported by designer. **Intentionally did NOT replace `assets/logo/app_icon.png`** (the launcher icon source) because the new file is 143×176 while current `app_icon.png` is 1024×1024 — replacing would have caused a blurry launcher on every device.
+  - Latent off-by-one: `step_profile.dart:32` used `List.generate(16, (i) => "...avt1 ($i).png")` which generates `avt1 (0)`–`(15)`. But files are `avt1 (1)`–`(16)`. Result: `avt1 (0)` 404'd (broken first avatar) and `avt1 (16)` was never displayed. Changed to `(i + 1)` so all 16 designer avatars actually appear.
+  - `Frame 5 1.png` (28×33 thumbnail variant) NOT applied — no widget consumes that size; saved for future use.
 - 2026-05-23 — **PollCard share button now actually shares** on `feature/vandana_claude`:
   - Added `share_plus: ^10.1.4` dependency.
   - `HomeScreen.dart` `_shareTradeCard(trade)` — opens the OS share sheet (WhatsApp, Messages, Mail, etc.) with the trade description, category, and image URL. Wired into the previously-stubbed `CommonShareButton(onTap: () {})` on PollCard. No deep-link URL scheme yet — recipient sees text content only.

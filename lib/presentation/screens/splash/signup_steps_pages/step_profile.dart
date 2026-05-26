@@ -29,7 +29,13 @@ class StepProfile extends StatefulWidget {
 class _StepProfileState extends State<StepProfile> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  List<String> _avatarList = List.generate(16, (i) => "assets/images/avt1 ($i).png");
+  // Avatar filenames are avt1 (1).png through avt1 (16).png (1-indexed).
+  // Previously this used `(i)` which generated avt1 (0)-(15) — avt1 (0)
+  // didn't exist (asset error on first avatar) and avt1 (16) was never
+  // shown. Bumping to `(i + 1)` so all 16 designer-provided avatars
+  // appear in the picker.
+  final List<String> _avatarList =
+      List.generate(16, (i) => "assets/images/avt1 (${i + 1}).png");
   String? _selectedAvatar;
   bool _isDisposed = false;
   bool _isProcessing = false;
