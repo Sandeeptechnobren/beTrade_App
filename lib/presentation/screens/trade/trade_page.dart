@@ -291,47 +291,30 @@ class _TradePageState extends State<TradePage> {
                 children: [
                   CommonHeader(title: "New Trade",showDivider: false,),
                   const Spacer(),
+                  // ── Yes/No outcome toggle (matches Figma "Success" ─
+                  // header). Outer pill is the unselected "track"; the
+                  // selected option floats inside as a white card with a
+                  // soft shadow. Animated for the transition between
+                  // states.
                   Container(
-                    height: 36.h,
-                    margin: EdgeInsets.only(right: 5.w),
+                    margin: EdgeInsets.only(right: 14.w),
                     padding: EdgeInsets.all(4.w),
                     decoration: BoxDecoration(
-                        color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(25.r),
+                      color: AppColors.inputFieldBgDynamic(context),
+                      borderRadius: BorderRadius.circular(30.r),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        GestureDetector(
+                        _outcomeToggleChip(
+                          label: "Yes",
+                          selected: isYesSelected,
                           onTap: () => _selectOutcome(true),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isYesSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Text("Yes"),
-                          ),
                         ),
-                        GestureDetector(
+                        _outcomeToggleChip(
+                          label: "No",
+                          selected: !isYesSelected,
                           onTap: () => _selectOutcome(false),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: !isYesSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Text("No"),
-                          ),
                         ),
                       ],
                     ),
@@ -590,6 +573,51 @@ class _TradePageState extends State<TradePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Single chip in the Yes/No outcome toggle. Selected state =
+  /// elevated white pill with a soft shadow + bold dark text;
+  /// unselected = transparent (so the outer grey track shows) +
+  /// medium-weight muted text. Matches the Figma "Success" frame.
+  Widget _outcomeToggleChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.cardBackgroundDynamic(context)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(24.r),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected
+                ? AppColors.textPrimaryDynamic(context)
+                : AppColors.textSecondaryDynamic(context),
+          ),
+        ),
       ),
     );
   }
