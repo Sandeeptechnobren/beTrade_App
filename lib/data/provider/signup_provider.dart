@@ -133,24 +133,36 @@ class SignupProvider extends ChangeNotifier {
     return success;
   }
 
-  // ✅ FIXED: Complete signup with proper file handling
-  Future<bool> completeSignup() async {
-    if (profileImage == null) return false;
+  /// Final step of signup. Returns the typed envelope from AuthService so
+  /// SignupScreen can show the backend's actual error message on failure
+  /// instead of a generic snackbar.
+  ///
+  /// Shape on success:
+  ///   { success: true, message, data: user, doc_upload_status }
+  /// On failure:
+  ///   { success: false, message }
+  ///
+  /// The AuthService already persists the Sanctum token + FCM token +
+  /// doc_upload_status before returning, so the caller can route straight
+  /// to MainScreen on success.
+  Future<Map<String, dynamic>> completeSignup() async {
+    if (profileImage == null) {
+      return {"success": false, "message": "Please select a profile photo"};
+    }
 
     isLoading = true;
     notifyListeners();
 
     try {
-      // Verify file exists before proceeding
       if (!await profileImage!.exists()) {
-        debugPrint("❌ Profile image does not exist at path: ${profileImage!.path}");
-        return false;
+        debugPrint("Profile image missing at path: ${profileImage!.path}");
+        return {
+          "success": false,
+          "message": "Profile photo no longer exists. Please reselect.",
+        };
       }
 
-      debugPrint("✅ Profile image exists at: ${profileImage!.path}");
-      debugPrint("✅ File size: ${await profileImage!.length()} bytes");
-
-      bool success = await _service.completeSignup(
+      return await _service.completeSignup(
         phone: phone,
         gender: gender,
         firstName: firstName,
@@ -158,11 +170,9 @@ class SignupProvider extends ChangeNotifier {
         email: email,
         image: profileImage!,
       );
-
-      return success;
     } catch (e) {
-      debugPrint("❌ Error in completeSignup: $e");
-      return false;
+      debugPrint("SignupProvider.completeSignup error: $e");
+      return {"success": false, "message": "Unexpected error during signup"};
     } finally {
       isLoading = false;
       notifyListeners();
