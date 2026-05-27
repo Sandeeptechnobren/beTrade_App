@@ -9,6 +9,7 @@ import '../../../data/model/trade_detail_model.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
+import '../../widget/common_header.dart';
 import '../../widget/customSnackBar.dart';
 import '../profile/default_settings_page.dart';
 import 'trade_page.dart';
@@ -55,7 +56,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
-      bottomNavigationBar: detail == null ? null : _buildBuyButtons(),
+      // bottomNavigationBar: detail == null ? null : _buildBuyButtons(),
       body: SafeArea(
         child: Column(
           children: [
@@ -194,22 +195,30 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(8.w, 4.h, 16.w, 8.h),
       child: Row(
+        // children: [
+        //   IconButton(
+        //     icon: Icon(
+        //       Icons.arrow_back_ios_new,
+        //       size: 18.sp,
+        //       color: AppColors.textPrimaryDynamic(context),
+        //     ),
+        //     onPressed: () => Navigator.of(context).pop(),
+        //   ),
+        //   Text(
+        //     "Details",
+        //     style: AppTextStyle.heading.copyWith(
+        //       color: AppColors.textPrimaryDynamic(context),
+        //     ),
+        //   ),
+
+        // ],
         children: [
-          IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new,
-              size: 18.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          Text(
-            "Details",
-            style: AppTextStyle.heading.copyWith(
-              color: AppColors.textPrimaryDynamic(context),
+          Expanded(
+            child: CommonHeader(
+              title: "Details",
+              showDivider: false,
             ),
           ),
-          const Spacer(),
           _buildTabSwitcher(),
         ],
       ),
@@ -276,61 +285,82 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _titleCard(detail),
-          SizedBox(height: 24.h),
-          Text(
-            "Market Activity",
-            style: AppTextStyle.heading.copyWith(
-              fontSize: 16.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
+          _sectionHeading("Market Activity"),
+          SizedBox(height: 8.h),
           _activityCard(detail),
-          SizedBox(height: 24.h),
-          Text(
-            "Resolution Source",
-            style: AppTextStyle.heading.copyWith(
-              fontSize: 16.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
+          _sectionHeading("Resolution Source"),
+          SizedBox(height: 8.h),
           _resolutionCard(detail),
+          SizedBox(height: 20.h),
+          _sectionHeading("Resolution Source"),
+          SizedBox(height: 8.h),
+          _resolutionRulesCard(),
           SizedBox(height: 24.h),
         ],
       ),
     );
   }
 
+  Widget _sectionHeading(String text) => Text(
+        text,
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF3F3F46),
+        ),
+      );
+
   Widget _titleCard(TradeDetailModel detail) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
+        color: const Color(0xFF160128),
         borderRadius: BorderRadius.circular(16.r),
-        image: const DecorationImage(
-          image: AssetImage("assets/images/splash.png"),
-          fit: BoxFit.cover,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Market • ${detail.categoryName}",
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            children: [
+              Text(
+                "Market",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: const Color(0xFFFAFAFA),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Container(
+                width: 4.w,
+                height: 4.w,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAFAFA),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Text(
+                detail.categoryName,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: const Color(0xFFB35DFF),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 8.h),
           Text(
             detail.title.isNotEmpty ? detail.title : detail.description,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              height: 1.2,
             ),
           ),
         ],
@@ -355,10 +385,10 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     final isOpen = status.toLowerCase() == 'open';
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(14.r),
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
         children: [
@@ -367,7 +397,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           _activityRow(
             "Market Status",
             _capitalize(status),
-            valueColor: isOpen ? Colors.green.shade700 : Colors.grey.shade700,
+            valueColor:
+                isOpen ? const Color(0xFF166534) : Colors.grey.shade700,
           ),
           _divider(),
           _activityRow("Total Volume", volume),
@@ -389,8 +420,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 13.sp,
-              color: Colors.grey.shade600,
+              fontSize: 14.sp,
+              color: const Color(0xFF71717A),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -399,9 +430,9 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimaryDynamic(context),
+                color: valueColor ?? const Color(0xFF3F3F46),
               ),
             ),
           ),
@@ -412,7 +443,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
   Widget _divider() => Container(
         height: 1,
-        color: Colors.grey.shade200,
+        color: const Color(0xFFEDEDED),
       );
 
   Widget _resolutionCard(TradeDetailModel detail) {
@@ -430,17 +461,47 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(14.r),
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 13.sp,
-          color: AppColors.textPrimaryDynamic(context),
-          height: 1.55,
+          fontSize: 14.sp,
+          color: const Color(0xFF3F3F46),
+          fontWeight: FontWeight.w400,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+
+  /// Second "Resolution Source" block — describes the resolution
+  /// rules/timeline. The model doesn't expose this yet, so it ships
+  /// with hardcoded copy from the Figma spec.
+  Widget _resolutionRulesCard() {
+    const text =
+        "The market will resolve when a verified funding event, acquisition, or predefined milestone occurs.\n"
+        "• Resolution will occur within 72 hours after confirmation from an approved resolution source.\n"
+        "• If conflicting information exists, the platform administrators may review additional sources before finalizing the result.\n"
+        "• Once a market is resolved: Trading will be permanently closed, final prices will be locked, payouts or ownership allocations will be executed according to the outcome.";
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: const Color(0xFF3F3F46),
+          fontWeight: FontWeight.w400,
+          height: 1.4,
         ),
       ),
     );
@@ -463,33 +524,35 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             children: [
               Text(
                 "$chancePct% Chance",
-                style: AppTextStyle.heading.copyWith(
-                  fontSize: 26.sp,
-                  color: AppColors.textPrimaryDynamic(context),
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF3F3F46),
                 ),
               ),
               // Hardcoded 24h delta badge — needs backend chart endpoint
               // (`/trade/{uuid}/chart`) wired to compute the real delta.
               // See tasks/todo.md.
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(20.r),
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(1000.r),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       "20%",
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: const Color(0xFF991B1B),
                         fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
+                        fontSize: 14.sp,
                       ),
                     ),
                     Icon(
                       Icons.arrow_drop_down,
-                      color: Colors.red.shade700,
+                      color: const Color(0xFF991B1B),
                       size: 18.sp,
                     ),
                   ],
@@ -498,9 +561,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             ],
           ),
           SizedBox(height: 16.h),
-          Row(
-            children: ['1D', '1W', '1M', '1Y', 'MAX'].map(_rangeChip).toList(),
-          ),
+          _rangePills(),
           SizedBox(height: 24.h),
           Expanded(child: _chart()),
         ],
@@ -508,33 +569,38 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     );
   }
 
+  Widget _rangePills() {
+    const ranges = ['1D', '1W', '1M', '1Y', 'MAX'];
+    return Container(
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F5),
+        borderRadius: BorderRadius.circular(9999.r),
+      ),
+      child: Row(
+        children: ranges.map((r) => Expanded(child: _rangeChip(r))).toList(),
+      ),
+    );
+  }
+
   Widget _rangeChip(String range) {
     final selected = _selectedRange == range;
-    return Padding(
-      padding: EdgeInsets.only(right: 8.w),
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedRange = range),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.cardBackgroundDynamic(context)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: selected
-                  ? Colors.grey.shade300
-                  : Colors.transparent,
-            ),
-          ),
-          child: Text(
-            range,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: AppColors.textPrimaryDynamic(context),
-              fontSize: 13.sp,
-            ),
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRange = range),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(99999.r),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          range,
+          style: TextStyle(
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: const Color(0xFF09090B),
+            fontSize: 14.sp,
           ),
         ),
       ),
@@ -614,7 +680,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           LineChartBarData(
             spots: spots,
             isCurved: false,
-            color: AppColors.primary,
+            color: const Color(0xFFAA45FF),
             barWidth: 2,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
@@ -624,8 +690,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.20),
-                  AppColors.primary.withValues(alpha: 0.02),
+                  const Color(0xFFAA45FF).withValues(alpha: 0.20),
+                  const Color(0xFFAA45FF).withValues(alpha: 0.02),
                 ],
               ),
             ),

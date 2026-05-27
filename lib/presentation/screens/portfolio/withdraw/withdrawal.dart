@@ -1,12 +1,10 @@
-import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/customSnackBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../data/provider/wallet_provider.dart';
-import '../../../widget/common_header.dart';
 import '../../../widget/deposit_success.dart';
+import '../../../widget/figma_inline_dropdown.dart';
 
 class WithdrawPage extends StatefulWidget {
   final ScrollController scrollController;
@@ -14,61 +12,247 @@ class WithdrawPage extends StatefulWidget {
   const WithdrawPage({super.key, required this.scrollController});
 
   @override
-  State<WithdrawPage> createState() => _DepositPageState();
+  State<WithdrawPage> createState() => _WithdrawPageState();
 }
 
-class _DepositPageState extends State<WithdrawPage> {
+class _WithdrawPageState extends State<WithdrawPage> {
+  // Figma tokens (New Withdrawal sheet — shared with New Deposit)
+  static const Color _sheetBg = Color(0xFFFFFFFF);
+  static const Color _hairline = Color(0xFFE4E4E7);
+  static const Color _labelColor = Color(0xFF09090B);
+  static const Color _inputBg = Color(0xFFF4F4F5);
+  static const Color _inputText = Color(0xFF09090B);
+  static const Color _hintColor = Color(0xFFA1A1AA);
+  static const Color _stepChipBg = Color(0xFFF4F4F5);
+  static const Color _stepProgress = Color(0xFF8E10FC);
+  static const Color _btnPrimary = Color(0xFF8E10FC);
+  static const Color _chevron = Color(0xFF1C274C);
+
+  // MoMo providers shown in the Payment Provider dropdown. Each entry
+  // carries the brand label + asset path; the dropdown renders the
+  // label + brand logo per Figma. Save the brand PNGs at the paths
+  // below to make the logos appear (errorBuilder falls back to a
+  // generic icon until then). Paths kept identical to the deposit
+  // page so both flows share the same brand assets.
+  static const List<_MomoProvider> _momoProviders = [
+    _MomoProvider(
+      id: 'mtn',
+      name: 'MTN Mobile Money',
+      asset: 'assets/images/mnt.png',
+    ),
+    _MomoProvider(
+      id: 'telecel',
+      name: 'Telecel Cash',
+      asset: 'assets/images/telecel.png',
+    ),
+    _MomoProvider(
+      id: 'airteltigo',
+      name: 'AirtelTigo Money',
+      asset: 'assets/images/airteltigo.png',
+    ),
+  ];
+
   int step = 1;
+
+  /// Withdraw defaults to Bank Account per the Figma — flips between
+  /// 'bank' / 'momo' / 'card'.
+  String paymentMethod = "bank";
+
   final TextEditingController amountController = TextEditingController();
-  int selectedAmount = 10;
-  String paymentMethod = "card";
+  final TextEditingController accountNumberController = TextEditingController();
+  final TextEditingController accountNameController = TextEditingController();
   final TextEditingController cardNumber = TextEditingController();
   final TextEditingController expiry = TextEditingController();
   final TextEditingController cvc = TextEditingController();
   final TextEditingController phone = TextEditingController();
-  final TextEditingController accountNumberController = TextEditingController();
-  final TextEditingController accountNameController = TextEditingController();
-  final TextEditingController bankNameController = TextEditingController();
+
   String provider = "";
-  final List<int> amounts = [10, 20, 50, 100];
+  String selectedBank = "";
 
   @override
   void initState() {
-    amountController.text = "0.00";
     super.initState();
+    // Toggle the Confirm/Continue button enabled state live as the user
+    // types — matches Figma's #8E10FC opacity 0.5 → 1 swap.
+    amountController.addListener(_rebuildOnInput);
+    accountNumberController.addListener(_rebuildOnInput);
+    accountNameController.addListener(_rebuildOnInput);
+    cardNumber.addListener(_rebuildOnInput);
+    expiry.addListener(_rebuildOnInput);
+    cvc.addListener(_rebuildOnInput);
+    phone.addListener(_rebuildOnInput);
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    accountNumberController.dispose();
+    accountNameController.dispose();
+    cardNumber.dispose();
+    expiry.dispose();
+    cvc.dispose();
+    phone.dispose();
+    super.dispose();
+  }
+
+  void _rebuildOnInput() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _step1Valid {
+    final amount = double.tryParse(amountController.text.trim()) ?? 0;
+    return amount > 0;
+  }
+
+  bool get _step2Valid {
+    if (paymentMethod == 'bank') {
+      return accountNumberController.text.trim().isNotEmpty &&
+          accountNameController.text.trim().isNotEmpty &&
+          selectedBank.isNotEmpty;
+    }
+    if (paymentMethod == 'momo') {
+      return provider.isNotEmpty && phone.text.trim().isNotEmpty;
+    }
+    if (paymentMethod == 'card') {
+      return cardNumber.text.trim().isNotEmpty &&
+          expiry.text.trim().isNotEmpty &&
+          cvc.text.trim().isNotEmpty;
+    }
+    return false;
+  }
+
+  void _handleBack() {
+    if (step == 2) {
+      setState(() => step = 1);
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _sheetBg,
       body: Column(
         children: [
+          _figmaHeader(),
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30.r),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(0,0,16.w,0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CommonHeader(title: "New Withdrawal",showDivider: false,),
-                        _stepIndicator(),
-                      ],
+            child: SingleChildScrollView(
+              controller: widget.scrollController,
+              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
+              child: step == 1 ? _step1Body() : _step2Body(),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
+            child: step == 1
+                ? _figmaButton(
+                    'Continue',
+                    enabled: _step1Valid,
+                    onTap: () => setState(() => step = 2),
+                  )
+                : Consumer<WalletProvider>(
+                    builder: (context, wallet, _) {
+                      return _figmaButton(
+                        'Confirm',
+                        enabled: _step2Valid && !wallet.isSubmittingWithdraw,
+                        loading: wallet.isSubmittingWithdraw,
+                        onTap: _submitWithdraw,
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Header ───────────────────────────────────────────────────────
+
+  Widget _figmaHeader() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
+      decoration: BoxDecoration(
+        color: _sheetBg,
+        border: const Border(
+          bottom: BorderSide(color: _hairline, width: 1),
+        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(31.r)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: _handleBack,
+                  child: Container(
+                    height: 36.w,
+                    width: 36.w,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _stepChipBg,
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new,
+                      size: 16.sp,
+                      color: _chevron,
                     ),
                   ),
-                  Divider(thickness: 1),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.w),
-                      child: step == 1 ? step1() : step2(),
+                ),
+                SizedBox(width: 16.w),
+                Flexible(
+                  child: Text(
+                    'New Withdrawal',
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _labelColor,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ),
+          _stepIndicator(),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepIndicator() {
+    return SizedBox(
+      height: 36.w,
+      width: 36.w,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: _stepChipBg,
+            ),
+          ),
+          SizedBox(
+            height: 36.w,
+            width: 36.w,
+            child: CircularProgressIndicator(
+              value: step / 2,
+              strokeWidth: 3,
+              backgroundColor: Colors.transparent,
+              valueColor: const AlwaysStoppedAnimation(_stepProgress),
+            ),
+          ),
+          Text(
+            '$step',
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w500,
+              color: _labelColor,
             ),
           ),
         ],
@@ -76,116 +260,241 @@ class _DepositPageState extends State<WithdrawPage> {
     );
   }
 
-  Widget _stepIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              height: 32.w,
-              width: 32.w,
-              child: CircularProgressIndicator(
-                value: step / 2,
-                strokeWidth: 3,
-                backgroundColor: Colors.grey.shade300,
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF7B2FF7)),
-              ),
-            ),
-            Text("$step", style: TextStyle(fontSize: 12.sp)),
-          ],
-        ),
-      ],
-    );
-  }
+  // ─── Step 1 — Amount ──────────────────────────────────────────────
 
-  Widget step1() {
+  Widget _step1Body() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Amount", style: AppTextStyle.body),
-        SizedBox(height: 10.h),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          decoration: BoxDecoration(
-            color: AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: TextField(
-            controller: amountController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(border: InputBorder.none),
-          ),
+        _label('Amount'),
+        SizedBox(height: 12.h),
+        _figmaInput(
+          amountController,
+          '0.00',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
-        SizedBox(height: 15.h),
-        const Spacer(),
-        _button("Continue", () {
-          setState(() => step = 2);
-        }),
       ],
     );
   }
 
-  Widget step2() {
+  // ─── Step 2 — Payment ─────────────────────────────────────────────
+
+  Widget _step2Body() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Payment Method", style: AppTextStyle.body),
-                SizedBox(height: 10.h),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.inputFieldBgDynamic(context),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: DropdownButton<String>(
-                    value: paymentMethod,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    items: [
-                      DropdownMenuItem(
-                        value: "card",
-                        child: Text("Bank Account", style: AppTextStyle.body),
-                      ),
-                      DropdownMenuItem(
-                        value: "momo",
-                        child: Text("Mobile Money", style: AppTextStyle.body),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      setState(() {
-                        paymentMethod = val!;
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                paymentMethod == "card" ? cardUI() : momoUI(),
-                SizedBox(height: 20.h),
-              ],
-            ),
-          ),
+        _label('Payment Method'),
+        SizedBox(height: 12.h),
+        FigmaInlineDropdown<String>(
+          value: paymentMethod,
+          items: const [
+            FigmaInlineDropdownItem(
+                value: 'card', label: 'Debit/Credit Card'),
+            FigmaInlineDropdownItem(value: 'momo', label: 'Mobile Money'),
+            FigmaInlineDropdownItem(value: 'bank', label: 'Bank Account'),
+          ],
+          onChanged: (v) => setState(() => paymentMethod = v),
         ),
-        Consumer<WalletProvider>(
-          builder: (context, wallet, _) {
-            return _button(
-              wallet.isSubmittingWithdraw ? 'Submitting...' : 'Confirm',
-              wallet.isSubmittingWithdraw ? () {} : _submitWithdraw,
-            );
-          },
-        ),
+        SizedBox(height: 23.h),
+        if (paymentMethod == 'bank')
+          ..._bankFields()
+        else if (paymentMethod == 'momo')
+          ..._momoFields()
+        else
+          ..._cardFields(),
       ],
     );
   }
+
+  List<Widget> _bankFields() {
+    return [
+      _label('Account Number'),
+      SizedBox(height: 12.h),
+      _figmaInput(
+        accountNumberController,
+        '0000 0000 0000 0000',
+        keyboardType: TextInputType.number,
+      ),
+      SizedBox(height: 23.h),
+      _label('Account Name'),
+      SizedBox(height: 12.h),
+      _figmaInput(accountNameController, 'Enter account name'),
+      SizedBox(height: 23.h),
+      _label('Bank Name'),
+      SizedBox(height: 12.h),
+      FigmaInlineDropdown<String>(
+        value: selectedBank.isEmpty ? null : selectedBank,
+        hint: 'Select an option',
+        items: const [
+          FigmaInlineDropdownItem(value: 'gcb', label: 'GCB Bank'),
+          FigmaInlineDropdownItem(value: 'ecobank', label: 'Ecobank Ghana'),
+          FigmaInlineDropdownItem(
+              value: 'stanchart', label: 'Standard Chartered Bank'),
+          FigmaInlineDropdownItem(
+              value: 'stanbic', label: 'Stanbic Bank Ghana'),
+          FigmaInlineDropdownItem(value: 'absa', label: 'Absa Bank Ghana'),
+        ],
+        onChanged: (v) => setState(() => selectedBank = v),
+      ),
+    ];
+  }
+
+  List<Widget> _momoFields() {
+    return [
+      _label('Payment Provider'),
+      SizedBox(height: 12.h),
+      FigmaInlineDropdown<String>(
+        value: provider.isEmpty ? null : provider,
+        hint: 'Select an option',
+        items: _momoProviders.map((p) {
+          return FigmaInlineDropdownItem<String>(
+            value: p.id,
+            label: p.name,
+            trailing: Image.asset(
+              p.asset,
+              width: 42.w,
+              height: 28.h,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.phone_android,
+                size: 18.sp,
+                color: _hintColor,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: (v) => setState(() => provider = v),
+      ),
+      SizedBox(height: 23.h),
+      _label('Phone Number'),
+      SizedBox(height: 12.h),
+      _figmaInput(phone, '000 000 0000', keyboardType: TextInputType.phone),
+    ];
+  }
+
+  List<Widget> _cardFields() {
+    return [
+      _label('Card Number'),
+      SizedBox(height: 12.h),
+      _figmaInput(cardNumber, '0000 0000 0000 0000',
+          keyboardType: TextInputType.number),
+      SizedBox(height: 23.h),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _label('Expiry Date'),
+                SizedBox(height: 12.h),
+                _figmaInput(expiry, 'MM/YY'),
+              ],
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _label('CVC'),
+                SizedBox(height: 12.h),
+                _figmaInput(cvc, '000', keyboardType: TextInputType.number),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  // ─── Shared atoms ─────────────────────────────────────────────────
+
+  Widget _label(String text) => Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'SFProRounded',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: _labelColor,
+        ),
+      );
+
+  Widget _figmaInput(
+    TextEditingController controller,
+    String hint, {
+    TextInputType? keyboardType,
+  }) {
+    return Container(
+      height: 62.h,
+      decoration: BoxDecoration(
+        color: _inputBg,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: TextStyle(
+          fontFamily: 'SFProRounded',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w500,
+          color: _inputText,
+        ),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          isCollapsed: true,
+          hintText: hint,
+          hintStyle: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: _hintColor,
+          ),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+        ),
+      ),
+    );
+  }
+
+  Widget _figmaButton(
+    String text, {
+    required bool enabled,
+    required VoidCallback onTap,
+    bool loading = false,
+  }) {
+    return GestureDetector(
+      onTap: enabled && !loading ? onTap : null,
+      child: Container(
+        height: 60.h,
+        decoration: BoxDecoration(
+          color: enabled ? _btnPrimary : _btnPrimary.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(32.r),
+        ),
+        alignment: Alignment.center,
+        child: loading
+            ? SizedBox(
+                height: 22.h,
+                width: 22.h,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                text,
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 15.6.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+      ),
+    );
+  }
+
+  // ─── Submit ───────────────────────────────────────────────────────
 
   /// Submit the withdrawal intent via WalletProvider.
   /// Backend locks the wallet, validates balance, debits immediately
@@ -193,31 +502,31 @@ class _DepositPageState extends State<WithdrawPage> {
   /// INSUFFICIENT_FUNDS specifically since it's the most common error.
   Future<void> _submitWithdraw() async {
     final wallet = context.read<WalletProvider>();
-    final messenger = ScaffoldMessenger.of(context);
-    final parentContext = context;
 
     final amount = double.tryParse(amountController.text.trim()) ?? 0;
     if (amount <= 0) {
-      CustomSnackBar.showError(context, message: "Please enter an amount.");
-      // messenger.showSnackBar(
-      //   const SnackBar(content: Text('Please enter an amount.')),
-      // );
+      CustomSnackBar.showError(context, message: 'Please enter an amount.');
       return;
     }
 
-    // Build a destination string from the form fields. For card path,
-    // use the masked account number; for momo, use provider + phone.
+    // Build a destination string from the form fields.
+    //   - Bank: bankId:accountNumber
+    //   - MoMo: provider:phone
+    //   - Card: card:cardNumber (masked downstream)
     String destination;
     String? msisdn;
-    if (paymentMethod == 'card') {
+    if (paymentMethod == 'bank') {
       final acct = accountNumberController.text.trim();
-      destination = acct.isEmpty ? 'card' : 'card:$acct';
-    } else {
+      destination = selectedBank.isEmpty ? acct : '$selectedBank:$acct';
+    } else if (paymentMethod == 'momo') {
       msisdn = phone.text.trim();
       final providerLabel = provider.isEmpty ? 'momo' : provider;
       destination = msisdn.isEmpty
           ? providerLabel
           : '$providerLabel:$msisdn';
+    } else {
+      final card = cardNumber.text.trim();
+      destination = card.isEmpty ? 'card' : 'card:$card';
     }
 
     final ok = await wallet.submitWithdraw(
@@ -232,111 +541,27 @@ class _DepositPageState extends State<WithdrawPage> {
       Navigator.pop(context);
       await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
-      withdrawalSuccessDialog(parentContext);
+      // Single-button "Okay" dialog — tapping Okay returns the user to
+      // the portfolio (the sheet was already popped above).
+      withdrawalSuccessDialog(context);
     } else {
-      // Show typed-error message; INSUFFICIENT_FUNDS is mapped by the
-      // backend to a user-readable string already.
-      CustomSnackBar.showError(context, message:  wallet.lastSubmitMessage ?? 'Could not submit withdrawal.');
-      // messenger.showSnackBar(
-      //   SnackBar(
-      //     content: Text(
-      //       wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
-      //     ),
-      //   ),
-      // );
+      CustomSnackBar.showError(
+        context,
+        message: wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
+      );
     }
   }
+}
 
-  Widget cardUI() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Account Number", style: AppTextStyle.body),
-        SizedBox(height: 10.h),
-        _input(accountNumberController, "0000 0000 0000 0000"),
+/// One MoMo provider option for the Payment Provider dropdown.
+class _MomoProvider {
+  final String id;
+  final String name;
+  final String asset;
 
-        SizedBox(height: 20.h),
-        Text("Account Name", style: AppTextStyle.body),
-        SizedBox(height: 10.h),
-        _input(accountNameController, "Enter account name"),
-
-        SizedBox(height: 20.h),
-        Text("Bank Name", style: AppTextStyle.body),
-        SizedBox(height: 10.h),
-        _input(bankNameController, "Select an option"),
-      ],
-    );
-  }
-
-  Widget momoUI() {
-    return Column(
-      children: [
-        _dropdown("Select Provider", (val) {
-          provider = val!;
-        }),
-        SizedBox(height: 10.h),
-        _input(phone, "Phone Number"),
-      ],
-    );
-  }
-
-  Widget _input(TextEditingController controller, String hint) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
-      ),
-    );
-  }
-
-  Widget _dropdown(String hint, Function(String?) onChanged) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: DropdownButton<String>(
-        hint: Text(hint),
-        isExpanded: true,
-        underline: const SizedBox(),
-        items: const [
-          DropdownMenuItem(value: "mtn", child: Text("MTN Mobile Money")),
-          DropdownMenuItem(value: "vodafone", child: Text("Vodafone Cash")),
-        ],
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _button(String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30.r),
-          gradient: const LinearGradient(
-            colors: [Color(0xff7b2ff7), Color(0xff9d4edd)],
-          ),
-        ),
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  const _MomoProvider({
+    required this.id,
+    required this.name,
+    required this.asset,
+  });
 }

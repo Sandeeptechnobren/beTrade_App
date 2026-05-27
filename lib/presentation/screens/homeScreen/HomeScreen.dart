@@ -145,43 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Image.asset("assets/logo/IconLogo.png", height: 35.h),
                           SizedBox(width: 5.w),
-                          Builder(
-                            builder: (context) {
-                              final isDark =
-                                  Theme.of(context).brightness == Brightness.dark;
-                              final textColor =
-                              isDark ? Colors.white : const Color(0xFF1A0D2B);
-
-                              return RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: "BeTrade",
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
-                                        fontWeight: FontWeight.w700,
-                                        color: textColor,
-                                      ),
-                                    ),
-                                    WidgetSpan(
-                                      alignment: PlaceholderAlignment.top,
-                                      child: Transform.translate(
-                                        offset: const Offset(1, -5),
-                                        child: Text(
-                                          "™",
-                                          style: TextStyle(
-                                            fontSize: 10.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
                         ],
                       ),
                       GestureDetector(

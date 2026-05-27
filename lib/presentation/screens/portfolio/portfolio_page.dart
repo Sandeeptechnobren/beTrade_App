@@ -3,15 +3,12 @@ import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/screens/portfolio/position_detail_page.dart';
 import 'package:betrade/presentation/screens/portfolio/wallet_history.dart';
-import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart' hide DepositPage;
+import 'package:betrade/presentation/screens/portfolio/withdraw/withdrawal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:betrade/presentation/widget/icon_container.dart';
-import 'package:betrade/presentation/widget/rounded_tab_indicator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'deposit/newDeposit.dart';
@@ -24,6 +21,25 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> {
+  // Figma tokens (Portfolio screen)
+  static const Color _walletBg = Color(0xFF2E1065); // wallet card bg
+  static const Color _walletMenuBg = Color(0xFFC178FF); // ··· circle
+  static const Color _depositBg = Color(0xFF8E10FC); // Deposit pill
+  static const Color _tabActiveColor = Color(0xFF09090B);
+  static const Color _tabInactiveColor = Color(0xFF71717A);
+  static const Color _tabIndicatorColor = Color(0xFF3D006D);
+  static const Color _cardBorder = Color(0xFFE4E4E7);
+  static const Color _cardTitleColor = Color(0xFF09090B);
+  static const Color _innerPanelBg = Color(0xFFF4F4F5);
+  static const Color _labelMuted = Color(0xFF71717A);
+  static const Color _profitGreen = Color(0xFF16A34A);
+  static const Color _profitRed = Color(0xFFDC2626);
+  static const Color _closeBtnText = Color(0xFF18181B);
+
+  /// Wallet balance visibility toggle — tapped via the eye icon next to
+  /// "Available to trade". Session-only (resets on app restart).
+  bool _balanceHidden = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,171 +73,12 @@ class _PortfolioPageState extends State<PortfolioPage> {
         body: SafeArea(
           child: Column(
             children: [
-              RefreshIndicator(
-                onRefresh: _refreshAll,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 20.h),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(16.w),
-                          decoration: BoxDecoration(
-                            image: const DecorationImage(
-                              image: AssetImage("assets/images/splash.png"),
-                              fit: BoxFit.cover,
-                            ),
-                            borderRadius: BorderRadius.circular(22.r),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        "Available to trade",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white,
-                                          fontSize: 16.sp,
-                                        ),
-                                      ),
-                                      SizedBox(width: 5.w),
-                                      const Icon(
-                                        Iconsax.eye,
-                                        color: Colors.white,
-                                      ),
-                                    ],
-                                  ),
-                                  Material(
-                                    color: AppColors.iconContainer1,
-                                    borderRadius: BorderRadius.circular(50.r),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(50.r),
-                                      onTap: () {
-                                        CommonBottomSheet.open(
-                                          context: context,
-                                          builder: (controller) => WalletHistoryPage(),
-                                        );
-                                        // Navigator.push(
-                                        //   context,
-                                        //   MaterialPageRoute(
-                                        //     builder: (_) => const WalletHistoryPage(),
-                                        //   ),
-                                        // );
-                                      },
-                                      child: SizedBox(
-                                        height: 40.w,
-                                        width: 40.w,
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.more_horiz,
-                                            color: Colors.white,
-                                            size: 22.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                              SizedBox(height:0.h),
-                              Consumer<WalletProvider>(
-                                builder: (context, wallet, _) {
-                                  final display = wallet.isLoadingBalance &&
-                                          wallet.balance == 0
-                                      ? '...'
-                                      : wallet.balance.toStringAsFixed(2);
-                                  return Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        display,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 30.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(width: 4.w),
-                                      Text(
-                                        wallet.currency,
-                                        style: TextStyle(
-                                          fontFamily: "SFProRounded",
-                                          fontSize: 14.sp,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              SizedBox(height: 20.h),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(30.r),
-                                      onTap: () {
-                                        CommonBottomSheet.open(
-                                          context: context,
-                                          builder: (controller) => DepositPage(
-                                            scrollController: controller,
-                                          ),
-                                        );
-                                      },
-                                      child: _gradientButton("Deposit"),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10.w),
-                                  Expanded(
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(30.r),
-                                      onTap: () {
-                                        CommonBottomSheet.open(
-                                          context: context,
-                                          builder: (controller) => WithdrawPage(
-                                            scrollController: controller,
-                                          ),
-                                        );
-                                      },
-                                      child: _outlineButton("Withdraw"),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 20.h),
-                        TabBar(
-                          labelColor: Colors.black,
-                          unselectedLabelColor: Colors.grey,
-                          indicator: RoundedTabIndicator(
-                            color: AppColors.primary,
-                            radius: 10,
-                            height: 3,
-                          ),
-                          tabs: const [
-                            Tab(text: "Open Positions"),
-                            Tab(text: "Closed Positions"),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
+                child: _walletCard(),
               ),
+              SizedBox(height: 20.h),
+              _tabBar(),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -236,6 +93,224 @@ class _PortfolioPageState extends State<PortfolioPage> {
       ),
     );
   }
+
+  // ─── Wallet card ──────────────────────────────────────────────────
+
+  /// Dark-purple Figma wallet card — `Frame 1000003916` (#2E1065 bg,
+  /// 20.r radius, 16 padding). Header row + balance + 2 pill buttons.
+  Widget _walletCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: _walletBg,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: "Available to trade" + balance
+              Expanded(child: _walletLabelAndBalance()),
+              // Right: ··· menu chip
+              Material(
+                color: _walletMenuBg,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    CommonBottomSheet.open(
+                      context: context,
+                      builder: (controller) => WalletHistoryPage(),
+                    );
+                  },
+                  child: SizedBox(
+                    height: 28.w,
+                    width: 28.w,
+                    child: Icon(
+                      Icons.more_horiz,
+                      color: Colors.white,
+                      size: 18.sp,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(9999),
+                  onTap: () {
+                    CommonBottomSheet.open(
+                      context: context,
+                      builder: (controller) => DepositPage(
+                        scrollController: controller,
+                      ),
+                    );
+                  },
+                  child: _pillButton("Deposit",
+                      bg: _depositBg, textColor: Colors.white),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(9999),
+                  onTap: () {
+                    CommonBottomSheet.open(
+                      context: context,
+                      builder: (controller) => WithdrawPage(
+                        scrollController: controller,
+                      ),
+                    );
+                  },
+                  child: _pillButton("Withdraw",
+                      bg: Colors.white, textColor: _closeBtnText),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _walletLabelAndBalance() {
+    return Consumer<WalletProvider>(
+      builder: (context, wallet, _) {
+        final loading = wallet.isLoadingBalance && wallet.balance == 0;
+        final numeric = loading ? '...' : wallet.balance.toStringAsFixed(2);
+        // When hidden, swap the number for fixed-width bullets so the
+        // card doesn't reflow as the real balance changes.
+        final display = _balanceHidden ? '••••••' : numeric;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  "Available to trade",
+                  style: TextStyle(
+                    fontFamily: 'SFProRounded',
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFFFAFAFA),
+                    fontSize: 16.sp,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                // Eye / Eye-slash toggle. Hit target is widened with
+                // Padding so the tap lands comfortably on phone.
+                GestureDetector(
+                  onTap: () => setState(() => _balanceHidden = !_balanceHidden),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 2.w, vertical: 4.h),
+                    child: Icon(
+                      _balanceHidden ? Iconsax.eye_slash : Iconsax.eye,
+                      color: const Color(0xFFF8FAFC),
+                      size: 20.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  display,
+                  style: TextStyle(
+                    fontFamily: 'SFProRounded',
+                    color: Colors.white,
+                    fontSize: 40.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 4.h),
+                  child: Text(
+                    wallet.currency,
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 16.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _pillButton(String text,
+      {required Color bg, required Color textColor}) {
+    return Container(
+      height: 52.h,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 15.6.sp,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'SFProRounded',
+        ),
+      ),
+    );
+  }
+
+  // ─── Tabs ─────────────────────────────────────────────────────────
+
+  /// Figma "Frame 1000005059" — labels 16/600 with a 47×6 rounded
+  /// rectangle indicator (#3D006D) sitting below the active label.
+  Widget _tabBar() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: TabBar(
+        labelColor: _tabActiveColor,
+        unselectedLabelColor: _tabInactiveColor,
+        labelStyle: TextStyle(
+          fontFamily: 'SFProRounded',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          height: 1.4,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: 'SFProRounded',
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          height: 1.4,
+        ),
+        indicatorSize: TabBarIndicatorSize.label,
+        labelPadding: EdgeInsets.symmetric(horizontal: 12.w),
+        indicator: _FigmaTabIndicator(color: _tabIndicatorColor),
+        tabs: const [
+          Tab(text: "Open Positions"),
+          Tab(text: "Closed Positions"),
+        ],
+      ),
+    );
+  }
+
+  // ─── Open positions ───────────────────────────────────────────────
 
   Widget _openPositions() {
     return Consumer<PositionsProvider>(
@@ -254,9 +329,9 @@ class _PortfolioPageState extends State<PortfolioPage> {
         return RefreshIndicator(
           onRefresh: _refreshAll,
           child: ListView.separated(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
+            padding: EdgeInsets.symmetric(vertical: 16.h),
             itemCount: provider.openPositions.length,
-            separatorBuilder: (_, __) => SizedBox(height: 10.h),
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
             itemBuilder: (_, i) => _positionCard(provider.openPositions[i]),
           ),
         );
@@ -264,14 +339,34 @@ class _PortfolioPageState extends State<PortfolioPage> {
     );
   }
 
-  /// Single open position card — tap navigates to PositionDetailPage.
+  /// Position card — Figma `Frame 1171276423`.
+  ///   - Outer:   white bg, 1px #E4E4E7, 12 radius, 16 padding, gap 8
+  ///   - Title:   market question 16/400/#09090B
+  ///   - Inner:   #F4F4F5 panel, 6 radius, 12 padding, gap 4
+  ///   - 4 rows:  Entry Price, Prediction, Profit Earned, Shares
+  ///              (label 14/400 #71717A, value 14/500 #71717A; profit
+  ///              flips to #16A34A green / #DC2626 red by sign)
+  ///   - Footer:  "Close position" outlined pill (white bg, 1px border,
+  ///              9999 radius, 44 height, 16/500 #18181B text)
   Widget _positionCard(PositionModel p) {
     final isProfit = p.unrealisedPnlGhs >= 0;
-    final accent = p.isYes ? const Color(0xff1B5E20) : Colors.red;
-    final pnlColor = isProfit ? const Color(0xff1B5E20) : Colors.red;
+    final profitColor = isProfit ? _profitGreen : _profitRed;
+
+    // Shares: integer if whole, else 2 decimals to match Figma's "119
+    // shares" while still respecting fractional positions ("3.76 shares").
+    final sharesText = p.shares == p.shares.roundToDouble()
+        ? p.shares.toStringAsFixed(0)
+        : p.shares.toStringAsFixed(2);
+
+    final profitText =
+        '${isProfit ? '+' : ''}${p.unrealisedPnlGhs.toStringAsFixed(2)}GHS';
+
+    final prediction = p.isYes
+        ? 'YES'
+        : (p.outcomeLabel.isNotEmpty ? p.outcomeLabel.toUpperCase() : 'NO');
 
     return InkWell(
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(12.r),
       onTap: () {
         if (p.marketUuid == null) return;
         Navigator.push(
@@ -285,94 +380,118 @@ class _PortfolioPageState extends State<PortfolioPage> {
         );
       },
       child: Container(
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(14.r),
+          color: Colors.white,
+          border: Border.all(color: _cardBorder, width: 1),
+          borderRadius: BorderRadius.circular(12.r),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title row: market description (truncated)
+            // Title — market question
             Text(
               (p.marketDescription ?? '').isEmpty
                   ? 'Market'
                   : p.marketDescription!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+                fontFamily: 'SFProRounded',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: _cardTitleColor,
+                height: 1.4,
               ),
             ),
             SizedBox(height: 8.h),
-            // Side chip + shares
-            Row(
-              children: [
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: Text(
-                    p.isYes ? 'BUY YES' : 'BUY NO',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w700,
+            // Grey inner panel — 4 label/value rows
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: _innerPanelBg,
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Column(
+                children: [
+                  _statRow(
+                      'Entry Price', '${p.avgCostGhs.toStringAsFixed(2)}GHS'),
+                  SizedBox(height: 4.h),
+                  _statRow('Prediction', prediction),
+                  SizedBox(height: 4.h),
+                  _statRow('Profit Earned', profitText,
+                      valueColor: profitColor),
+                  SizedBox(height: 4.h),
+                  _statRow('Shares', '$sharesText shares'),
+                ],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            // Close position — outlined pill (placeholder: opens
+            // position detail page where the close action will live).
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  if (p.marketUuid == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PositionDetailPage(
+                        marketUuid: p.marketUuid!,
+                        marketTitleHint: p.marketDescription,
+                      ),
                     ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: _cardBorder, width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9999),
                   ),
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
                 ),
-                SizedBox(width: 8.w),
-                Text(
-                  '${p.shares.toStringAsFixed(2)} shares',
+                child: Text(
+                  'Close position',
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey.shade700,
+                    fontFamily: 'SFProRounded',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: _closeBtnText,
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            // Avg / current price subtitle
-            Text(
-              'Avg ${p.avgCostGhs.toStringAsFixed(4)} · '
-              'Now ${p.currentPrice.toStringAsFixed(4)}',
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: Colors.grey.shade600,
               ),
-            ),
-            SizedBox(height: 8.h),
-            // Value + P&L row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Value ${p.marketValueGhs.toStringAsFixed(2)} GHS',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '${isProfit ? '+' : ''}'
-                  '${p.unrealisedPnlGhs.toStringAsFixed(2)} GHS '
-                  '(${isProfit ? '+' : ''}'
-                  '${p.unrealisedPnlPct.toStringAsFixed(1)}%)',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: pnlColor,
-                  ),
-                ),
-              ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _statRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: _labelMuted,
+            height: 1.4,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: valueColor ?? _labelMuted,
+            height: 1.4,
+          ),
+        ),
+      ],
     );
   }
 
@@ -438,44 +557,41 @@ class _PortfolioPageState extends State<PortfolioPage> {
       child: Text("No Closed Positions", style: TextStyle(fontSize: 14.sp)),
     );
   }
+}
 
-  Widget _gradientButton(String text) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30.r),
-        color: AppColors.primary,
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'SFProRounded',
-        ),
-      ),
-    );
-  }
+/// Figma tab indicator — a 47×6 rounded rectangle (radius 1000) sitting
+/// just below the active label. Matches "Rectangle 248" in
+/// `Frame 1000004991`.
+class _FigmaTabIndicator extends Decoration {
+  final Color color;
 
-  Widget _outlineButton(String text) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30.r),
-        color: Colors.white,
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'SFProRounded',
-        ),
-      ),
+  const _FigmaTabIndicator({required this.color});
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) =>
+      _FigmaTabIndicatorPainter(color);
+}
+
+class _FigmaTabIndicatorPainter extends BoxPainter {
+  _FigmaTabIndicatorPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration cfg) {
+    const indicatorWidth = 47.0;
+    const indicatorHeight = 6.0;
+    final size = cfg.size!;
+    final rect = Rect.fromLTWH(
+      offset.dx + (size.width - indicatorWidth) / 2,
+      offset.dy + size.height - indicatorHeight,
+      indicatorWidth,
+      indicatorHeight,
     );
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(1000));
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(rrect, paint);
   }
 }

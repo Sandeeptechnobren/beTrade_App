@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:betrade/core/theme/app_colors.dart';
+import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/profile/default_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -237,7 +238,18 @@ class _TradePageState extends State<TradePage> {
     }
     final detail = provider.detail;
     if (detail == null) {
-      return const Scaffold(body: Center(child: Text("No Data Found",textAlign: TextAlign.center,)));
+      return Scaffold(
+        body: Center(
+          child: Text(
+            "No Data Found",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTextStyle.fontFamily,
+              color: AppColors.textPrimaryDynamic(context),
+            ),
+          ),
+        ),
+      );
     }
 
     // Prefer server quote (LMSR-aware, includes slippage + fees);
@@ -254,29 +266,35 @@ class _TradePageState extends State<TradePage> {
       resizeToAvoidBottomInset: true,
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(
-          16.w,
+          20.w,
           0,
-          16.w,
-          MediaQuery.of(context).viewInsets.bottom + 16.h,
+          20.w,
+          MediaQuery.of(context).viewInsets.bottom + 20.h,
         ),
+        // Figma "Button" — 60 tall pill, radius 32, dark green for Yes
+        // (#166534) / red (#DC2626) for No, label 15.6/700 white.
         child: SizedBox(
-          height: 55.h,
+          height: 60.h,
           child: ElevatedButton(
             onPressed: isEnabled ? () => _openBuySheet(context) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: isEnabled
-                  ? (isYesSelected ? const Color(0xff1B5E20) : Colors.red)
-                  : Colors.grey.shade400,
+                  ? (isYesSelected
+                      ? const Color(0xFF166534)
+                      : const Color(0xFFDC2626))
+                  : AppColors.borderDynamic(context),
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30.r),
+                borderRadius: BorderRadius.circular(32.r),
               ),
             ),
             child: Text(
               isYesSelected ? "Buy Yes" : "Buy No",
               style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+                fontSize: 15.6.sp,
               ),
             ),
           ),
@@ -285,234 +303,402 @@ class _TradePageState extends State<TradePage> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 0.w,vertical: 0.h),
-              child: Row(
-                children: [
-                  CommonHeader(title: "New Trade",showDivider: false,),
-                  const Spacer(),
-                  Container(
-                    height: 36.h,
-                    margin: EdgeInsets.only(right: 5.w),
-                    padding: EdgeInsets.all(4.w),
-                    decoration: BoxDecoration(
-                        color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(25.r),
-                    ),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _selectOutcome(true),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isYesSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Text("Yes"),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => _selectOutcome(false),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: !isYesSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Text("No"),
-                          ),
-                        ),
-                      ],
-                    ),
+            // Figma header — common back chip + title on left, Yes/No
+            // segmented pill (#F4F4F5 outer, white selected segment) on
+            // the right. Bottom hairline matches the deposit sheet.
+            Row(
+              children: [
+                Expanded(
+                  child: CommonHeader(
+                    title: "New Trade",
+                    showDivider: false,
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(right: 20.w),
+                  child: _yesNoToggle(),
+                ),
+              ],
             ),
-            Divider(),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.borderDynamic(context),
+            ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.w),
+                controller: widget.scrollController,
+                padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: _openDetails,
-                      child: Container(
-                        width: double.infinity,
-                        height: 96.h,
-                        padding: EdgeInsets.all(16.w),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.r),
-                          image: DecorationImage(
-                            image: AssetImage("assets/images/splash.png"),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Market • ${detail.categoryName}",
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              detail.description,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                    _marketCard(
+                      categoryName: detail.categoryName,
+                      description: detail.description,
+                    ),
+                    SizedBox(height: 24.h),
+                    Text(
+                      'Amount',
+                      style: TextStyle(
+                        fontFamily: AppTextStyle.fontFamily,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimaryDynamic(context),
                       ),
                     ),
-                    SizedBox(height: 20.h),
-                    Text("Amount"),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: 12.h),
                     if (widget.useDefaultAmount) ...[
                       // Read-only amount display — swipe-path uses the
-                      // user's default amount; the manual input field
-                      // and quick chips are intentionally hidden so
-                      // this is a confirm-and-buy interaction.
+                      // user's default amount; manual input + quick
+                      // chips are intentionally hidden.
                       Container(
                         width: double.infinity,
+                        height: 62.h,
                         padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 14.h,
+                          horizontal: 24.w,
+                          vertical: 20.h,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.inputFieldBgDynamic(context),
-                          borderRadius: BorderRadius.circular(12.r),
+                          color: AppColors.iconContainerDynamic(context),
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
                         child: Row(
                           children: [
                             Text(
-                              "${amount.toStringAsFixed(0)} GHS",
+                              '${amount.toStringAsFixed(0)} GHS',
                               style: TextStyle(
+                                fontFamily: AppTextStyle.fontFamily,
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
-                                color:
-                                    AppColors.textPrimaryDynamic(context),
+                                color: AppColors.textPrimaryDynamic(context),
                               ),
                             ),
                             const Spacer(),
                             Text(
-                              "Default amount",
+                              'Default amount',
                               style: TextStyle(
+                                fontFamily: AppTextStyle.fontFamily,
                                 fontSize: 12.sp,
-                                color: Colors.grey,
+                                color: AppColors.textSecondaryDynamic(context),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ] else ...[
-                      TextField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        onChanged: updateAmount,
-                        decoration: InputDecoration(
-                          hintText: "0.00",
-                          filled: true,
-                          fillColor:
-                              AppColors.inputFieldBgDynamic(context),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 14.h,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
+                      _figmaAmountInput(),
                       SizedBox(height: 12.h),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [10, 20, 50, 100].map((e) {
-                          // A chip is "selected" when the current amount
-                          // matches its value. If the user types a custom
-                          // amount, no chip is selected (correct).
-                          final isSelected = amount == e.toDouble();
-                          return GestureDetector(
-                            onTap: () => selectQuickAmount(e.toDouble()),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 5.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : Colors.grey,
-                                ),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Text(
-                                "$e GHS",
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.primary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 16.sp,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        children: const [10, 20, 50, 100]
+                            .map((e) => _figmaAmountChip(e))
+                            .toList(growable: false),
                       ),
                     ],
-
-                    SizedBox(height: 20.h),
-                    Container(
-                      padding: EdgeInsets.all(16.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.inputFieldBgDynamic(context),
-                        borderRadius: BorderRadius.circular(16.r),
-                      ),
-                      child: Column(
-                        children: [
-                          buildRow("Shares", shares.toStringAsFixed(2)),
-                          buildRow("Price per Share", "₵$price"),
-                          buildRow(
-                            "Max Payout",
-                            "₵${payout.toStringAsFixed(2)}",
-                          ),
-                          buildRow(
-                            "Potential Profit",
-                            "₵${profit.toStringAsFixed(2)}",
-                            isProfit: true,
-                          ),
-                        ],
-                      ),
+                    SizedBox(height: 24.h),
+                    _quoteSummary(
+                      price: price,
+                      shares: shares,
+                      payout: payout,
+                      profit: profit,
                     ),
+                    SizedBox(height: 8.h),
+                    _infoBanner(shares: shares, price: price),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Figma atoms ────────────────────────────────────────────────
+
+  /// Yes/No segmented pill — outer #F4F4F5 / 9999 radius / 4 padding,
+  /// selected segment white / 99999 radius / 6×16 padding. Matches the
+  /// Figma "Frame 2609802" toggle.
+  Widget _yesNoToggle() {
+    return Container(
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _yesNoSegment('Yes', selected: isYesSelected, onTap: () => _selectOutcome(true)),
+          _yesNoSegment('No', selected: !isYesSelected, onTap: () => _selectOutcome(false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _yesNoSegment(String label,
+      {required bool selected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.cardBackgroundDynamic(context)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(99999),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimaryDynamic(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Solid dark-purple market summary card (#160128) — Figma `Input`
+  /// in step 1 of New Trade. Tappable to open the chart/detail page.
+  Widget _marketCard({
+    required String categoryName,
+    required String description,
+  }) {
+    return GestureDetector(
+      onTap: _openDetails,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          // Brand identity color — intentionally dark in both modes.
+          color: const Color(0xFF160128),
+          border: Border.all(color: AppColors.borderDynamic(context), width: 1),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // "Market • Category"
+            Row(
+              children: [
+                Text(
+                  'Market',
+                  style: TextStyle(
+                    fontFamily: AppTextStyle.fontFamily,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFFFAFAFA),
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                Container(
+                  width: 4.w,
+                  height: 4.w,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAFAFA),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                Flexible(
+                  child: Text(
+                    categoryName,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTextStyle.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFB35DFF),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              description,
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 62-tall amount input — bg #F4F4F5, radius 16, padding 20/24,
+  /// text 16/500/#09090B.
+  Widget _figmaAmountInput() {
+    return Container(
+      height: 62.h,
+      decoration: BoxDecoration(
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: TextField(
+        controller: amountController,
+        keyboardType: TextInputType.number,
+        onChanged: updateAmount,
+        style: TextStyle(
+          fontFamily: AppTextStyle.fontFamily,
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimaryDynamic(context),
+        ),
+        decoration: InputDecoration(
+          isCollapsed: true,
+          border: InputBorder.none,
+          hintText: '0.00',
+          hintStyle: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondaryDynamic(context),
+          ),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+        ),
+      ),
+    );
+  }
+
+  /// Outlined amount chip — white bg, 1px #E4E4E7, 12 radius, padding
+  /// 8/12, text 16/500/#5A1192 (dark purple). Tap replaces the amount.
+  Widget _figmaAmountChip(int value) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => selectQuickAmount(value.toDouble()),
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 2.w),
+          padding: EdgeInsets.symmetric(horizontal:5.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackgroundDynamic(context),
+            border:
+                Border.all(color: AppColors.borderDynamic(context), width: 1),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$value GHS',
+            style: TextStyle(
+              fontFamily: AppTextStyle.fontFamily,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              // Brand purple — kept static; readable on both white and #1C1C1E.
+              color: const Color(0xFF5A1192),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Outlined quote summary — labels 16/500/#71717A, values
+  /// 16/600/#3F3F46. Profit row flips to #22C55E green for positive,
+  /// red for negative. Matches Figma's "Input" stat panel.
+  Widget _quoteSummary({
+    required double price,
+    required double shares,
+    required double payout,
+    required double profit,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 1),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          _summaryRow('Price per Share', '${price.toStringAsFixed(0)} GHS'),
+          SizedBox(height: 16.h),
+          _summaryRow(
+            'Your ${isYesSelected ? 'Yes' : 'No'} Shares',
+            shares.toStringAsFixed(2),
+          ),
+          SizedBox(height: 16.h),
+          _summaryRow('Max Payout', '${payout.toStringAsFixed(2)} GHS'),
+          SizedBox(height: 16.h),
+          _summaryRow(
+            'Potential Profit',
+            '${profit >= 0 ? '+' : ''}${profit.toStringAsFixed(2)} GHS',
+            valueColor: profit >= 0
+                ? const Color(0xFF22C55E)
+                : const Color(0xFFDC2626),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondaryDynamic(context),
+            height: 1.4,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? AppColors.textPrimaryDynamic(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Light-purple info banner — #F3E6FF bg, radius 16, padding 12/16,
+  /// body text 10/300/#3D006D. Renders the buying-summary blurb under
+  /// the quote panel.
+  Widget _infoBanner({required double shares, required double price}) {
+    final cents = (price * 100).round();
+    final text = "You're buying ${shares.toStringAsFixed(2)} shares at "
+        "$cents¢ each. This market will close when the event occurs. "
+        "If you're right, payout is expected 2 hours later.";
+    // Tinted purple banner — invert tones for dark mode so the text
+    // stays legible on a darker surface.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bannerBg =
+        isDark ? const Color(0xFF2C1147) : const Color(0xFFF3E6FF);
+    final bannerText =
+        isDark ? const Color(0xFFD4B5FD) : const Color(0xFF3D006D);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: bannerBg,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: AppTextStyle.fontFamily,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w300,
+          color: bannerText,
+          height: 1.4,
         ),
       ),
     );

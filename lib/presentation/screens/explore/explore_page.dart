@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:betrade/core/theme/app_colors.dart';
-import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/Common_header_withlogo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -257,36 +256,35 @@ class _ExplorePageState extends State<ExplorePage> {
     return url.startsWith('http://') || url.startsWith('https://');
   }
 
+  /// Figma avatar stack — three 24×24 circles each ringed with a 2px
+  /// white border, overlapping by 12px (the negative-margin trick).
+  /// Total visible width = 24 + 12 + 12 = 48.
   Widget _buildAvatarStack() {
+    final avatarBg = AppColors.iconBgDynamic(context);
+
+    Widget circle() => Container(
+          width: 24.w,
+          height: 24.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: avatarBg,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Icon(
+            Icons.person,
+            size: 12.sp,
+            color: const Color(0xFF71717A),
+          ),
+        );
+
     return SizedBox(
-      width: 50.w,
+      width: 48.w,
       height: 24.h,
       child: Stack(
         children: [
-          Positioned(
-            left: 0,
-            child: CircleAvatar(
-              radius: 12.r,
-              backgroundColor:AppColors.whiteDynamic(context),
-              child: const Icon(Icons.person, size: 12),
-            ),
-          ),
-          Positioned(
-            left: 12.w,
-            child: CircleAvatar(
-              radius: 12.r,
-              backgroundColor:AppColors.whiteDynamic(context),
-              child: const Icon(Icons.person, size: 12),
-            ),
-          ),
-          Positioned(
-            left: 24.w,
-            child: CircleAvatar(
-              radius: 12.r,
-              backgroundColor:AppColors.whiteDynamic(context),
-              child: const Icon(Icons.person, size: 12),
-            ),
-          ),
+          Positioned(left: 0, child: circle()),
+          Positioned(left: 12.w, child: circle()),
+          Positioned(left: 24.w, child: circle()),
         ],
       ),
     );
@@ -341,13 +339,15 @@ class _ExplorePageState extends State<ExplorePage> {
             children: [
               Column(
                 children: [
+                  // Figma "Frame 2" search input — #F4F4F5 fill, 48 tall,
+                  // 12 radius, 16sp/500 #A1A1AA placeholder, 24sp
+                  // magnifier icon. No border in Figma.
                   Container(
                     alignment: Alignment.center,
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
                     height: 48.h,
                     decoration: BoxDecoration(
-                      color: AppColors.whiteDynamic(context),
-                      border: Border.all(color: Colors.grey, width: 0.5),
+                      color: const Color(0xFFF4F4F5),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: TextField(
@@ -355,24 +355,38 @@ class _ExplorePageState extends State<ExplorePage> {
                       focusNode: _searchFocusNode,
                       onChanged: _performSearch,
                       onSubmitted: _onSearchSubmitted,
+                      style: TextStyle(
+                        fontFamily: 'SFProRounded',
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimaryDynamic(context),
+                      ),
                       decoration: InputDecoration(
                         hintText: "Search",
-                        hintStyle: AppTextStyle.subHeading,
+                        hintStyle: TextStyle(
+                          fontFamily: 'SFProRounded',
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFA1A1AA),
+                        ),
                         border: InputBorder.none,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                          icon: Icon(Icons.close, size: 20.sp),
-                          onPressed: _clearSearch,
-                          tooltip: "Clear search",
-                        )
+                                icon: Icon(Icons.close, size: 20.sp),
+                                onPressed: _clearSearch,
+                                tooltip: "Clear search",
+                              )
                             : null,
-                        prefixIcon: Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Icon(Icons.search, size: 22.sp),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          size: 24.sp,
+                          color: const Color(0xFFA1A1AA),
                         ),
                         prefixIconConstraints: BoxConstraints(
-                          minHeight: 20,
-                          minWidth: 40,
+                          minHeight: 24.h,
+                          minWidth: 32.w,
                         ),
                       ),
                     ),
@@ -568,8 +582,18 @@ class _ExplorePageState extends State<ExplorePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!provider.isSearchMode) ...[
-                        Text(categoryName, style: AppTextStyle.heading),
-                        SizedBox(height: 10.h),
+                        // Figma section title — 20/600/#09090B.
+                        Text(
+                          categoryName,
+                          style: TextStyle(
+                            fontFamily: 'SFProRounded',
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF09090B),
+                            height: 1.6,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
                       ],
                       ...items.map(
                             (item) => GestureDetector(
@@ -596,56 +620,121 @@ class _ExplorePageState extends State<ExplorePage> {
       ),
     );
   }
+  /// Trade card — Figma `Frame 1171276423`.
+  ///   - Outer: 1px #E4E4E7, 12 radius, 8 padding, gap 8 between image
+  ///     and right column
+  ///   - Image: 72×71, radius 8
+  ///   - Right column: 4px gap between title and meta row
+  ///   - Title: 16/400/#09090B, 1.4 line-height, 2 lines max
+  ///   - Meta row left: category 14/500 + 4×4 bullet + time 14/500 (all
+  ///     #71717A)
+  ///   - Meta row right: 3-avatar stack + count 14/400/#71717A
   Widget _buildCard(TradeModel item) {
+    final category = item.categoryName.isNotEmpty
+        ? item.categoryName
+        : "Unknown";
+    final time = _formatTime(item.endDate);
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(8.w),
       decoration: BoxDecoration(
+        color: AppColors.whiteDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFFE4E4E7), width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _safeNetworkImage(item.image, height: 72.h, width: 72.w),
-          SizedBox(width: 10.w),
+          _safeNetworkImage(item.image, height: 71.h, width: 72.w),
+          SizedBox(width: 8.w),
           Expanded(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.description ?? "",
+                  item.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.body,
+                  style: TextStyle(
+                    fontFamily: 'SFProRounded',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF09090B),
+                    height: 1.4,
+                  ),
                 ),
-                SizedBox(height: 6.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _buildMeta(item),
-                        style: AppTextStyle.smallGrey,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        _buildAvatarStack(),
-                        SizedBox(width: 4.w),
-                        Text(
-                          "500K",
-                          style: AppTextStyle.smallGrey,
-                        ),
-                      ],
-                    ),
-                  ],
-                )
+                SizedBox(height: 4.h),
+                _buildMetaRow(category: category, time: time),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Meta row inside the trade card — left half = category • time, right
+  /// half = avatar stack + traders count. Matches Figma
+  /// `Frame 1171276424`.
+  Widget _buildMetaRow({required String category, required String time}) {
+    const labelColor = Color(0xFF71717A);
+    final labelStyle = TextStyle(
+      fontFamily: 'SFProRounded',
+      fontSize: 14.sp,
+      fontWeight: FontWeight.w500,
+      color: labelColor,
+      height: 1.4,
+    );
+
+    return Row(
+      children: [
+        // Left: category • time
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  category,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
+                ),
+              ),
+              if (time.isNotEmpty) ...[
+                SizedBox(width: 4.w),
+                // 4×4 bullet dot per Figma "Ellipse 1"
+                Container(
+                  width: 4.w,
+                  height: 4.w,
+                  decoration: const BoxDecoration(
+                    color: labelColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Text(time, style: labelStyle),
+              ],
+            ],
+          ),
+        ),
+        const Spacer(),
+        // Right: avatar stack + count (14/400 — lighter weight than the
+        // category/time labels per Figma).
+        _buildAvatarStack(),
+        SizedBox(width: 4.w),
+        Text(
+          '500K',
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: labelColor,
+            height: 1.2,
+          ),
+        ),
+      ],
     );
   }
 
@@ -683,12 +772,4 @@ class _ExplorePageState extends State<ExplorePage> {
     }
   }
 
-  String _buildMeta(TradeModel item) {
-    final category = item.categoryName.isNotEmpty
-        ? item.categoryName
-        : "Unknown";
-    final time = _formatTime(item.endDate);
-    if (time.isEmpty) return category;
-    return "$category • $time";
-  }
 }

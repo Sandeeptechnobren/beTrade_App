@@ -98,10 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // AuthProvider.verifyOtp returns {success, message, data}.
       // Accept either envelope so this helper is reusable across both flows.
       return {
-        'success':
-            result['status'] == true || result['success'] == true,
-        'message':
-            result['message']?.toString() ?? 'Something went wrong',
+        'success': result['status'] == true || result['success'] == true,
+        'message': result['message']?.toString() ?? 'Something went wrong',
       };
     }
     return {
