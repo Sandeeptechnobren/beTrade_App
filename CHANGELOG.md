@@ -4,6 +4,11 @@ Format: [DATE] [AUTHOR] Description
 
 ## [Unreleased]
 
+### Changed
+- 2026-05-26 — **Both Google + Apple social buttons now shown on every platform** on `feature/abhiCloude`:
+  - `login_screen.dart` + `signup_screen.dart` — removed the `if (Platform.isIOS)` wrap around the Apple half of the social-button row. Both buttons render on Android and iOS, matching the Figma. `dart:io` import dropped from both files (no longer needed).
+  - `signin_provider.dart` — added a `SignInWithAppleNotSupportedException` catch in `signInWithApple()` so Android taps (which the package can't handle without `WebAuthenticationOptions`) surface a clear "Apple sign-in isn't available on this device. Please use another sign-in option." message instead of a generic error. To enable Apple on Android later, pass `WebAuthenticationOptions(clientId, redirectUri)` to `SignInWithApple.getAppleIDCredential` (comment in file).
+
 ### Added
 - 2026-05-26 — **"Continue with Apple" sign-in wired end-to-end** on `feature/abhiCloude`:
   - `pubspec.yaml` — added `sign_in_with_apple: ^6.1.4`.

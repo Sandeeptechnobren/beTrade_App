@@ -105,6 +105,18 @@ class AuthProvider extends ChangeNotifier {
         "success": false,
         "message": "Apple sign-in failed. Please try again.",
       };
+    } on SignInWithAppleNotSupportedException catch (e) {
+      // Android (no webAuthenticationOptions configured) or an older OS
+      // hits this — show a clear message instead of a generic error.
+      // To enable Apple on Android: pass WebAuthenticationOptions(
+      //   clientId: '<service-id>', redirectUri: <backend-callback>)
+      // to SignInWithApple.getAppleIDCredential.
+      debugPrint("🍎 Apple sign-in not supported on this device: ${e.message}");
+      return {
+        "success": false,
+        "message": "Apple sign-in isn't available on this device. "
+            "Please use another sign-in option.",
+      };
     } on DioException catch (e) {
       debugPrint("🍎 Apple backend error: ${e.message}");
       return {

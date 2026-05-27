@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/Gender_step.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/OTP_step.dart';
@@ -382,47 +380,46 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
         ),
-        // Apple sign-in is iOS-only. On Android the Google button
-        // expands to fill the row.
-        if (Platform.isIOS) ...[
-          SizedBox(width: 10.w),
-          Expanded(
-            child: SizedBox(
-              height: 50.h,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: AppColors.borderDynamic(context),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25.r),
-                  ),
-                  backgroundColor:
-                      AppColors.buttonSecondaryDynamic(context),
+        // Apple button always visible. On Android the package can't open
+        // the native sheet; AuthProvider.signInWithApple catches the
+        // unsupported case and surfaces a friendly message.
+        SizedBox(width: 10.w),
+        Expanded(
+          child: SizedBox(
+            height: 50.h,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: AppColors.borderDynamic(context),
                 ),
-                onPressed: _isProcessing ? null : _handleAppleSignIn,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Continue with",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppColors.textPrimaryDynamic(context),
-                      ),
-                    ),
-                    SizedBox(width: 2.w),
-                    Icon(
-                      Icons.apple,
-                      size: 24.h,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25.r),
                 ),
+                backgroundColor:
+                    AppColors.buttonSecondaryDynamic(context),
+              ),
+              onPressed: _isProcessing ? null : _handleAppleSignIn,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Continue with",
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                  SizedBox(width: 2.w),
+                  Icon(
+                    Icons.apple,
+                    size: 24.h,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ],
     );
   }
@@ -440,7 +437,6 @@ class _SignupScreenState extends State<SignupScreen> {
     return Consumer<SignupProvider>(
       builder: (context, provider, _) {
         if (_isDisposed) return const SizedBox();
-
         return AuthLayout(
           step: step,
           onBack: back,

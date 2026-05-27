@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
@@ -443,47 +441,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                // Apple sign-in is iOS-only. On Android the Google button
-                // expands to fill the row.
-                if (Platform.isIOS) ...[
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: SizedBox(
-                      height: 50.h,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: AppColors.borderDynamic(context),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25.r),
-                          ),
-                          backgroundColor:
-                              AppColors.buttonSecondaryDynamic(context),
+                // Apple button always visible. On Android the package
+                // can't open the native sheet; the provider catches the
+                // unsupported case and surfaces a friendly message.
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: SizedBox(
+                    height: 50.h,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: AppColors.borderDynamic(context),
                         ),
-                        onPressed: _isLoading ? null : _handleAppleSignIn,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Continue with",
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: AppColors.textPrimaryDynamic(context),
-                              ),
-                            ),
-                            SizedBox(width: 2.w),
-                            Icon(
-                              Icons.apple,
-                              size: 24.h,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                            ),
-                          ],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.r),
                         ),
+                        backgroundColor:
+                            AppColors.buttonSecondaryDynamic(context),
+                      ),
+                      onPressed: _isLoading ? null : _handleAppleSignIn,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Continue with",
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: AppColors.textPrimaryDynamic(context),
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Icon(
+                            Icons.apple,
+                            size: 24.h,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
             SizedBox(height: 20.h),
