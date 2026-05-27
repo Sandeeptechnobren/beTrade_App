@@ -9,12 +9,27 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final Color? backgroundColor;
 
+  /// When `false`, suppress the 1 px grey hairline drawn under the
+  /// title row. Useful when the screen wants its own divider further
+  /// down (e.g. Rankings places the divider under the tab strip so the
+  /// active tab's underline sits on it).
+  final bool showBottomDivider;
+
+  /// Optional widget rendered tightly under the title row in the
+  /// AppBar's native `bottom` slot. When provided, it REPLACES the
+  /// hairline divider (and `showBottomDivider` is ignored).
+  /// Used by the Rankings screen to host its 4-tab TabBar so the
+  /// labels hug the BeTrade™ row with no extra vertical padding.
+  final PreferredSizeWidget? bottom;
+
   const GlobalAppBar({
     super.key,
     this.onNotificationTap,
     this.showNotification = true,
     this.leading,
     this.backgroundColor,
+    this.showBottomDivider = true,
+    this.bottom,
   });
 
   @override
@@ -33,6 +48,14 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
 
+      // Explicit toolbarHeight so Material doesn't fall back to the
+      // hard-coded `kToolbarHeight = 56.0` constant — that would
+      // disagree with our `56.h` preferredSize on devices whose
+      // ScreenUtil scaling factor isn't exactly 1.0, causing the title
+      // row to render at a different Y than on screens that don't pass
+      // a `bottom` widget. Locking this here keeps the BeTrade™ row
+      // pixel-identical across Explore / Rankings / Portfolio / Profile.
+      toolbarHeight: 56.h,
       automaticallyImplyLeading: false,
       leading: leading,
       titleSpacing: 0,
@@ -84,15 +107,20 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
 
-      bottom: PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: isDark
-              ? Colors.grey.shade800   // dark mode divider
-              : Colors.grey.shade300,  // light mode divider
-        ),
-      ),
+      // Bottom slot precedence: explicit `bottom` > divider > nothing.
+      // The Rankings TabBar lives here via `bottom`.
+      bottom: bottom ??
+          (showBottomDivider
+              ? PreferredSize(
+                  preferredSize: Size.fromHeight(1),
+                  child: Container(
+                    height: 1,
+                    color: isDark
+                        ? Colors.grey.shade800 // dark mode divider
+                        : Colors.grey.shade300, // light mode divider
+                  ),
+                )
+              : null),
 
       actions: [
         if (showNotification)
@@ -122,5 +150,13 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(56.h);
+  Size get preferredSize {
+    // Toolbar (56.h) + whichever bottom widget is active (custom bottom,
+    // divider, or nothing). Without this, the AppBar would clip a
+    // taller `bottom` (like a TabBar) because Material reserves only
+    // the title-row height.
+    final extra = bottom?.preferredSize.height ??
+        (showBottomDivider ? 1.0 : 0.0);
+    return Size.fromHeight(56.h + extra);
+  }
 }

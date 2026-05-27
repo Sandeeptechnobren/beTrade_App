@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -71,36 +72,73 @@ class _RankingsScreenState extends State<RankingsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.whiteDynamic(context),
-      appBar: GlobalAppBar(),
-      body: Column(
-        children: [
-          // Tab strip — purple underline on active, muted on inactive
-          TabBar(
-            controller: _tab,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorColor: AppColors.primary,
-            indicatorWeight: 3,
-            indicatorPadding: EdgeInsets.symmetric(horizontal: 8.w),
-            labelColor: AppColors.textPrimaryDynamic(context),
-            unselectedLabelColor: AppColors.textSecondaryDynamic(context),
-            labelStyle:
-                AppTextStyle.body.copyWith(fontWeight: FontWeight.w700),
-            unselectedLabelStyle:
-                AppTextStyle.body.copyWith(fontWeight: FontWeight.w500),
-            tabs: _tabs.map((t) => Tab(text: t.label)).toList(),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tab,
-              children: _tabs
-                  .map(
-                    (t) => _RankingTab(category: t.category),
-                  )
-                  .toList(),
+      // Identical BeTrade™ + bell header as Explore/Portfolio/Profile
+      // (via `GlobalAppBar`). The TabBar lives in the AppBar's native
+      // `bottom` slot so Material binds it tightly to the title row
+      // with no extra vertical padding — what the Figma rankings
+      // layout needs.
+      appBar: GlobalAppBar(
+        showBottomDivider: false,
+        bottom: _buildTabBar(context),
+      ),
+      body: TabBarView(
+        controller: _tab,
+        children: _tabs
+            .map((t) => _RankingTab(category: t.category))
+            .toList(),
+      ),
+    );
+  }
+
+  /// Tab strip rendered in `GlobalAppBar`'s `bottom` slot. Returns
+  /// only the TabBar — the BeTrade™ + bell row is provided by
+  /// `GlobalAppBar` itself so this screen matches Explore/Portfolio/
+  /// Profile pixel-for-pixel above the tabs.
+  PreferredSizeWidget _buildTabBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    return PreferredSize(
+      preferredSize: Size.fromHeight(36.h),
+      child: Theme(
+        // Suppress the grey ripple/splash on tab cells so press feedback
+        // doesn't render as a big grey rectangle behind the labels.
+        data: Theme.of(context).copyWith(
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+        ),
+        child: TabBar(
+          controller: _tab,
+          isScrollable: false,
+          // Single hairline directly under the labels — the purple
+          // active-tab indicator overlays this divider.
+          dividerColor: dividerColor,
+          dividerHeight: 1,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorWeight: 3,
+          indicatorPadding: EdgeInsets.zero,
+          indicator: UnderlineTabIndicator(
+            borderRadius: BorderRadius.circular(2),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 3,
             ),
           ),
-        ],
+          labelColor: AppColors.textPrimaryDynamic(context),
+          unselectedLabelColor: AppColors.textSecondaryDynamic(context),
+          labelStyle: AppTextStyle.body.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.sp,
+          ),
+          unselectedLabelStyle: AppTextStyle.body.copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 14.sp,
+          ),
+          // Just enough vertical breathing room for the underline to
+          // sit cleanly below the text.
+          labelPadding: EdgeInsets.only(top: 4.h, bottom: 6.h),
+          tabs: _tabs.map((t) => Tab(text: t.label)).toList(),
+        ),
       ),
     );
   }
@@ -149,21 +187,13 @@ class _RankingTab extends StatelessWidget {
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-    // Error and no cached data
+    // Error and no cached data — render the same styled empty state
+    // as "no data yet" so the screen never falls back to raw plain
+    // text. Pull-to-refresh will retry the fetch.
     if (response == null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SizedBox(height: 80.h),
-          Center(
-            child: Text(
-              error ?? 'No data yet.',
-              style: TextStyle(
-                color: AppColors.textSecondaryDynamic(context),
-              ),
-            ),
-          ),
-        ],
+      return _EmptyState(
+        unit: '',
+        message: error,
       );
     }
 
@@ -190,16 +220,24 @@ class _RankingTab extends StatelessWidget {
   }
 }
 
+/// Figma rankings empty-state: light-grey circle with a cancel-style
+/// icon, "No Rankings Yet" heading, then a one-line subtitle. Used
+/// when the category has no qualifying users yet *and* when an error
+/// dropped the response (the subtitle becomes the error text in that
+/// case). The widget is a `ListView` so a `RefreshIndicator` wrapper
+/// can still trigger pull-to-refresh from the empty surface.
 class _EmptyState extends StatelessWidget {
   final String unit;
-  const _EmptyState({required this.unit});
+  final String? message;
+  const _EmptyState({required this.unit, this.message});
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = message ?? 'Start trading to see how you rank.';
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        SizedBox(height: 160.h),
+        SizedBox(height: 140.h),
         Center(
           child: Column(
             children: [
@@ -225,11 +263,15 @@ class _EmptyState extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8.h),
-              Text(
-                'Start trading to see how you rank.',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppColors.textSecondaryDynamic(context),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: AppColors.textSecondaryDynamic(context),
+                  ),
                 ),
               ),
             ],
@@ -296,66 +338,74 @@ class _PodiumCell extends StatelessWidget {
     required this.valueLabel,
   });
 
+  /// Rank → ring + crown colour. Matches Figma's gold / silver / bronze
+  /// medal palette (with bronze leaning warm-orange like the design).
   Color get _crownColor {
     switch (entry.rank) {
       case 1:
-        return const Color(0xFFFFD700); // gold
+        return const Color(0xFFFFC83D); // gold
       case 2:
-        return Colors.white; // silver
+        return const Color(0xFFE6E6E6); // silver / off-white
       case 3:
       default:
-        return const Color(0xFFCD7F32); // bronze
+        return const Color(0xFFE08A2C); // warm bronze (Figma value)
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final avatarSize = isCentre ? 72.0 : 60.0;
+    // Centre cell (#1) is visually elevated: larger avatar + bigger
+    // crown + bolder name. Side cells (#2 left, #3 right) are slightly
+    // smaller so the eye lands on #1 first.
+    final avatarSize = isCentre ? 78.0 : 64.0;
+    final crownSize = isCentre ? 26.0 : 20.0;
+    final crownTopOffset = isCentre ? -18.0 : -14.0;
     return Flexible(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Stack(
             clipBehavior: Clip.none,
-            alignment: Alignment.center,
+            alignment: Alignment.topCenter,
             children: [
-              Container(
-                width: avatarSize.w,
-                height: avatarSize.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _crownColor, width: 3),
-                ),
-                child: ClipOval(
-                  child: entry.displayAvatar.isNotEmpty
-                      ? Image.network(
-                          entry.displayAvatar,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.white24,
-                            alignment: Alignment.center,
-                            child: Icon(Icons.person,
-                                size: 26.sp, color: Colors.white),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.white24,
-                          alignment: Alignment.center,
-                          child: Icon(Icons.person,
-                              size: 26.sp, color: Colors.white),
-                        ),
+              // Spacer that reserves vertical room for the crown so the
+              // Column below doesn't collide with the next row.
+              SizedBox(height: avatarSize.w + 6.h),
+              // Avatar with coloured ring.
+              Positioned(
+                top: 6.h,
+                child: Container(
+                  width: avatarSize.w,
+                  height: avatarSize.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _crownColor, width: 3),
+                  ),
+                  child: ClipOval(
+                    child: entry.displayAvatar.isNotEmpty
+                        ? Image.network(
+                            entry.displayAvatar,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _avatarFallback(),
+                          )
+                        : _avatarFallback(),
+                  ),
                 ),
               ),
+              // Crown — Figma uses a classic 3-peak crown with rounded
+              // peaks. `LucideIcons.crown` is the closest line-icon
+              // match available in the project's existing icon set.
               Positioned(
-                top: -12.h,
+                top: crownTopOffset.h,
                 child: Icon(
-                  Icons.emoji_events, // trophy/crown stand-in
+                  LucideIcons.crown,
                   color: _crownColor,
-                  size: 22.sp,
+                  size: crownSize.sp,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 10.h),
           Text(
             entry.name,
             textAlign: TextAlign.center,
@@ -364,7 +414,7 @@ class _PodiumCell extends StatelessWidget {
             style: TextStyle(
               fontSize: isCentre ? 13.sp : 12.sp,
               color: Colors.white,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               height: 1.2,
             ),
           ),
@@ -373,7 +423,7 @@ class _PodiumCell extends StatelessWidget {
             valueLabel,
             style: TextStyle(
               fontSize: 11.sp,
-              color: Colors.white70,
+              color: Colors.white.withValues(alpha: 0.78),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -381,6 +431,12 @@ class _PodiumCell extends StatelessWidget {
       ),
     );
   }
+
+  Widget _avatarFallback() => Container(
+        color: Colors.white24,
+        alignment: Alignment.center,
+        child: Icon(Icons.person, size: 26.sp, color: Colors.white),
+      );
 }
 
 /// One row in the leaderboard list (rank 4+).

@@ -53,7 +53,9 @@ class _PortfolioPageState extends State<PortfolioPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: GlobalAppBar(),
+        // Matches Figma: BeTrade™ + bell only, no hairline below.
+        // Consistent with Explore / Rankings / Profile.
+        appBar: GlobalAppBar(showBottomDivider: false),
         body: SafeArea(
           child: Column(
             children: [

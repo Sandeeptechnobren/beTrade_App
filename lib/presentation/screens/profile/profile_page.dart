@@ -72,7 +72,9 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GlobalAppBar(),
+      // Matches Figma: BeTrade™ + bell only, no hairline below.
+      // Consistent with Explore / Rankings / Portfolio.
+      appBar: GlobalAppBar(showBottomDivider: false),
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           final profile = provider.profile;

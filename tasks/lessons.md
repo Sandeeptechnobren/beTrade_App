@@ -1,6 +1,25 @@
 # Lessons Learned
 Rules added here prevent repeated mistakes. Each rule was born from an actual error.
 
+## Build & Install
+
+### Always use split APKs for device installs (2026-05-27)
+User directive: **"reinstall the split apks all time when new update comes in"**. Going forward, every device install MUST follow this exact pattern:
+
+```bash
+# 1. Build the per-ABI split APKs (NOT --target-platform — that produces a single APK with versionCode 10)
+flutter build apk --debug --split-per-abi
+
+# 2. Install the arm64 split (the vivo V2143 + most modern phones are arm64-v8a)
+adb -s <DEVICE> install -r build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
+```
+
+Why:
+- arm64 split is ~110 MB vs ~198 MB universal → ~45% faster transfer over wireless ADB.
+- The split build adds +2000 to versionCode (1000 for armeabi-v7a, 2000 for arm64-v8a, 4000 for x86_64). Mixing build modes triggers `INSTALL_FAILED_VERSION_DOWNGRADE` — if it ever happens, `adb uninstall com.build.betrade` then fresh install (user has to log in again afterward).
+
+Do NOT use `flutter build apk --debug --target-platform android-arm64` — it builds an arm64-only APK but with the BASE versionCode (10), which is treated as a downgrade after any previous split install.
+
 ## Code Patterns
 
 ### Frontend Design

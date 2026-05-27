@@ -321,7 +321,9 @@ class _ExplorePageState extends State<ExplorePage> {
     });
 
     return Scaffold(
-      appBar: GlobalAppBar(),
+      // Matches Figma: BeTrade™ + bell only, no hairline below.
+      // Consistent with Rankings / Portfolio / Profile.
+      appBar: GlobalAppBar(showBottomDivider: false),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : provider.error.isNotEmpty
