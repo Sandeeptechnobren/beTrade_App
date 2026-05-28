@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'deposit/newDeposit.dart';
+import 'sell_position_sheet.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -429,22 +430,20 @@ class _PortfolioPageState extends State<PortfolioPage> {
               ),
             ),
             SizedBox(height: 8.h),
-            // Close position — outlined pill (placeholder: opens
-            // position detail page where the close action will live).
+            // Close position — opens the sell sheet (P0-D). On a
+            // completed sell, refresh + show a confirmation snackbar.
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (p.marketUuid == null) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PositionDetailPage(
-                        marketUuid: p.marketUuid!,
-                        marketTitleHint: p.marketDescription,
-                      ),
-                    ),
-                  );
+                  final messenger = ScaffoldMessenger.of(context);
+                  final sold = await SellPositionSheet.open(context, p);
+                  if (sold == true) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Position closed.')),
+                    );
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,

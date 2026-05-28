@@ -33,6 +33,13 @@ class ApiEndpoints {
   static String tradeBuy(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/buy';
 
+  // P0-D — sell side. quote-sell is read-only; sell mutates.
+  static String tradeQuoteSell(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/quote-sell';
+
+  static String tradeSell(String uuid) =>
+      '${EnvConfig.baseUrl}/trade/$uuid/sell';
+
   static String tradeView(String uuid) =>
       '${EnvConfig.baseUrl}/trade/view/$uuid';
 
