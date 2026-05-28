@@ -57,6 +57,13 @@ class ApiEndpoints {
 
   static String get walletDeposit => '${EnvConfig.baseUrl}/wallet/deposit';
 
+  /// P0-A — gateway-backed deposit initiate. Accepts a method-discriminated
+  /// payload (card token / mobile_money provider+msisdn / bank_account
+  /// triple) and returns a psp_transaction id + the channel-specific blob
+  /// (checkout_url for card, stk_push for MoMo, virtual_account for bank).
+  static String get walletDepositInitiate =>
+      '${EnvConfig.baseUrl}/wallet/deposit/initiate';
+
   static String get walletWithdraw => '${EnvConfig.baseUrl}/wallet/withdraw';
 
   static String get languages => '${EnvConfig.baseUrl}/languages';

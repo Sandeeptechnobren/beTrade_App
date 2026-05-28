@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../../data/provider/wallet_provider.dart';
+import 'deposit_waiting_screen.dart';
 import '../../../widget/deposit_success.dart';
 import '../../../widget/figma_inline_dropdown.dart';
 
@@ -57,6 +58,38 @@ class _DepositPageState extends State<DepositPage> {
     ),
   ];
 
+  /// Ghana licensed commercial banks. Hardcoded here until P1-F lands
+  /// the `GET /api/banks` endpoint with the canonical Bank-of-Ghana
+  /// list — swap this constant for a server fetch when that's wired.
+  /// `code` is the value sent to the backend's `bank_account.bank_code`
+  /// field; `name` is the dropdown label.
+  static const List<_BankOption> _banks = [
+    _BankOption(code: 'GCB', name: 'GCB Bank'),
+    _BankOption(code: 'ECOBANK', name: 'Ecobank Ghana'),
+    _BankOption(code: 'ABSA', name: 'Absa Bank Ghana'),
+    _BankOption(code: 'STANBIC', name: 'Stanbic Bank Ghana'),
+    _BankOption(code: 'ZENITH', name: 'Zenith Bank Ghana'),
+    _BankOption(code: 'FBN', name: 'FBNBank Ghana'),
+    _BankOption(code: 'SCB', name: 'Standard Chartered Ghana'),
+    _BankOption(code: 'FIDELITY', name: 'Fidelity Bank Ghana'),
+    _BankOption(code: 'CBG', name: 'Consolidated Bank Ghana'),
+    _BankOption(code: 'ADB', name: 'Agricultural Development Bank'),
+    _BankOption(code: 'NIB', name: 'National Investment Bank'),
+    _BankOption(code: 'UBA', name: 'United Bank for Africa'),
+    _BankOption(code: 'CALBANK', name: 'CalBank'),
+    _BankOption(code: 'REPUBLIC', name: 'Republic Bank'),
+    _BankOption(code: 'ACCESS', name: 'Access Bank'),
+    _BankOption(code: 'GTBANK', name: 'GTBank'),
+    _BankOption(code: 'BOA', name: 'Bank of Africa'),
+    _BankOption(code: 'FNB', name: 'FNB Ghana'),
+    _BankOption(code: 'OMNIBSIC', name: 'OmniBSIC Bank'),
+    _BankOption(code: 'PRUDENTIAL', name: 'Prudential Bank'),
+    _BankOption(code: 'FAB', name: 'First Atlantic Bank'),
+    _BankOption(code: 'GHL', name: 'GHL Bank'),
+    _BankOption(code: 'UMB', name: 'Universal Merchant Bank'),
+    _BankOption(code: 'SGGH', name: 'Societe Generale Ghana'),
+  ];
+
   int step = 1;
 
   final TextEditingController amountController = TextEditingController();
@@ -66,6 +99,11 @@ class _DepositPageState extends State<DepositPage> {
   final TextEditingController cvc = TextEditingController();
   final TextEditingController phone = TextEditingController();
   String provider = "";
+
+  // Bank Account form
+  String bankCode = "";
+  final TextEditingController accountNumber = TextEditingController();
+  final TextEditingController accountName = TextEditingController();
 
   @override
   void initState() {
@@ -77,6 +115,8 @@ class _DepositPageState extends State<DepositPage> {
     expiry.addListener(_rebuildOnInput);
     cvc.addListener(_rebuildOnInput);
     phone.addListener(_rebuildOnInput);
+    accountNumber.addListener(_rebuildOnInput);
+    accountName.addListener(_rebuildOnInput);
   }
 
   @override
@@ -86,6 +126,8 @@ class _DepositPageState extends State<DepositPage> {
     expiry.dispose();
     cvc.dispose();
     phone.dispose();
+    accountNumber.dispose();
+    accountName.dispose();
     super.dispose();
   }
 
@@ -107,8 +149,13 @@ class _DepositPageState extends State<DepositPage> {
     if (paymentMethod == 'momo') {
       return provider.isNotEmpty && phone.text.trim().isNotEmpty;
     }
-    // Bank Account flow isn't wired yet — keep Confirm disabled so
-    // tapping it doesn't fire a half-built request.
+    if (paymentMethod == 'bank') {
+      // bank_code (from dropdown) + account_number required by the
+      // backend's `bank_account` validation. account_name is optional
+      // for verify-payee step.
+      return bankCode.isNotEmpty &&
+          accountNumber.text.trim().length >= 6;
+    }
     return false;
   }
 
@@ -144,10 +191,13 @@ class _DepositPageState extends State<DepositPage> {
                   )
                 : Consumer<WalletProvider>(
                     builder: (context, wallet, _) {
+                      // P0-A: button is "busy" while the initiate call
+                      // is in flight (was: isSubmittingDeposit).
+                      final busy = wallet.isInitiatingDeposit;
                       return _figmaButton(
                         'Confirm',
-                        enabled: _step2Valid && !wallet.isSubmittingDeposit,
-                        loading: wallet.isSubmittingDeposit,
+                        enabled: _step2Valid && !busy,
+                        loading: busy,
                         onTap: _submitDeposit,
                       );
                     },
@@ -338,33 +388,45 @@ class _DepositPageState extends State<DepositPage> {
         else if (paymentMethod == 'momo')
           ..._momoFields()
         else
-          ..._bankPlaceholder(),
+          ..._bankFields(),
       ],
     );
   }
 
-  /// Stub UI for Bank Account — the form fields aren't in the Figma
-  /// yet. Confirm stays disabled (see `_step2Valid`).
-  List<Widget> _bankPlaceholder() {
+  /// Bank Account form — picks one of the licensed Ghanaian banks
+  /// (hardcoded in `_banks` until P1-F lands the `GET /api/banks`
+  /// endpoint), takes an account number + optional account name,
+  /// and POSTs them as the `bank_account` sub-block to
+  /// `/api/wallet/deposit/initiate`. The backend (via Flutterwave)
+  /// then issues a one-time virtual account that the
+  /// `DepositWaitingScreen` displays for the user to transfer into.
+  List<Widget> _bankFields() {
     return [
-      Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(20.w),
-        decoration: BoxDecoration(
-          color: _inputBg,
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Text(
-          'Bank Account deposits coming soon.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'SFProRounded',
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: _hintColor,
-          ),
-        ),
+      _label('Bank'),
+      SizedBox(height: 12.h),
+      FigmaInlineDropdown<String>(
+        value: bankCode.isEmpty ? null : bankCode,
+        hint: 'Select your bank',
+        items: _banks.map((b) {
+          return FigmaInlineDropdownItem<String>(
+            value: b.code,
+            label: b.name,
+          );
+        }).toList(),
+        onChanged: (v) => setState(() => bankCode = v),
       ),
+      SizedBox(height: 23.h),
+      _label('Account Number'),
+      SizedBox(height: 12.h),
+      _figmaInput(
+        accountNumber,
+        '0000 0000 0000 0000',
+        keyboardType: TextInputType.number,
+      ),
+      SizedBox(height: 23.h),
+      _label('Account Name (optional)'),
+      SizedBox(height: 12.h),
+      _figmaInput(accountName, 'John Doe'),
     ];
   }
 
@@ -532,12 +594,19 @@ class _DepositPageState extends State<DepositPage> {
 
   // ─── Submit ───────────────────────────────────────────────────────
 
-  /// Submit the deposit intent via WalletProvider.
-  /// Shows success dialog on success, snackbar with backend message
-  /// on failure (e.g. BELOW_MIN_AMOUNT, ABOVE_MAX_AMOUNT).
+  /// P0-A — submit the deposit through the new gateway-initiate
+  /// endpoint. Builds the method-specific payload, calls
+  /// `WalletProvider.submitDepositInitiate`, and routes the user to
+  /// `DepositWaitingScreen` which polls the wallet for the
+  /// webhook-driven credit.
+  ///
+  /// Shows the existing success dialog when the waiting screen returns
+  /// `true` (balance went up); shows a snackbar with the typed backend
+  /// error code message on failure.
   Future<void> _submitDeposit() async {
     final wallet = context.read<WalletProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     final amount = double.tryParse(amountController.text.trim()) ?? 0;
     if (amount <= 0) {
@@ -547,32 +616,115 @@ class _DepositPageState extends State<DepositPage> {
       return;
     }
 
-    final method = paymentMethod == 'card' ? 'card' : 'mobile_money';
-    final msisdn = paymentMethod == 'momo' ? phone.text.trim() : null;
+    // Build the method-specific payload that the backend expects.
+    // Card data is intentionally tokenized client-side in a real
+    // production build via the Flutterwave SDK; we ship a placeholder
+    // token for the stub gateway so the API contract can be tested
+    // end-to-end on staging without merchant credentials.
+    final String backendMethod;
+    final Map<String, dynamic> methodPayload;
+    if (paymentMethod == 'card') {
+      backendMethod = 'card';
+      final card = cardNumber.text.trim().replaceAll(' ', '');
+      final last4 = card.length >= 4 ? card.substring(card.length - 4) : '';
+      methodPayload = {
+        // TODO(real-gateway): replace this placeholder with the
+        // one-time token returned by Flutterwave's mobile SDK once
+        // the SDK is integrated. For now this lets the stub gateway
+        // accept the call.
+        'token': 'CLIENT_TOKENIZED_PLACEHOLDER',
+        if (last4.isNotEmpty) 'last4': last4,
+        'country': 'GH',
+      };
+    } else if (paymentMethod == 'momo') {
+      backendMethod = 'mobile_money';
+      methodPayload = {
+        'provider': provider,
+        'msisdn': _normalisedMsisdn(phone.text.trim()),
+      };
+    } else if (paymentMethod == 'bank') {
+      backendMethod = 'bank_account';
+      final acctNo = accountNumber.text.trim().replaceAll(' ', '');
+      final acctName = accountName.text.trim();
+      methodPayload = {
+        'bank_code': bankCode,
+        'account_number': acctNo,
+        if (acctName.isNotEmpty) 'account_name': acctName,
+      };
+    } else {
+      // Should be unreachable — _step2Valid keeps Confirm disabled
+      // for any unknown method. Defensive fallback.
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Unknown payment method.')),
+      );
+      return;
+    }
 
-    final ok = await wallet.submitDeposit(
+    final initiated = await wallet.submitDepositInitiate(
       amountGhs: amount,
-      method: method,
-      msisdn: msisdn,
+      method: backendMethod,
+      methodPayload: methodPayload,
     );
 
     if (!mounted) return;
 
-    if (ok) {
-      Navigator.pop(context);
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-      showSuccessDialog(context);
-    } else {
+    if (initiated == null) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            wallet.lastSubmitMessage ?? 'Could not submit deposit.',
+            wallet.lastInitiateMessage ?? 'Could not initiate deposit.',
           ),
         ),
       );
+      return;
     }
+
+    // Push the waiting screen — it polls `/api/wallet` and pops `true`
+    // when the webhook credits the wallet.
+    final credited = await navigator.push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DepositWaitingScreen(response: initiated),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (credited == true) {
+      // Close the deposit form sheet itself, then show success modal.
+      Navigator.pop(context);
+      await wallet.fetchBalance();
+      await wallet.fetchTransactions(type: wallet.currentTypeFilter);
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      showSuccessDialog(context);
+    }
+    // If `credited` is false / null, the user cancelled — stay on the
+    // form so they can retry without re-entering all the fields.
   }
+
+  /// Convert the Figma "054 376 2061" format → E.164 "+233543762061"
+  /// that the backend's `mobile_money.msisdn` regex (`^\+\d{8,15}$`)
+  /// will accept.
+  String _normalisedMsisdn(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('+')) return digits;
+    if (digits.startsWith('00')) return '+${digits.substring(2)}';
+    if (digits.startsWith('233')) return '+$digits';
+    // Local Ghana number (e.g. 054...) → prepend +233 + drop leading 0.
+    if (digits.startsWith('0')) return '+233${digits.substring(1)}';
+    return '+$digits';
+  }
+}
+
+/// One bank option for the Bank Account dropdown. `code` is the
+/// canonical short-code (e.g. 'GCB', 'ECOBANK') that the backend's
+/// `bank_account.bank_code` validation accepts; `name` is the
+/// display label.
+class _BankOption {
+  final String code;
+  final String name;
+
+  const _BankOption({required this.code, required this.name});
 }
 
 /// One MoMo provider option for the Payment Provider dropdown.

@@ -50,7 +50,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
       if (!mounted) return;
       context.read<WalletProvider>().fetchBalance();
       context.read<WalletProvider>().fetchTransactions();
+      // P0-C: fire both list fetches in parallel so the Closed
+      // Positions tab is ready when the user switches to it.
       context.read<PositionsProvider>().fetchOpenPositions();
+      context.read<PositionsProvider>().fetchSettledPositions();
     });
   }
 
@@ -61,6 +64,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
     await Future.wait([
       wallet.fetchBalance(),
       positions.fetchOpenPositions(),
+      positions.fetchSettledPositions(),
     ]);
   }
 
@@ -552,9 +556,154 @@ class _PortfolioPageState extends State<PortfolioPage> {
     );
   }
 
+  /// P0-C — Closed Positions tab. Reads `provider.settledPositions`
+  /// which is populated by `GET /api/positions?status=settled`. Each
+  /// row carries `realized_pnl_ghs` (positive for winners, negative
+  /// for losers) and `payout_ghs` (non-null only when the user won
+  /// and the SettleMarketJob wrote a Payout row).
   Widget _closedPositions() {
-    return Center(
-      child: Text("No Closed Positions", style: TextStyle(fontSize: 14.sp)),
+    return Consumer<PositionsProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoadingSettled && provider.settledPositions.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (provider.settledPositions.isEmpty) {
+          return Center(
+            child: Text(
+              'No Closed Positions',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: _refreshAll,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            itemCount: provider.settledPositions.length,
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            itemBuilder: (_, i) =>
+                _closedPositionCard(provider.settledPositions[i]),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Card for one closed position. Mirrors the open-position layout
+  /// but swaps the "Profit Earned" row for "Realized P&L" + a payout
+  /// row, and replaces the "Close position" button with a dimmed
+  /// status pill (Won / Lost).
+  Widget _closedPositionCard(PositionModel p) {
+    final isWinner = p.outcomeIsWinner == true;
+    final pnlColor = p.realizedPnlGhs >= 0 ? _profitGreen : _profitRed;
+    final pnlSign = p.realizedPnlGhs >= 0 ? '+' : '';
+
+    final sharesText = p.shares == p.shares.roundToDouble()
+        ? p.shares.toStringAsFixed(0)
+        : p.shares.toStringAsFixed(2);
+
+    final prediction = p.isYes
+        ? 'YES'
+        : (p.outcomeLabel.isNotEmpty ? p.outcomeLabel.toUpperCase() : 'NO');
+
+    final settledOn = p.settledAt != null
+        ? '${p.settledAt!.year}-${p.settledAt!.month.toString().padLeft(2, '0')}-${p.settledAt!.day.toString().padLeft(2, '0')}'
+        : '—';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12.r),
+      onTap: () {
+        if (p.marketUuid == null) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PositionDetailPage(
+              marketUuid: p.marketUuid!,
+              marketTitleHint: p.marketDescription,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: _cardBorder, width: 1),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              (p.marketDescription ?? '').isEmpty
+                  ? 'Market'
+                  : p.marketDescription!,
+              style: TextStyle(
+                fontFamily: 'SFProRounded',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: _cardTitleColor,
+                height: 1.4,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: _innerPanelBg,
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Column(
+                children: [
+                  _statRow('Your Prediction', prediction),
+                  SizedBox(height: 4.h),
+                  _statRow(
+                    'Realized P&L',
+                    '$pnlSign${p.realizedPnlGhs.toStringAsFixed(2)} GHS',
+                    valueColor: pnlColor,
+                  ),
+                  SizedBox(height: 4.h),
+                  _statRow(
+                    'Payout',
+                    p.payoutGhs == null
+                        ? '—'
+                        : '${p.payoutGhs!.toStringAsFixed(2)} GHS',
+                  ),
+                  SizedBox(height: 4.h),
+                  _statRow('Shares Held', '$sharesText shares'),
+                  SizedBox(height: 4.h),
+                  _statRow('Settled', settledOn),
+                ],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              decoration: BoxDecoration(
+                color: isWinner
+                    ? _profitGreen.withValues(alpha: 0.12)
+                    : _profitRed.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(9999.r),
+              ),
+              child: Center(
+                child: Text(
+                  isWinner ? 'Won' : 'Lost',
+                  style: TextStyle(
+                    fontFamily: 'SFProRounded',
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isWinner ? _profitGreen : _profitRed,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

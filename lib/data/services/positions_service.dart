@@ -14,14 +14,21 @@ import 'local_storage.dart';
 /// All P&L math is computed server-side; the client is a thin
 /// rendering layer.
 class PositionsService {
-  /// Fetches every OPEN position for the authenticated user.
-  /// Backend filters to `shares > 0` so resolved positions don't
-  /// appear here. Returns [] on failure.
-  static Future<List<PositionModel>> getAll() async {
+  /// Fetches positions for the authenticated user.
+  ///
+  /// [status] (P0-C, 2026-05-28):
+  ///   - 'open'    → active positions (shares > 0). Default.
+  ///   - 'settled' → closed positions (zeroed + settled_at set).
+  ///                 Returns payout_ghs + realized_pnl_ghs per row.
+  ///   - 'all'     → both, active first.
+  ///
+  /// Returns [] on failure.
+  static Future<List<PositionModel>> getAll({String status = 'open'}) async {
     try {
       final token = LocalStorage.getToken();
       final response = await DioClient.instance.get(
         ApiEndpoints.positions,
+        queryParameters: {'status': status},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
