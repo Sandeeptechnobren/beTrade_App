@@ -574,16 +574,26 @@ class _TradePageState extends State<TradePage> {
   /// Outlined amount chip — white bg, 1px #E4E4E7, 12 radius, padding
   /// 8/12, text 16/500/#5A1192 (dark purple). Tap replaces the amount.
   Widget _figmaAmountChip(int value) {
+    // Brand purple used for the active chip fill + the resting label.
+    const purple = Color(0xFF5A1192);
+    // A chip is "selected" when the current amount equals its value —
+    // tapping 10/20/50/100 (or typing the same number) highlights it.
+    final selected = amount == value.toDouble();
     return Expanded(
       child: GestureDetector(
         onTap: () => selectQuickAmount(value.toDouble()),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           margin: EdgeInsets.symmetric(horizontal: 2.w),
-          padding: EdgeInsets.symmetric(horizontal:5.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 8.h),
           decoration: BoxDecoration(
-            color: AppColors.cardBackgroundDynamic(context),
-            border:
-                Border.all(color: AppColors.borderDynamic(context), width: 1),
+            color: selected
+                ? purple
+                : AppColors.cardBackgroundDynamic(context),
+            border: Border.all(
+              color: selected ? purple : AppColors.borderDynamic(context),
+              width: 1,
+            ),
             borderRadius: BorderRadius.circular(12.r),
           ),
           alignment: Alignment.center,
@@ -593,8 +603,8 @@ class _TradePageState extends State<TradePage> {
               fontFamily: AppTextStyle.fontFamily,
               fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              // Brand purple — kept static; readable on both white and #1C1C1E.
-              color: const Color(0xFF5A1192),
+              // White on the purple fill when selected; brand purple at rest.
+              color: selected ? Colors.white : purple,
             ),
           ),
         ),
