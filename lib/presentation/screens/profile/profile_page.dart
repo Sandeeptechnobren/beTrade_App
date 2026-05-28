@@ -189,17 +189,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           if (profile?.email != null && profile.email!.isNotEmpty) ...[
             SizedBox(height: 4.h),
-            Text(
-              profile.email!,
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: Colors.grey,
-                fontFamily: AppTextStyle.fontFamily,
-              ),
-            ),
           ],
           SizedBox(height: 12.h),
-          // Stats row: 3 white boxes with 4px gap, flex-grow each (Figma)
           Row(
             children: [
               Expanded(child: _buildStat(context, "62%", "Win Rate")),

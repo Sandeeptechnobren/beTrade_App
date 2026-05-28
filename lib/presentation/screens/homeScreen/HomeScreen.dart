@@ -143,7 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Row(
                         children: [
-                          Image.asset("assets/logo/IconLogo.png", height: 35.h),
+                          Image.asset("assets/logo/IconLogo.png", height:32.h,width: 27.w,),
+                          // Image.asset("assets/logo/IconLogo.png", height: 35.h),
                           SizedBox(width: 5.w),
                         ],
                       ),
@@ -162,23 +163,39 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         width: 40.w,
                         height: 40.h,
+                        padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
-                          color: AppColors.inputFieldBgDynamic(context),
+                          // Figma #F4F4F5
+                          color: AppColors.iconContainerDynamic(context),
                           shape: BoxShape.circle,
                         ),
-                        child:
-                        // Center(
-                        //   child: Icon(Icons.notifications_none, size: 20.sp),
-                        // ),
-                        Center(
-                          child: Image.asset(
-                            "assets/images/Bell.png",
-                            width: 20.w,
-                            height: 20.h,
-                            fit: BoxFit.contain,
-                          ),
+                        child: Image.asset(
+                          "assets/images/Bell.png",
+                          width: 24.w,
+                          height: 24.h,
+                          fit: BoxFit.contain,
                         ),
                       ),
+                      // Container(
+                      //   width: 40.w,
+                      //   height: 40.h,
+                      //   decoration: BoxDecoration(
+                      //     color: AppColors.inputFieldBgDynamic(context),
+                      //     shape: BoxShape.circle,
+                      //   ),
+                      //   child:
+                      //   // Center(
+                      //   //   child: Icon(Icons.notifications_none, size: 20.sp),
+                      //   // ),
+                      //   Center(
+                      //     child: Image.asset(
+                      //       "assets/images/Bell.png",
+                      //       width: 20.w,
+                      //       height: 20.h,
+                      //       fit: BoxFit.contain,
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
