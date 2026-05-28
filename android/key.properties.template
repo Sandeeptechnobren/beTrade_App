@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────────────────────
+# RELEASE SIGNING — TEMPLATE
+# ─────────────────────────────────────────────────────────────────────
+# 1. Copy this file to `key.properties` in the SAME folder (android/).
+# 2. Fill in the four values below with your real keystore details.
+# 3. NEVER commit key.properties or the .jks file — both are gitignored.
+#
+# `storeFile` accepts either:
+#   • an ABSOLUTE path (recommended on Windows), e.g.
+#       storeFile=C:/Users/you/keys/betrade-upload.jks
+#     (use forward slashes even on Windows)
+#   • OR a path relative to android/app/, e.g.
+#       storeFile=../keystore/betrade-upload.jks
+#
+# After creating key.properties, build the upload artefact with:
+#   flutter build appbundle --release
+# The output lands at build/app/outputs/bundle/release/app-release.aab
+# ─────────────────────────────────────────────────────────────────────
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=YOUR_KEY_ALIAS
+storeFile=ABSOLUTE_OR_RELATIVE_PATH_TO_YOUR_KEYSTORE.jks
