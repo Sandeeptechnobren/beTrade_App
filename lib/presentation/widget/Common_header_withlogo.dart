@@ -10,12 +10,18 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final Color? backgroundColor;
 
+  /// Bottom hairline. Default true (Home/Explore/Portfolio/Profile keep
+  /// it). Rankings sets false because its tab bar draws the only divider
+  /// right under the tabs.
+  final bool showDivider;
+
   const GlobalAppBar({
     super.key,
     this.onNotificationTap,
     this.showNotification = true,
     this.leading,
     this.backgroundColor,
+    this.showDivider = true,
   });
 
   @override
@@ -85,15 +91,17 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
 
-      bottom: PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: isDark
-              ? Colors.grey.shade800       // dark mode divider
-              : const Color(0xFFE4E4E7),   // Figma #E4E4E7
-        ),
-      ),
+      bottom: showDivider
+          ? PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Container(
+                height: 1,
+                color: isDark
+                    ? Colors.grey.shade800       // dark mode divider
+                    : const Color(0xFFE4E4E7),   // Figma #E4E4E7
+              ),
+            )
+          : null,
 
       actions: [
         if (showNotification)
@@ -125,5 +133,5 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(60.h);
+  Size get preferredSize => Size.fromHeight(showDivider ? 60.h : 59.h);
 }
