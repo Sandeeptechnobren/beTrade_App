@@ -22,10 +22,25 @@ class ApiEndpoints {
   static String get categories => '${EnvConfig.baseUrl}/trade/categories-list';
 
   static String searchTrades(String query) =>
-      '${EnvConfig.baseUrl}/trade/explore?search=$query';
+      '${EnvConfig.baseUrl}/trade/explore?search=${Uri.encodeQueryComponent(query)}';
 
   static String tradeList(int page) =>
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
+
+  /// Canonical Explore listing — base list + search + category filter +
+  /// pagination, all on one endpoint. All params URL-encoded.
+  static String tradeExplore({int page = 1, String? search, String? categoryUuid}) {
+    final qp = <String, String>{'page': page.toString()};
+    final s = search?.trim() ?? '';
+    if (s.isNotEmpty) qp['search'] = s;
+    if (categoryUuid != null && categoryUuid.isNotEmpty && categoryUuid != 'all') {
+      qp['category_uuid'] = categoryUuid;
+    }
+    final qs = qp.entries
+        .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+    return '${EnvConfig.baseUrl}/trade/list?$qs';
+  }
 
   static String tradeQuote(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/quote';
