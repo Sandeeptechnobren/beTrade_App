@@ -309,11 +309,15 @@ class _ExplorePageState extends State<ExplorePage> {
             selected: provider.selectedCategoryUuid == null,
             onTap: () => provider.selectCategory(null),
           ),
-          ...provider.categories.map((c) => _chip(
-                label: c.name,
-                selected: provider.selectedCategoryUuid == c.uuid,
-                onTap: () => provider.selectCategory(c.uuid),
-              )),
+          // Backend may include its own "All" category — skip it so the
+          // hardcoded "All" chip above isn't shown twice.
+          ...provider.categories
+              .where((c) => c.name.trim().toLowerCase() != 'all')
+              .map((c) => _chip(
+                    label: c.name,
+                    selected: provider.selectedCategoryUuid == c.uuid,
+                    onTap: () => provider.selectCategory(c.uuid),
+                  )),
         ],
       ),
     );
