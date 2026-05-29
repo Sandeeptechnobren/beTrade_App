@@ -232,16 +232,45 @@ class _ProfilePageState extends State<ProfilePage> {
           SizedBox(height: 12.h),
           Row(
             children: [
-              Expanded(child: _buildStat(context, "62%", "Win Rate")),
+              Expanded(
+                child: _buildStat(
+                    context, "${profile?.winRate ?? 0}%", "Win Rate")),
               SizedBox(width: 4.w),
-              Expanded(child: _buildStat(context, "€2.3k", "Total Earned")),
+              Expanded(
+                child: _buildStat(
+                    context,
+                    _formatGhs(_statDouble(profile?.totalEarnedGhs)),
+                    "Total Earned")),
               SizedBox(width: 4.w),
-              Expanded(child: _buildStat(context, "324", "Total Trades")),
+              Expanded(
+                child: _buildStat(
+                    context, "${profile?.totalTrades ?? 0}", "Total Trades")),
             ],
           ),
         ],
       ),
     );
+  }
+
+  /// Coerce a dynamic stat value to double (0 when absent / non-numeric).
+  double _statDouble(dynamic v) => v is num ? v.toDouble() : 0.0;
+
+  /// Format GHS earnings with the cedi symbol + K/M abbreviation. Net P&L
+  /// can be negative (e.g. "-₵20"); zero shows as "₵0".
+  String _formatGhs(double v) {
+    final neg = v < 0;
+    final a = v.abs();
+    String body;
+    if (a >= 1000000) {
+      final m = a / 1000000;
+      body = '${m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(1)}M';
+    } else if (a >= 1000) {
+      final k = a / 1000;
+      body = '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}K';
+    } else {
+      body = a == a.roundToDouble() ? a.toStringAsFixed(0) : a.toStringAsFixed(2);
+    }
+    return '${neg ? '-' : ''}₵$body';
   }
 
   Widget _buildStat(BuildContext context, String value, String label) {
