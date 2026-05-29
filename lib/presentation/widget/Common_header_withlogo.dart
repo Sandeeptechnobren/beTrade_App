@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_style.dart';
@@ -119,8 +120,8 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: AppColors.iconContainerDynamic(context),
                   shape: BoxShape.circle,
                 ),
-                child: Image.asset(
-                  "assets/images/Bell.png",
+                child: SvgPicture.asset(
+                  "assets/svgs/Bell.svg",
                   width: 24.w,
                   height: 24.h,
                   fit: BoxFit.contain,

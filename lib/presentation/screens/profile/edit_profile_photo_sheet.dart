@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -86,12 +87,9 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
     if (_uploading) return;
     CommonBottomSheet.open(
       context: context,
-      // Tight to content — header + 4 avatar rows ≈ 0.5 of the screen,
-      // so there's no big empty white band under the grid (Figma sheet
-      // is ~434px tall).
-      initialChildSize: 0.5,
-      minChildSize: 0.45,
-      maxChildSize: 0.58,
+      // Fixed = content-hugging: the sheet is exactly as tall as the grid
+      // (Figma ≈ 434px), with no draggable expansion and no empty white band.
+      fixed: true,
       builder: (controller) =>
           SelectAvatarSheet(scrollController: controller),
     );
@@ -99,28 +97,32 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Content-hugging (mainAxisSize.min) — opened via CommonBottomSheet
+    // `fixed: true`, so the sheet is exactly this tall (Figma ≈ 360px) and
+    // doesn't drag/scroll.
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const CommonHeader(title: "Edit Profile Photo", showDivider: true),
-        Expanded(
-          child: ListView(
-            controller: widget.scrollController,
-            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               _option(
-                "assets/images/c.png",
+                "assets/svgs/camera.svg",
                 "Take a Selfie",
-                () => _pick(ImageSource.camera),
+                    () => _pick(ImageSource.camera),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h,),
               _option(
-                "assets/images/g.png",
+                "assets/svgs/galary.svg",
                 "Choose from Gallery",
-                () => _pick(ImageSource.gallery),
+                    () => _pick(ImageSource.gallery),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h,),
               _option(
-                "assets/images/smile.png",
+                "assets/svgs/smile.svg",
                 "Select an Avatar",
                 _openAvatars,
               ),
@@ -144,7 +146,6 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
       ],
     );
   }
-
   Widget _option(String asset, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: _uploading ? null : onTap,
@@ -152,13 +153,17 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
         decoration: BoxDecoration(
-          // Figma input row — #F4F4F5, radius 15.6
           color: const Color(0xFFF4F4F5),
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(
           children: [
-            Image.asset(asset, width: 28.w, height: 28.w, fit: BoxFit.contain),
+            SvgPicture.asset(
+              asset,
+              width: 28.w,
+              height: 28.w,
+              fit: BoxFit.contain,
+            ),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
@@ -181,4 +186,41 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
       ),
     );
   }
+  //
+  // Widget _option(String asset, String label, VoidCallback onTap) {
+  //   return GestureDetector(
+  //     onTap: _uploading ? null : onTap,
+  //     behavior: HitTestBehavior.opaque,
+  //     child: Container(
+  //       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
+  //       decoration: BoxDecoration(
+  //         // Figma input row — #F4F4F5, radius 15.6
+  //         color: const Color(0xFFF4F4F5),
+  //         borderRadius: BorderRadius.circular(16.r),
+  //       ),
+  //       child: Row(
+  //         children: [
+  //           Image.asset(asset, width: 28.w, height: 28.w, fit: BoxFit.contain),
+  //           SizedBox(width: 12.w),
+  //           Expanded(
+  //             child: Text(
+  //               label,
+  //               style: TextStyle(
+  //                 fontFamily: AppTextStyle.fontFamily,
+  //                 fontSize: 16.sp,
+  //                 fontWeight: FontWeight.w500,
+  //                 color: const Color(0xFF18181B),
+  //               ),
+  //             ),
+  //           ),
+  //           Icon(
+  //             Icons.arrow_forward_ios,
+  //             size: 16.sp,
+  //             color: const Color(0xFF1C274C),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

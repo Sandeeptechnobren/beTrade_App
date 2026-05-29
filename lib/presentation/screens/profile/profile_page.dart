@@ -1,8 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:betrade/presentation/screens/profile/achivement_Sheet.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
 import 'package:betrade/presentation/screens/profile/term_of_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/dio_client.dart';
@@ -120,7 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
+                parent: ClampingScrollPhysics(),
               ),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 20.h),
@@ -147,9 +150,9 @@ class _ProfilePageState extends State<ProfilePage> {
   void _openEditPhoto() {
     CommonBottomSheet.open(
       context: context,
-      initialChildSize: 0.42,
-      minChildSize: 0.35,
-      maxChildSize: 0.6,
+      // Fixed = content-hugging: the sheet is exactly as tall as its content
+      // (Figma ≈ 360px), with no draggable expansion and no empty white band.
+      fixed: true,
       builder: (controller) =>
           EditProfilePhotoSheet(scrollController: controller),
     );
@@ -314,12 +317,10 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () {
         CommonBottomSheet.open(
           context: context,
-          // Sized to Figma sheet (376px) — content is header + 2 badge
-          // rows, so a 0.5 fraction keeps the sheet tight to the content
-          // instead of leaving a large empty band underneath.
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.92,
+          // Content-hugging: AchievementsSheet is a Column(mainAxisSize.min)
+          // (header + badge grid), so `fixed` makes the sheet exactly that
+          // tall — matches the Figma sheet with no empty band and no drag.
+          fixed: true,
           builder: (controller) =>
               AchievementsSheet(scrollController: controller),
         );
@@ -376,29 +377,52 @@ class _ProfilePageState extends State<ProfilePage> {
           width: 1.5,
         ),
       ),
-      child: Icon(
-        a.earned ? Icons.emoji_events : Icons.lock_outline,
-        size: 28.sp,
-        color: a.earned ? gold : _textMuted(context),
-      ),
+      // Hybrid: senior's real-data badge (earned → gold ring), but the client's
+      // SVG art instead of a trophy/lock icon. Earned badges render crisp;
+      // locked ones are blurred (frosted) to signal they're not unlocked yet.
+      child: ClipOval(child: _badgeArt(a)),
     );
+  }
+
+  /// Earned → crisp SVG art. Locked → the same art blurred (frosted).
+  Widget _badgeArt(AchievementModel a) {
+    final Widget art = SvgPicture.asset(
+      _badgeAsset(a),
+      width: 64.w,
+      height: 64.w,
+      fit: BoxFit.cover,
+    );
+    if (a.earned) return art;
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX:3, sigmaY:3),
+      child: art,
+    );
+  }
+
+  /// Maps an achievement to one of the bundled SVG badge arts by its key/name
+  /// (deposit / trade / win), falling back to the deposit art.
+  static String _badgeAsset(AchievementModel a) {
+    final k = '${a.key} ${a.name}'.toLowerCase();
+    if (k.contains('win')) return 'assets/svgs/firstwin.svg';
+    if (k.contains('trade')) return 'assets/svgs/firsttrade.svg';
+    return 'assets/svgs/firstdeposite.svg';
   }
 
   Widget _buildSettingsCard(BuildContext context) {
     final rows = <Widget>[
       _buildDarkModeRow(context),
-      _buildSettingsRow(
+      _buildSettingsRowSvg(
         context,
-        LucideIcons.user,
+        "assets/svgs/User.svg",
         "Personal Info",
         () => CommonBottomSheet.open(
           context: context,
           builder: (c) => EditProfile(scrollController: c),
         ),
       ),
-      _buildSettingsRow(
+      _buildSettingsRowSvg(
         context,
-        LucideIcons.wallet,
+        "assets/svgs/Wallet.svg",
         "Payment Methods",
         () => CommonBottomSheet.open(
           context: context,
@@ -414,9 +438,9 @@ class _ProfilePageState extends State<ProfilePage> {
           builder: (c) => DefaultSettingsPage(scrollController: c),
         ),
       ),
-      _buildSettingsRow(
+      _buildSettingsRowSvg(
         context,
-        LucideIcons.bell,
+        "assets/svgs/Bell.svg",
         "Notification Preferences",
         () => CommonBottomSheet.open(
           context: context,
@@ -434,9 +458,9 @@ class _ProfilePageState extends State<ProfilePage> {
           builder: (c) => PrivacyPolicyPage(scrollController: c),
         ),
       ),
-      _buildSettingsRow(
+      _buildSettingsRowSvg(
         context,
-        LucideIcons.fileText,
+        "assets/svgs/Document.svg",
         "Terms of Service",
         () => CommonBottomSheet.open(
           context: context,
@@ -520,11 +544,64 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _iconBoxSvg(BuildContext context, String asset) {
+    return Container(
+      height: 40.h,
+      width: 40.w,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _innerBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: SvgPicture.asset(
+        asset,
+        width: 22.sp,
+        height: 22.sp,
+        colorFilter: ColorFilter.mode(_textMuted(context), BlendMode.srcIn),
+      ),
+    );
+  }
+
+  Widget _buildSettingsRowSvg(
+    BuildContext context,
+    String svgAsset,
+    String title,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          _iconBoxSvg(context, svgAsset),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: _textBody(context),
+                fontFamily: AppTextStyle.fontFamily,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14.sp,
+            color: _textMuted(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDarkModeRow(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Row(
       children: [
-        _iconBox(context, LucideIcons.moon),
+        _iconBoxSvg(context, "assets/svgs/Moon.svg"),
         SizedBox(width: 8.w),
         Expanded(
           child: Text(

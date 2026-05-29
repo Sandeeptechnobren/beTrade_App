@@ -32,6 +32,7 @@ dependencies:
   pinput: ^6.0.2
   intl: ^0.18.0
   sign_in_with_apple: ^6.1.4
+  flutter_svg: ^2.3.0
 
 
 
@@ -46,6 +47,7 @@ flutter:
   assets:
     - assets/images/
     - assets/logo/
+    - assets/svgs/
     - .env
 
   fonts:

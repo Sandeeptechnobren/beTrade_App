@@ -88,8 +88,7 @@
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../../data/provider/profile_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme/app_colors.dart';
 
 class CustomBottomNav extends StatelessWidget {
@@ -102,15 +101,15 @@ class CustomBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  /// 🔥 Reusable Image Icon Widget
   Widget buildNavImage(String path, int index) {
-    return Image.asset(
+    return SvgPicture.asset(
       path,
       width: 22.w,
       height: 22.h,
-      color: currentIndex == index
-          ? AppColors.primary
-          : Colors.grey,
+      colorFilter: ColorFilter.mode(
+        currentIndex == index ? AppColors.primary : Colors.grey,
+        BlendMode.srcIn,
+      ),
     );
   }
 
@@ -128,64 +127,31 @@ class CustomBottomNav extends StatelessWidget {
       items: [
         /// Home
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/home.png", 0),
+          icon: buildNavImage("assets/svgs/Home.svg", 0),
           label: "Home",
         ),
 
         /// Explore
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/ser.png", 1),
+          icon: buildNavImage("assets/svgs/search.svg", 1),
           label: "Explore",
         ),
 
         /// Rankings
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/medal.png", 2),
+          icon: buildNavImage("assets/svgs/ranking.svg", 2),
           label: "Rankings",
         ),
 
         /// Portfolio
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/images/pay.png", 3),
+          icon: buildNavImage("assets/svgs/money.svg", 3),
           label: "Portfolio",
         ),
 
         /// Profile
         BottomNavigationBarItem(
-          icon: Consumer<ProfileProvider>(
-            builder: (context, provider, child) {
-              final profile = provider.profile;
-
-              return Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: currentIndex == 4
-                        ? AppColors.primary
-                        : Colors.grey,
-                    width: 2,
-                  ),
-                ),
-                child: CircleAvatar(
-                  radius: 11.r,
-                  backgroundColor: Colors.transparent,
-                  backgroundImage:
-                  profile != null && profile.avatar.isNotEmpty
-                      ? NetworkImage(profile.avatar)
-                      : null,
-                  child: profile == null || profile.avatar.isEmpty
-                      ? Icon(
-                    Icons.person,
-                    size: 18.sp,
-                    color: currentIndex == 4
-                        ? AppColors.primary
-                        : Colors.grey,
-                  )
-                      : null,
-                ),
-              );
-            },
-          ),
+          icon: buildNavImage("assets/svgs/Profile.svg", 4),
           label: "Profile",
         ),
       ],

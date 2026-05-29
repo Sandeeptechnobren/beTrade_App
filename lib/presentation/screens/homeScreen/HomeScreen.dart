@@ -3,6 +3,7 @@ import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_shee
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
@@ -169,8 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.iconContainerDynamic(context),
                           shape: BoxShape.circle,
                         ),
-                        child: Image.asset(
-                          "assets/images/Bell.png",
+                        child: SvgPicture.asset(
+                          "assets/svgs/Bell.svg",
                           width: 24.w,
                           height: 24.h,
                           fit: BoxFit.contain,

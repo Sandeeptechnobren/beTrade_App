@@ -520,29 +520,104 @@ class _PortfolioPageState extends State<PortfolioPage>
     );
   }
 
-  /// Empty state — same look as the previous placeholder but driven
-  /// by real data (only shown when /api/positions returns []).
+  /// Figma empty-state badge — `Frame 1171276360`. An 80×80 document
+  /// illustration (light #F4F4F5 disc + scroll + #D4D4D8 cross badge)
+  /// above a title and an optional subtitle. Reconstructed from shapes
+  /// so the cross stays crisp at any density. Shared by both tabs.
+  Widget _emptyStatePlaceholder({required String title, String? subtitle}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 80.w,
+          height: 80.w,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // 1) Outer light disc (#F4F4F5)
+              Container(
+                width: 80.w,
+                height: 80.w,
+                decoration: const BoxDecoration(
+                  color: _innerPanelBg,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              // 2) Document scroll
+              Image.asset(
+                "assets/images/subs.png",
+                width: 48.w,
+                height: 60.w,
+                fit: BoxFit.contain,
+              ),
+              // 3) Grey cross badge (#D4D4D8 disc + white X)
+              Container(
+                width: 25.w,
+                height: 25.w,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4D4D8),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.close, color: Colors.white, size: 15.sp),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            height: 1.4,
+            color: _cardTitleColor, // #09090B
+          ),
+        ),
+        if (subtitle != null) ...[
+          SizedBox(height: 8.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 28.w),
+            child: Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'SFProRounded',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                height: 1.4,
+                color: _labelMuted, // #71717A
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Empty state for the Open Positions tab — centered Figma badge.
+  /// Kept inside a scrollable so pull-to-refresh still works.
   Widget _emptyOpenPositions() {
     return RefreshIndicator(
       onRefresh: _refreshAll,
-      child: ListView(
-        children: [
-          SizedBox(height: 40.h),
-          Image.asset("assets/images/no_open_position.png"),
-          SizedBox(height: 12.h),
-          Center(
-            child: Text(
-              "No Open Positions",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: _emptyStatePlaceholder(
+                  title: "No Open Positions",
+                  subtitle:
+                      "When you trade on a market, your active positions will appear here.",
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: 6.h),
-          Text(
-            "When you trade on a market, your\nactive positions will appear here.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -590,13 +665,8 @@ class _PortfolioPageState extends State<PortfolioPage>
         }
         if (provider.settledPositions.isEmpty) {
           return Center(
-            child: Text(
-              'No Closed Positions',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey.shade600,
-              ),
-            ),
+            child: _emptyStatePlaceholder(title: 'No Closed Positions',       subtitle:
+            "When you trade on a market, your close positions will appear here.",),
           );
         }
         return RefreshIndicator(

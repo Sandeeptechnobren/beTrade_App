@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,9 +32,25 @@ class _StepProfileState extends State<StepProfile> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
-  // assets are named avt1 (1).png .. avt1 (16).png — start at 1, not 0.
-  final List<String> _avatarList =
-      List.generate(16, (i) => "assets/images/avt1 (${i + 1}).png");
+  // 16 frame avatars from assets/svgs/ (Frame 25..28 variants).
+  final List<String> _avatarList = const [
+    'assets/svgs/Frame 25.svg',
+    'assets/svgs/Frame 25 (1).svg',
+    'assets/svgs/Frame 25 (2).svg',
+    'assets/svgs/Frame 25 (3).svg',
+    'assets/svgs/Frame 26.svg',
+    'assets/svgs/Frame 26 (1).svg',
+    'assets/svgs/Frame 26 (2).svg',
+    'assets/svgs/Frame 26 (3).svg',
+    'assets/svgs/Frame 27.svg',
+    'assets/svgs/Frame 27 (1).svg',
+    'assets/svgs/Frame 27 (2).svg',
+    'assets/svgs/Frame 27 (3).svg',
+    'assets/svgs/Frame 28.svg',
+    'assets/svgs/Frame 28 (1).svg',
+    'assets/svgs/Frame 28 (2).svg',
+    'assets/svgs/Frame 28 (3).svg',
+  ];
   String? _selectedAvatar;
   bool _isDisposed = false;
   bool _isProcessing = false;
@@ -211,17 +229,17 @@ class _StepProfileState extends State<StepProfile> {
         Navigator.pop(context);
       }
 
-      // 1. Copy the bundled asset bytes to a temp file.
-      final byteData = await rootBundle.load(assetPath);
+      // 1. Rasterize the bundled SVG avatar to a PNG temp file.
       final tempDir = await getTemporaryDirectory();
       final srcPath =
           '${tempDir.path}/avatar_src_${DateTime.now().millisecondsSinceEpoch}.png';
-      final srcFile = await File(srcPath).writeAsBytes(
-        byteData.buffer
-            .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
-      );
+      final srcFile = await _svgToPngFile(assetPath, srcPath);
 
       if (_isDisposed || !mounted) return;
+      if (srcFile == null) {
+        _showError("Failed to set avatar");
+        return;
+      }
 
       // 2. Run it through the same JPEG compression pipeline as
       //    camera / gallery so completeSignup uploads a consistent format.
@@ -320,12 +338,12 @@ class _StepProfileState extends State<StepProfile> {
             : null,
       ),
       child: ClipOval(
-        child: Image.asset(
+        child: SvgPicture.asset(
           path,
           width: 62.w,
           height: 62.w,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          placeholderBuilder: (_) {
             return Container(
               width: 62.w,
               height: 62.w,
@@ -532,5 +550,40 @@ class _StepProfileState extends State<StepProfile> {
         ],
       ),
     );
+  }
+}
+
+/// Rasterizes a bundled SVG asset to a PNG temp file (preserving aspect ratio)
+/// so it can be compressed/uploaded as a raster image. Returns null on failure.
+Future<File?> _svgToPngFile(String assetPath, String outPath,
+    {int maxSize = 512}) async {
+  try {
+    final String rawSvg = await rootBundle.loadString(assetPath);
+    final info = await vg.loadPicture(SvgStringLoader(rawSvg), null);
+    final double w = info.size.width;
+    final double h = info.size.height;
+    final double maxSide = w > h ? w : h;
+    final double scale = maxSide > 0 ? maxSize / maxSide : 1.0;
+    int outW = (w * scale).round();
+    int outH = (h * scale).round();
+    if (outW < 1) outW = 1;
+    if (outH < 1) outH = 1;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final ui.Canvas canvas = ui.Canvas(recorder);
+    canvas.scale(scale, scale);
+    canvas.drawPicture(info.picture);
+    final ui.Picture raster = recorder.endRecording();
+    final ui.Image image = await raster.toImage(outW, outH);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    info.picture.dispose();
+    raster.dispose();
+    image.dispose();
+    if (bytes == null) return null;
+    final file = File(outPath);
+    await file.writeAsBytes(bytes.buffer.asUint8List());
+    return file;
+  } catch (e) {
+    debugPrint("❌ SVG→PNG raster error: $e");
+    return null;
   }
 }
