@@ -29,7 +29,9 @@ class StepProfile extends StatefulWidget {
 class _StepProfileState extends State<StepProfile> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  List<String> _avatarList = List.generate(16, (i) => "assets/images/avt1 ($i).png");
+  // assets are named avt1 (1).png .. avt1 (16).png — start at 1, not 0.
+  final List<String> _avatarList =
+      List.generate(16, (i) => "assets/images/avt1 (${i + 1}).png");
   String? _selectedAvatar;
   bool _isDisposed = false;
   bool _isProcessing = false;
@@ -329,7 +331,6 @@ class _StepProfileState extends State<StepProfile> {
 
   void _openOptionsSheet() {
     if (_isDisposed || !mounted) return;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -380,7 +381,8 @@ class _StepProfileState extends State<StepProfile> {
                   Text(
                     "Select an Option",
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontFamily: AppTextStyle.fontFamily,
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimaryDynamic(context),
                     ),
@@ -394,17 +396,17 @@ class _StepProfileState extends State<StepProfile> {
             ],
           ),
           SizedBox(height: 10.h),
-          _optionTile(Icons.camera_alt, "Take a Selfie", () {
+          _optionTile("assets/images/c.png", "Take a Selfie", () {
             Navigator.pop(context);
             _pickFromCamera();
           }),
           SizedBox(height: 10.h),
-          _optionTile(Icons.image, "Choose from Gallery", () {
+          _optionTile("assets/images/g.png", "Choose from Gallery", () {
             Navigator.pop(context);
             _pickFromGallery();
           }),
           SizedBox(height: 10.h),
-          _optionTile(Icons.emoji_emotions_outlined, "Select an Avatar", () {
+          _optionTile("assets/images/smile.png", "Select an Avatar", () {
             Navigator.pop(context);
             _openAvatarSheet();
           }),
@@ -413,45 +415,36 @@ class _StepProfileState extends State<StepProfile> {
     );
   }
 
-  Widget _optionTile(IconData icon, String text, VoidCallback onTap) {
+  Widget _optionTile(String asset, String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
         decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(14.r),
+          // Figma input row — #F4F4F5, radius 15.6
+          color: const Color(0xFFF4F4F5),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: AppColors.buttonSecondaryDynamic(context),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 20.sp,
-                color: AppColors.textPrimaryDynamic(context),
-              ),
-            ),
+            Image.asset(asset, width: 28.w, height: 28.w, fit: BoxFit.contain),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: 14.sp,
+                  fontFamily: AppTextStyle.fontFamily,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryDynamic(context),
+                  color: const Color(0xFF18181B),
                 ),
               ),
             ),
             Icon(
               Icons.arrow_forward_ios,
               size: 16.sp,
-              color: AppColors.textSecondaryDynamic(context),
+              color: const Color(0xFF1C274C),
             ),
           ],
         ),

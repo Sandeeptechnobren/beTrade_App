@@ -17,6 +17,7 @@ import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'Payment_method.dart';
 import 'default_settings_page.dart';
+import 'edit_profile_photo_sheet.dart';
 import 'help_support_page.dart';
 import 'notification_page.dart';
 
@@ -139,6 +140,20 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  /// Opens the "Edit Profile Photo" sheet (Take a Selfie / Choose from
+  /// Gallery / Select an Avatar). All three upload through
+  /// ProfileProvider.updateProfile, which refreshes the card on success.
+  void _openEditPhoto() {
+    CommonBottomSheet.open(
+      context: context,
+      initialChildSize: 0.42,
+      minChildSize: 0.35,
+      maxChildSize: 0.6,
+      builder: (controller) =>
+          EditProfilePhotoSheet(scrollController: controller),
+    );
+  }
+
   Widget _buildProfileCard(
     BuildContext context,
     dynamic profile,
@@ -153,23 +168,47 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          Container(
-            width: 84.w,
-            height: 84.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _avatarRing, width: 4),
-            ),
-            child: Center(
-              child: CircleAvatar(
-                radius: 38.r,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage: profile?.avatar.isNotEmpty == true
-                    ? NetworkImage(profile.avatar)
-                    : null,
-                child: profile?.avatar.isEmpty ?? true
-                    ? Icon(Icons.person, size: 30.sp, color: Colors.grey)
-                    : null,
+          GestureDetector(
+            onTap: _openEditPhoto,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 84.w,
+              height: 84.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _avatarRing, width: 4),
+              ),
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 38.r,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: profile?.avatar.isNotEmpty == true
+                          ? NetworkImage(profile.avatar)
+                          : null,
+                      child: profile?.avatar.isEmpty ?? true
+                          ? Icon(Icons.person, size: 30.sp, color: Colors.grey)
+                          : null,
+                    ),
+                    // Figma — dark scrim + white pen, signalling "tap to edit".
+                    Container(
+                      width: 76.w,
+                      height: 76.w,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.30),
+                      ),
+                      child: Icon(
+                        LucideIcons.pencil,
+                        size: 20.sp,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

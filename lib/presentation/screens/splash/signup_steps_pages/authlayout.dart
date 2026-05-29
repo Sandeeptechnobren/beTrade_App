@@ -77,6 +77,12 @@ class AuthLayout extends StatelessWidget {
                     (isLoading || !isCurrentStepValid) ? null : _handleContinue,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  // While loading keep the button solid purple so the white
+                  // spinner is clearly visible ("button click hua" feedback);
+                  // when the step is just invalid, dim it so it reads disabled.
+                  disabledBackgroundColor: isLoading
+                      ? AppColors.primary
+                      : AppColors.primary.withValues(alpha: 0.45),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.r),
                   ),
