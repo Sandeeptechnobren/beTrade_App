@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
+import '../../../data/model/achievement_model.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/provider/theme_provider.dart';
@@ -127,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     _buildProfileCard(context, profile, provider.isLoading),
                     SizedBox(height: 16.h),
-                    _buildAchievementsCard(context),
+                    _buildAchievementsCard(context, provider.achievements),
                     SizedBox(height: 16.h),
                     _buildSettingsCard(context),
                   ],
@@ -308,7 +309,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildAchievementsCard(BuildContext context) {
+  Widget _buildAchievementsCard(BuildContext context, List<AchievementModel> achievements) {
     return GestureDetector(
       onTap: () {
         CommonBottomSheet.open(
@@ -316,9 +317,9 @@ class _ProfilePageState extends State<ProfilePage> {
           // Sized to Figma sheet (376px) — content is header + 2 badge
           // rows, so a 0.5 fraction keeps the sheet tight to the content
           // instead of leaving a large empty band underneath.
-          initialChildSize: 0.5,
-          minChildSize: 0.45,
-          maxChildSize: 0.55,
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.92,
           builder: (controller) =>
               AchievementsSheet(scrollController: controller),
         );
@@ -352,10 +353,7 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildBadge(context, "assets/images/Archivement (1).png"),
-                _buildBadge(context, "assets/images/Archivement (3).png"),
-                _buildBadge(context, "assets/images/Archivement (2).png"),
-                _buildBadge(context, "assets/images/Archivement (2).png"),
+                for (final a in achievements.take(4)) _buildBadge(context, a),
               ],
             ),
           ],
@@ -364,17 +362,24 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildBadge(BuildContext context, String imagePath) {
+  Widget _buildBadge(BuildContext context, AchievementModel a) {
+    const gold = Color(0xFFF59E0B);
     return Container(
       width: 64.w,
       height: 64.w,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: _hairline(context), width: 1),
-        image: DecorationImage(
-          image: AssetImage(imagePath),
-          fit: BoxFit.cover,
+        color: a.earned ? gold.withValues(alpha: 0.12) : _innerBg(context),
+        border: Border.all(
+          color: a.earned ? gold : _hairline(context),
+          width: 1.5,
         ),
+      ),
+      child: Icon(
+        a.earned ? Icons.emoji_events : Icons.lock_outline,
+        size: 28.sp,
+        color: a.earned ? gold : _textMuted(context),
       ),
     );
   }

@@ -1,108 +1,173 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../data/model/achievement_model.dart';
+import '../../../data/provider/profile_provider.dart';
 
-class AchievementsSheet extends StatefulWidget {
+class AchievementsSheet extends StatelessWidget {
   final ScrollController scrollController;
 
   const AchievementsSheet({super.key, required this.scrollController});
 
-  @override
-  State<AchievementsSheet> createState() => _AchievementsSheetState();
-}
-
-class _AchievementsSheetState extends State<AchievementsSheet> {
-  // Figma tokens (Frame 2609813 — achievements sheet)
-  static const Color _hairline = Color(0xFFF4F4F5);
-  static const Color _titleColor = Color(0xFF52525B);
-
-  final List<Map<String, String>> achievements = [
-    {"image": "assets/images/Archivement (1).png", "title": "First\nDeposit"},
-    {"image": "assets/images/Archivement (2).png", "title": "First\nTrade"},
-    {"image": "assets/images/Archivement (3).png", "title": "First\nWin"},
-    {"image": "assets/images/Archivement (2).png", "title": "First\nDeposit"},
-    {"image": "assets/images/Archivement (1).png", "title": "Second\nDeposit"},
-    {"image": "assets/images/Archivement (3).png", "title": "Second\nTrade"},
-    {"image": "assets/images/Archivement (1).png", "title": "Second\nWin"},
-    {"image": "assets/images/Archivement (2).png", "title": "Second\nDeposit"},
-  ];
+  static const Color _gold = Color(0xFFF59E0B);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(32.r),
       ),
-      child: SingleChildScrollView(
-        controller: widget.scrollController,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CommonHeader(title: "Achievements"),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
-              child: Column(
-                children: [
-                  // Two rows of 4 — avoids GridView's aspectRatio overflow
-                  // (cell-height was clipping the 2-line title by ~1px on
-                  // narrower devices).
-                  _badgeRow(achievements.sublist(0, 4)),
-                  SizedBox(height: 24.h),
-                  _badgeRow(achievements.sublist(4, 8)),
-                ],
-              ),
+      child: Column(
+        children: [
+          const CommonHeader(title: "Achievements"),
+          Expanded(
+            child: Consumer<ProfileProvider>(
+              builder: (context, provider, _) {
+                final items = provider.achievements;
+
+                if (items.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.w),
+                      child: Text(
+                        provider.isLoading
+                            ? "Loading achievements…"
+                            : "No achievements yet.",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.textSecondaryDynamic(context),
+                          fontFamily: AppTextStyle.fontFamily,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final unlocked = items.where((a) => a.earned).length;
+                return ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: Text(
+                        "$unlocked of ${items.length} unlocked",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondaryDynamic(context),
+                          fontFamily: AppTextStyle.fontFamily,
+                        ),
+                      ),
+                    ),
+                    ...items.map((a) => _row(context, a)),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _badgeRow(List<Map<String, String>> items) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < items.length; i++) ...[
-          Expanded(child: _badgeCell(items[i])),
-          if (i != items.length - 1) SizedBox(width: 8.w),
-        ],
-      ],
-    );
-  }
-
-  Widget _badgeCell(Map<String, String> item) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64.w,
-          height: 64.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: _hairline, width: 1),
-            image: DecorationImage(
-              image: AssetImage(item["image"]!),
-              fit: BoxFit.cover,
+  Widget _row(BuildContext context, AchievementModel a) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.whiteDynamic(context),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: AppColors.borderDynamic(context)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52.w,
+            height: 52.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: a.earned
+                  ? _gold.withValues(alpha: 0.12)
+                  : AppColors.inputFieldBgDynamic(context),
+              border: Border.all(
+                color: a.earned ? _gold : AppColors.borderDynamic(context),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              a.earned ? Icons.emoji_events : Icons.lock_outline,
+              size: 24.sp,
+              color: a.earned ? _gold : AppColors.textSecondaryDynamic(context),
             ),
           ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          item["title"]!,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 16.sp,
-            height: 1.2,
-            fontWeight: FontWeight.w500,
-            color: _titleColor,
-            fontFamily: AppTextStyle.fontFamily,
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  a.name,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimaryDynamic(context),
+                    fontFamily: AppTextStyle.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  a.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondaryDynamic(context),
+                    fontFamily: AppTextStyle.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                if (a.earned)
+                  Text(
+                    "Unlocked",
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _gold,
+                      fontFamily: AppTextStyle.fontFamily,
+                    ),
+                  )
+                else ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: LinearProgressIndicator(
+                      value: (a.progressPct.clamp(0, 100)) / 100.0,
+                      minHeight: 5.h,
+                      backgroundColor: AppColors.inputFieldBgDynamic(context),
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    a.progressLabel,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: AppColors.textSecondaryDynamic(context),
+                      fontFamily: AppTextStyle.fontFamily,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

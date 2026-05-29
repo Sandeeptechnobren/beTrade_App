@@ -61,6 +61,8 @@ class ApiEndpoints {
   static String tradeChart(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/chart';
 
+  static String get achievementLevels => '${EnvConfig.baseUrl}/achievement-levels';
+
   static String get positions => '${EnvConfig.baseUrl}/positions';
 
   static String positionForMarket(String marketUuid) =>
