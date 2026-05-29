@@ -21,7 +21,14 @@ class PortfolioPage extends StatefulWidget {
   State<PortfolioPage> createState() => _PortfolioPageState();
 }
 
-class _PortfolioPageState extends State<PortfolioPage> {
+class _PortfolioPageState extends State<PortfolioPage>
+    with SingleTickerProviderStateMixin {
+  // Explicit controller (was DefaultTabController) so we can re-fetch
+  // the Closed list when the user switches to that tab — gives the
+  // Closed Positions tab the same first-load spinner as Open and keeps
+  // it fresh after a sell.
+  late final TabController _tabController;
+
   // Figma tokens (Portfolio screen)
   static const Color _walletBg = Color(0xFF2E1065); // wallet card bg
   static const Color _walletMenuBg = Color(0xFFC178FF); // ··· circle
@@ -44,6 +51,16 @@ class _PortfolioPageState extends State<PortfolioPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    // Re-fetch the Closed list each time the user lands on that tab so
+    // the spinner shows (matching Open's first-load behaviour) and the
+    // list reflects any position just closed via a sell.
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      if (_tabController.index == 1 && mounted) {
+        context.read<PositionsProvider>().fetchSettledPositions();
+      }
+    });
     // Fetch real balance + transactions + open positions on first
     // paint. WalletProvider replaces the hardcoded "0.00" balance card,
     // PositionsProvider populates the Open Positions list below.
@@ -56,6 +73,12 @@ class _PortfolioPageState extends State<PortfolioPage> {
       context.read<PositionsProvider>().fetchOpenPositions();
       context.read<PositionsProvider>().fetchSettledPositions();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   /// Pull-to-refresh handler — re-fetches both wallet + positions.
@@ -71,29 +94,27 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: GlobalAppBar(),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
-                child: _walletCard(),
-              ),
-              SizedBox(height: 20.h),
-              _tabBar(),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: TabBarView(
-                    children: [_openPositions(), _closedPositions()],
-                  ),
+    return Scaffold(
+      appBar: GlobalAppBar(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
+              child: _walletCard(),
+            ),
+            SizedBox(height: 20.h),
+            _tabBar(),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [_openPositions(), _closedPositions()],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -290,6 +311,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: TabBar(
+        controller: _tabController,
         labelColor: _tabActiveColor,
         unselectedLabelColor: _tabInactiveColor,
         labelStyle: TextStyle(
@@ -596,7 +618,23 @@ class _PortfolioPageState extends State<PortfolioPage> {
   /// row, and replaces the "Close position" button with a dimmed
   /// status pill (Won / Lost).
   Widget _closedPositionCard(PositionModel p) {
-    final isWinner = p.outcomeIsWinner == true;
+    // Three closed states:
+    //   - Sold  → exited by selling (settled_at null). Neutral grey.
+    //   - Won   → market resolved in the user's favour.
+    //   - Lost  → market resolved against the user.
+    final bool isSettled = p.settledAt != null;
+    final String statusLabel;
+    final Color statusColor;
+    if (!isSettled) {
+      statusLabel = 'Sold';
+      statusColor = _labelMuted; // neutral — neither win nor loss
+    } else if (p.outcomeIsWinner == true) {
+      statusLabel = 'Won';
+      statusColor = _profitGreen;
+    } else {
+      statusLabel = 'Lost';
+      statusColor = _profitRed;
+    }
     final pnlColor = p.realizedPnlGhs >= 0 ? _profitGreen : _profitRed;
     final pnlSign = p.realizedPnlGhs >= 0 ? '+' : '';
 
@@ -683,19 +721,17 @@ class _PortfolioPageState extends State<PortfolioPage> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 12.h),
               decoration: BoxDecoration(
-                color: isWinner
-                    ? _profitGreen.withValues(alpha: 0.12)
-                    : _profitRed.withValues(alpha: 0.12),
+                color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(9999.r),
               ),
               child: Center(
                 child: Text(
-                  isWinner ? 'Won' : 'Lost',
+                  statusLabel,
                   style: TextStyle(
                     fontFamily: 'SFProRounded',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: isWinner ? _profitGreen : _profitRed,
+                    color: statusColor,
                   ),
                 ),
               ),
