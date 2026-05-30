@@ -166,7 +166,6 @@ class _ExplorePageState extends State<ExplorePage> {
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
             child: _searchArea(provider),
           ),
-          if (!provider.isSearchMode) _categoryChips(provider),
           Expanded(child: _listArea(provider)),
         ],
       ),
@@ -179,7 +178,7 @@ class _ExplorePageState extends State<ExplorePage> {
       children: [
         Container(
           alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          padding: EdgeInsets.only(left: 24.w, right: 16.w),
           height: 48.h,
           decoration: BoxDecoration(
             color: AppColors.inputFieldBgDynamic(context),
@@ -198,7 +197,7 @@ class _ExplorePageState extends State<ExplorePage> {
               color: AppColors.textPrimaryDynamic(context),
             ),
             decoration: InputDecoration(
-              hintText: "Search markets",
+              hintText: "Search",
               hintStyle: TextStyle(
                 fontFamily: 'SFProRounded',
                 fontSize: 16.sp,
@@ -295,73 +294,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // ── Category filter chips ────────────────────────────────────────
-  Widget _categoryChips(ExploreProvider provider) {
-    if (provider.categories.isEmpty) return SizedBox(height: 12.h);
-    return SizedBox(
-      height: 52.h,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
-        children: [
-          _chip(
-            label: "All",
-            selected: provider.selectedCategoryUuid == null,
-            onTap: () => provider.selectCategory(null),
-          ),
-          // Backend may include its own "All" category — skip it so the
-          // hardcoded "All" chip above isn't shown twice.
-          ...provider.categories
-              .where((c) => c.name.trim().toLowerCase() != 'all')
-              .map((c) => _chip(
-                    label: c.name,
-                    selected: provider.selectedCategoryUuid == c.uuid,
-                    onTap: () => provider.selectCategory(c.uuid),
-                  )),
-        ],
-      ),
-    );
-  }
-
-  Widget _chip(
-      {required String label,
-      required bool selected,
-      required VoidCallback onTap}) {
-    return Padding(
-      padding: EdgeInsets.only(right: 8.w),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.primary
-                : AppColors.inputFieldBgDynamic(context),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.borderDynamic(context),
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'SFProRounded',
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: selected
-                  ? Colors.white
-                  : AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ── List area: skeleton / empty / error / cards ──────────────────
   Widget _listArea(ExploreProvider provider) {
     if (provider.isLoading && provider.trades.isEmpty) {
@@ -384,28 +316,87 @@ class _ExplorePageState extends State<ExplorePage> {
           ? _stateScroll(_errorState(provider.error))
           : provider.trades.isEmpty
               ? _stateScroll(_emptyState(provider))
-              : ListView.builder(
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
-                  itemCount: provider.trades.length + 1,
-                  itemBuilder: (context, i) {
-                    if (i == provider.trades.length) {
-                      return _listFooter(provider);
-                    }
-                    final item = provider.trades[i];
-                    return GestureDetector(
-                      onTap: () => CommonBottomSheet.open(
-                        context: context,
-                        builder: (controller) => TradePage(
-                          scrollController: controller,
-                          tradeUuid: item.uuid,
-                        ),
-                      ),
-                      child: _buildCard(item),
-                    );
-                  },
-                ),
+              : provider.isSearchMode
+                  ? _searchResults(provider)
+                  : _trendingNewList(provider),
+    );
+  }
+
+  // Flat results list (search mode) — no section headers.
+  Widget _searchResults(ExploreProvider provider) {
+    return ListView.builder(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+      itemCount: provider.trades.length + 1,
+      itemBuilder: (context, i) {
+        if (i == provider.trades.length) return _listFooter(provider);
+        return _tradeCard(provider.trades[i]);
+      },
+    );
+  }
+
+  // Browsing mode — "Trending" holds every market (the Explore API exposes no
+  // trending/new flag); "New" stays empty until the backend tags new markets
+  // (never faked, per the product decision).
+  Widget _trendingNewList(ExploreProvider provider) {
+    final trending = provider.trades;
+    return ListView(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+      children: [
+        _sectionHeader("Trending"),
+        SizedBox(height: 12.h),
+        ...trending.map(_tradeCard),
+        SizedBox(height: 24.h),
+        _sectionHeader("New"),
+        SizedBox(height: 12.h),
+        _emptySection("No new markets yet"),
+        _listFooter(provider),
+      ],
+    );
+  }
+
+  // Figma section heading (SF Pro Rounded, 20 / 600).
+  Widget _sectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontFamily: 'SFProRounded',
+        fontSize: 20.sp,
+        fontWeight: FontWeight.w600,
+        height: 1.6,
+        color: AppColors.textPrimaryDynamic(context),
+      ),
+    );
+  }
+
+  // Shown under a section header when it has no markets (kept empty, not faked).
+  Widget _emptySection(String message) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 16.h),
+      child: Text(
+        message,
+        style: TextStyle(
+          fontFamily: 'SFProRounded',
+          fontSize: 14.sp,
+          color: AppColors.textSecondaryDynamic(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _tradeCard(TradeModel item) {
+    return GestureDetector(
+      onTap: () => CommonBottomSheet.open(
+        context: context,
+        builder: (controller) => TradePage(
+          scrollController: controller,
+          tradeUuid: item.uuid,
+        ),
+      ),
+      child: _buildCard(item),
     );
   }
 
@@ -442,7 +433,7 @@ class _ExplorePageState extends State<ExplorePage> {
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(8.w),
       decoration: BoxDecoration(
         color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
@@ -454,8 +445,8 @@ class _ExplorePageState extends State<ExplorePage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _safeNetworkImage(item.image, height: 64.h, width: 64.w),
-              SizedBox(width: 10.w),
+              _safeNetworkImage(item.image, height: 71.h, width: 72.w),
+              SizedBox(width: 8.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,75 +457,21 @@ class _ExplorePageState extends State<ExplorePage> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'SFProRounded',
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w400,
                         color: AppColors.textPrimaryDynamic(context),
-                        height: 1.35,
+                        height: 1.4,
                       ),
                     ),
-                    SizedBox(height: 6.h),
+                    SizedBox(height: 4.h),
                     _metaRow(category: category, time: time, item: item),
                   ],
                 ),
               ),
             ],
           ),
-          if (item.outcomes.isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            _probabilityBar(item),
-          ],
         ],
       ),
-    );
-  }
-
-  /// YES/NO probability bar driven by live LMSR prices.
-  Widget _probabilityBar(TradeModel item) {
-    final yesPct = item.yes?.percent ?? 0;
-    final noPct = item.no?.percent ?? (100 - yesPct);
-    final yesFlex = yesPct <= 0 ? 1 : yesPct;
-    final noFlex = noPct <= 0 ? 1 : noPct;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text("Yes $yesPct%",
-                style: TextStyle(
-                  fontFamily: 'SFProRounded',
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.btnGreen,
-                )),
-            const Spacer(),
-            Text("No $noPct%",
-                style: TextStyle(
-                  fontFamily: 'SFProRounded',
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.btnRed,
-                )),
-          ],
-        ),
-        SizedBox(height: 5.h),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4.r),
-          child: Row(
-            children: [
-              Expanded(
-                flex: yesFlex,
-                child: Container(height: 6.h, color: AppColors.btnGreen),
-              ),
-              SizedBox(width: 2.w),
-              Expanded(
-                flex: noFlex,
-                child: Container(height: 6.h, color: AppColors.btnRed),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -544,10 +481,10 @@ class _ExplorePageState extends State<ExplorePage> {
       required TradeModel item}) {
     final labelStyle = TextStyle(
       fontFamily: 'SFProRounded',
-      fontSize: 13.sp,
+      fontSize: 14.sp,
       fontWeight: FontWeight.w500,
       color: AppColors.textSecondaryDynamic(context),
-      height: 1.3,
+      height: 1.4,
     );
 
     return Row(
@@ -561,16 +498,16 @@ class _ExplorePageState extends State<ExplorePage> {
                     overflow: TextOverflow.ellipsis, style: labelStyle),
               ),
               if (time.isNotEmpty) ...[
-                SizedBox(width: 5.w),
+                SizedBox(width: 4.w),
                 Container(
-                  width: 3.w,
-                  height: 3.w,
+                  width: 4.w,
+                  height: 4.w,
                   decoration: BoxDecoration(
                     color: AppColors.textSecondaryDynamic(context),
                     shape: BoxShape.circle,
                   ),
                 ),
-                SizedBox(width: 5.w),
+                SizedBox(width: 4.w),
                 Text(time, style: labelStyle),
               ],
             ],
@@ -590,8 +527,9 @@ class _ExplorePageState extends State<ExplorePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _avatarStack(item.traderAvatars),
-        if (item.traderAvatars.isNotEmpty) SizedBox(width: 6.w),
-        Text(item.totalTradesDisplay, style: labelStyle),
+        if (item.traderAvatars.isNotEmpty) SizedBox(width: 4.w),
+        Text(item.totalTradesDisplay,
+            style: labelStyle.copyWith(fontWeight: FontWeight.w400)),
       ],
     );
   }
@@ -600,8 +538,8 @@ class _ExplorePageState extends State<ExplorePage> {
     if (urls.isEmpty) return const SizedBox.shrink();
     final shown = urls.take(3).toList();
     return SizedBox(
-      width: ((shown.length - 1) * 12 + 22).w,
-      height: 22.h,
+      width: ((shown.length - 1) * 12 + 24).w,
+      height: 24.h,
       child: Stack(
         children: [
           for (int i = 0; i < shown.length; i++)
@@ -613,8 +551,8 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _avatarCircle(String url) {
     return Container(
-      width: 22.w,
-      height: 22.w,
+      width: 24.w,
+      height: 24.w,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.iconBgDynamic(context),
@@ -672,8 +610,6 @@ class _ExplorePageState extends State<ExplorePage> {
               ),
             ],
           ),
-          SizedBox(height: 12.h),
-          block(double.infinity, 6.h),
         ],
       ),
     );
