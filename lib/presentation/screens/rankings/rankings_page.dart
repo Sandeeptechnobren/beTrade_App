@@ -245,7 +245,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../widget/Common_header_withlogo.dart';
 
-// ── Ranking design tokens (from Figma) ──────────────────────────────
 const Color _kPodiumPurple = Color(0xFF2E1065);
 const Color _kRingGold = Color(0xFFEAB308); // 1st place
 const Color _kRingSilver = Color(0xFFCBD5E1); // 2nd place
@@ -259,12 +258,6 @@ const Color _kRowYou = Color(0xFFFAF4FF); // current-user highlight
 const Color _kListText = Color(0xFF27272A);
 const Color _kPodiumSubText = Color(0xFFE4E4E7);
 
-/// Rankings tab landing screen.
-///
-/// Empty-state for now — backend leaderboard isn't wired up yet so all
-/// four tabs render the same "No Rankings Yet" placeholder. Tab state
-/// is tracked locally so tapping animates the underline, but no data
-/// fetch happens per tab change.
 class RankingsPage extends StatefulWidget {
   const RankingsPage({super.key});
 
@@ -274,9 +267,6 @@ class RankingsPage extends StatefulWidget {
 
 class _RankingsPageState extends State<RankingsPage> {
   int _selectedTab = 0;
-
-  // Drives horizontal swipe between tabs; kept in sync with the
-  // tab-bar underline via onPageChanged (swipe) and tab taps.
   final PageController _pageController = PageController();
 
   static const List<String> _tabs = [
@@ -285,63 +275,237 @@ class _RankingsPageState extends State<RankingsPage> {
     'Win Rate',
     'Hot Streak',
   ];
-
-  /// Whether the signed-in user has any ranking data.
-  ///
-  /// The backend leaderboard isn't wired up yet. Once the API is
-  /// connected, drive this from the response (e.g. `rankers.isNotEmpty`).
-  /// Until then it's `true` so the populated design is visible — flip to
-  /// `false` to preview the original "No Rankings Yet" empty state.
   final bool _hasRankings = true;
-
-  // Sample leaderboards per tab. The top 3 feed the podium, the rest
-  // fill the ranked list. Swap these for API data when it's available.
   final List<_Ranker> _overall = const [
-    _Ranker(rank: 1, name: 'Kwabena O.', avatar: 'assets/svgs/Frame 25.svg', value: '40 trades', trend: _Trend.up),
-    _Ranker(rank: 2, name: 'Adwoa M.', avatar: 'assets/svgs/Frame 25 (1).svg', value: '38 trades', trend: _Trend.same),
-    _Ranker(rank: 3, name: 'Yaw B.', avatar: 'assets/svgs/Frame 25 (2).svg', value: '35 trades', trend: _Trend.down),
-    _Ranker(rank: 4, name: 'Akosua D.', avatar: 'assets/svgs/Frame 25 (3).svg', value: '31 trades', trend: _Trend.up),
-    _Ranker(rank: 5, name: 'Kofi A.', avatar: 'assets/svgs/Frame 26.svg', value: '29 trades', trend: _Trend.down),
-    _Ranker(rank: 6, name: 'Ama S.', avatar: 'assets/svgs/Frame 26 (1).svg', value: '27 trades', trend: _Trend.up),
-    _Ranker(rank: 7, name: 'You', avatar: 'assets/svgs/Frame 26 (2).svg', value: '24 trades', trend: _Trend.up, isYou: true),
-    _Ranker(rank: 8, name: 'Esi N.', avatar: 'assets/svgs/Frame 26 (3).svg', value: '21 trades', trend: _Trend.same),
-    _Ranker(rank: 9, name: 'Fiifi K.', avatar: 'assets/svgs/Frame 27.svg', value: '18 trades', trend: _Trend.down),
+    _Ranker(
+        rank: 1,
+        name: 'Kwabena O.',
+        avatar: 'assets/svgs/Frame 25.svg',
+        value: '40 trades',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 2,
+        name: 'Adwoa M.',
+        avatar: 'assets/svgs/Frame 25 (1).svg',
+        value: '38 trades',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 3,
+        name: 'Yaw B.',
+        avatar: 'assets/svgs/Frame 25 (2).svg',
+        value: '35 trades',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 4,
+        name: 'Akosua D.',
+        avatar: 'assets/svgs/Frame 25 (3).svg',
+        value: '31 trades',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 5,
+        name: 'Kofi A.',
+        avatar: 'assets/svgs/Frame 26.svg',
+        value: '29 trades',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 6,
+        name: 'Ama S.',
+        avatar: 'assets/svgs/Frame 26 (1).svg',
+        value: '27 trades',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 7,
+        name: 'You',
+        avatar: 'assets/svgs/Frame 26 (2).svg',
+        value: '24 trades',
+        trend: _Trend.up,
+        isYou: true),
+    _Ranker(
+        rank: 8,
+        name: 'Esi N.',
+        avatar: 'assets/svgs/Frame 26 (3).svg',
+        value: '21 trades',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 9,
+        name: 'Fiifi K.',
+        avatar: 'assets/svgs/Frame 27.svg',
+        value: '18 trades',
+        trend: _Trend.down),
   ];
 
   final List<_Ranker> _profit = const [
-    _Ranker(rank: 1, name: 'Adwoa M.', avatar: 'assets/svgs/Frame 25 (1).svg', value: '¢12.5k', trend: _Trend.up),
-    _Ranker(rank: 2, name: 'Kwabena O.', avatar: 'assets/svgs/Frame 25.svg', value: '¢11.7k', trend: _Trend.down),
-    _Ranker(rank: 3, name: 'Kofi A.', avatar: 'assets/svgs/Frame 26.svg', value: '¢10.2k', trend: _Trend.up),
-    _Ranker(rank: 4, name: 'Yaw B.', avatar: 'assets/svgs/Frame 25 (2).svg', value: '¢9.4k', trend: _Trend.same),
-    _Ranker(rank: 5, name: 'Akosua D.', avatar: 'assets/svgs/Frame 25 (3).svg', value: '¢8.1k', trend: _Trend.up),
-    _Ranker(rank: 6, name: 'You', avatar: 'assets/svgs/Frame 26 (2).svg', value: '¢6.8k', trend: _Trend.up, isYou: true),
-    _Ranker(rank: 7, name: 'Ama S.', avatar: 'assets/svgs/Frame 26 (1).svg', value: '¢5.3k', trend: _Trend.down),
-    _Ranker(rank: 8, name: 'Esi N.', avatar: 'assets/svgs/Frame 26 (3).svg', value: '¢4.6k', trend: _Trend.same),
-    _Ranker(rank: 9, name: 'Fiifi K.', avatar: 'assets/svgs/Frame 27.svg', value: '¢3.9k', trend: _Trend.down),
+    _Ranker(
+        rank: 1,
+        name: 'Adwoa M.',
+        avatar: 'assets/svgs/Frame 25 (1).svg',
+        value: '¢12.5k',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 2,
+        name: 'Kwabena O.',
+        avatar: 'assets/svgs/Frame 25.svg',
+        value: '¢11.7k',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 3,
+        name: 'Kofi A.',
+        avatar: 'assets/svgs/Frame 26.svg',
+        value: '¢10.2k',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 4,
+        name: 'Yaw B.',
+        avatar: 'assets/svgs/Frame 25 (2).svg',
+        value: '¢9.4k',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 5,
+        name: 'Akosua D.',
+        avatar: 'assets/svgs/Frame 25 (3).svg',
+        value: '¢8.1k',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 6,
+        name: 'You',
+        avatar: 'assets/svgs/Frame 26 (2).svg',
+        value: '¢6.8k',
+        trend: _Trend.up,
+        isYou: true),
+    _Ranker(
+        rank: 7,
+        name: 'Ama S.',
+        avatar: 'assets/svgs/Frame 26 (1).svg',
+        value: '¢5.3k',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 8,
+        name: 'Esi N.',
+        avatar: 'assets/svgs/Frame 26 (3).svg',
+        value: '¢4.6k',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 9,
+        name: 'Fiifi K.',
+        avatar: 'assets/svgs/Frame 27.svg',
+        value: '¢3.9k',
+        trend: _Trend.down),
   ];
 
   final List<_Ranker> _winRate = const [
-    _Ranker(rank: 1, name: 'Yaw B.', avatar: 'assets/svgs/Frame 25 (2).svg', value: '95%', trend: _Trend.up),
-    _Ranker(rank: 2, name: 'Esi N.', avatar: 'assets/svgs/Frame 26 (3).svg', value: '89%', trend: _Trend.up),
-    _Ranker(rank: 3, name: 'Akosua D.', avatar: 'assets/svgs/Frame 25 (3).svg', value: '85%', trend: _Trend.same),
-    _Ranker(rank: 4, name: 'Adwoa M.', avatar: 'assets/svgs/Frame 25 (1).svg', value: '82%', trend: _Trend.down),
-    _Ranker(rank: 5, name: 'Kwabena O.', avatar: 'assets/svgs/Frame 25.svg', value: '78%', trend: _Trend.down),
-    _Ranker(rank: 6, name: 'Kofi A.', avatar: 'assets/svgs/Frame 26.svg', value: '74%', trend: _Trend.up),
-    _Ranker(rank: 7, name: 'You', avatar: 'assets/svgs/Frame 26 (2).svg', value: '71%', trend: _Trend.up, isYou: true),
-    _Ranker(rank: 8, name: 'Ama S.', avatar: 'assets/svgs/Frame 26 (1).svg', value: '67%', trend: _Trend.same),
-    _Ranker(rank: 9, name: 'Fiifi K.', avatar: 'assets/svgs/Frame 27.svg', value: '60%', trend: _Trend.down),
+    _Ranker(
+        rank: 1,
+        name: 'Yaw B.',
+        avatar: 'assets/svgs/Frame 25 (2).svg',
+        value: '95%',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 2,
+        name: 'Esi N.',
+        avatar: 'assets/svgs/Frame 26 (3).svg',
+        value: '89%',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 3,
+        name: 'Akosua D.',
+        avatar: 'assets/svgs/Frame 25 (3).svg',
+        value: '85%',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 4,
+        name: 'Adwoa M.',
+        avatar: 'assets/svgs/Frame 25 (1).svg',
+        value: '82%',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 5,
+        name: 'Kwabena O.',
+        avatar: 'assets/svgs/Frame 25.svg',
+        value: '78%',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 6,
+        name: 'Kofi A.',
+        avatar: 'assets/svgs/Frame 26.svg',
+        value: '74%',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 7,
+        name: 'You',
+        avatar: 'assets/svgs/Frame 26 (2).svg',
+        value: '71%',
+        trend: _Trend.up,
+        isYou: true),
+    _Ranker(
+        rank: 8,
+        name: 'Ama S.',
+        avatar: 'assets/svgs/Frame 26 (1).svg',
+        value: '67%',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 9,
+        name: 'Fiifi K.',
+        avatar: 'assets/svgs/Frame 27.svg',
+        value: '60%',
+        trend: _Trend.down),
   ];
 
   final List<_Ranker> _hotStreak = const [
-    _Ranker(rank: 1, name: 'Kofi A.', avatar: 'assets/svgs/Frame 26.svg', value: '14 days', trend: _Trend.up),
-    _Ranker(rank: 2, name: 'Kwabena O.', avatar: 'assets/svgs/Frame 25.svg', value: '11 days', trend: _Trend.same),
-    _Ranker(rank: 3, name: 'Ama S.', avatar: 'assets/svgs/Frame 26 (1).svg', value: '9 days', trend: _Trend.up),
-    _Ranker(rank: 4, name: 'Yaw B.', avatar: 'assets/svgs/Frame 25 (2).svg', value: '7 days', trend: _Trend.down),
-    _Ranker(rank: 5, name: 'Adwoa M.', avatar: 'assets/svgs/Frame 25 (1).svg', value: '5 days', trend: _Trend.up),
-    _Ranker(rank: 6, name: 'Akosua D.', avatar: 'assets/svgs/Frame 25 (3).svg', value: '3 days', trend: _Trend.down),
-    _Ranker(rank: 7, name: 'Esi N.', avatar: 'assets/svgs/Frame 26 (3).svg', value: '2 days', trend: _Trend.same),
-    _Ranker(rank: 8, name: 'You', avatar: 'assets/svgs/Frame 26 (2).svg', value: '1 day', trend: _Trend.up, isYou: true),
-    _Ranker(rank: 9, name: 'Fiifi K.', avatar: 'assets/svgs/Frame 27.svg', value: '1 day', trend: _Trend.same),
+    _Ranker(
+        rank: 1,
+        name: 'Kofi A.',
+        avatar: 'assets/svgs/Frame 26.svg',
+        value: '14 days',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 2,
+        name: 'Kwabena O.',
+        avatar: 'assets/svgs/Frame 25.svg',
+        value: '11 days',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 3,
+        name: 'Ama S.',
+        avatar: 'assets/svgs/Frame 26 (1).svg',
+        value: '9 days',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 4,
+        name: 'Yaw B.',
+        avatar: 'assets/svgs/Frame 25 (2).svg',
+        value: '7 days',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 5,
+        name: 'Adwoa M.',
+        avatar: 'assets/svgs/Frame 25 (1).svg',
+        value: '5 days',
+        trend: _Trend.up),
+    _Ranker(
+        rank: 6,
+        name: 'Akosua D.',
+        avatar: 'assets/svgs/Frame 25 (3).svg',
+        value: '3 days',
+        trend: _Trend.down),
+    _Ranker(
+        rank: 7,
+        name: 'Esi N.',
+        avatar: 'assets/svgs/Frame 26 (3).svg',
+        value: '2 days',
+        trend: _Trend.same),
+    _Ranker(
+        rank: 8,
+        name: 'You',
+        avatar: 'assets/svgs/Frame 26 (2).svg',
+        value: '1 day',
+        trend: _Trend.up,
+        isYou: true),
+    _Ranker(
+        rank: 9,
+        name: 'Fiifi K.',
+        avatar: 'assets/svgs/Frame 27.svg',
+        value: '1 day',
+        trend: _Trend.same),
   ];
 
   List<_Ranker> _rankersFor(int tab) {
@@ -368,10 +532,6 @@ class _RankingsPageState extends State<RankingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
-      // Use the same GlobalAppBar as the other tabs so the header sits at
-      // the exact same top position (no more "drops lower" jump when
-      // switching tabs). Divider hidden — the tab bar draws the only
-      // hairline, right under the tabs, matching Figma.
       appBar: const GlobalAppBar(showDivider: false),
       body: Column(
         children: [
@@ -381,9 +541,8 @@ class _RankingsPageState extends State<RankingsPage> {
               controller: _pageController,
               onPageChanged: (i) => setState(() => _selectedTab = i),
               itemCount: _tabs.length,
-              itemBuilder: (context, i) => _hasRankings
-                  ? _buildRankingContent(i)
-                  : _buildEmptyState(),
+              itemBuilder: (context, i) =>
+                  _hasRankings ? _buildRankingContent(i) : _buildEmptyState(),
             ),
           ),
         ],
@@ -414,9 +573,6 @@ class _RankingsPageState extends State<RankingsPage> {
     );
   }
 
-  /// IntrinsicWidth so the underline pill stretches to exactly the
-  /// text width — Figma shows the underline matching each label's
-  /// glyph width (50 / 37 / 62 / 74).
   Widget _tabItem(int i) {
     final selected = _selectedTab == i;
     return IntrinsicWidth(
@@ -451,9 +607,7 @@ class _RankingsPageState extends State<RankingsPage> {
             Container(
               height: 4.h,
               decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFAA45FF)
-                    : Colors.transparent,
+                color: selected ? const Color(0xFFAA45FF) : Colors.transparent,
                 borderRadius: BorderRadius.circular(9999.r),
               ),
             ),
@@ -462,8 +616,6 @@ class _RankingsPageState extends State<RankingsPage> {
       ),
     );
   }
-
-  // ── Populated ranking UI ──────────────────────────────────────────
 
   Widget _buildRankingContent(int tab) {
     final data = _rankersFor(tab);
@@ -481,9 +633,6 @@ class _RankingsPageState extends State<RankingsPage> {
     );
   }
 
-  /// Purple top-3 podium laid out 2nd · 1st · 3rd, with the winner
-  /// raised (taller column + bigger crown/avatar). Crowns are the
-  /// Ytaj / Staj / Otaj assets resting above each avatar.
   Widget _buildPodium(List<_Ranker> top) {
     return Container(
       margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
@@ -585,8 +734,7 @@ class _RankingsPageState extends State<RankingsPage> {
     return Column(
       children: List.generate(rows.length, (i) {
         final r = rows[i];
-        final Color bg =
-            r.isYou ? _kRowYou : (i.isEven ? _kRowEven : _kRowOdd);
+        final Color bg = r.isYou ? _kRowYou : (i.isEven ? _kRowEven : _kRowOdd);
         return _rankRow(r, bg);
       }),
     );
@@ -670,21 +818,12 @@ class _RankingsPageState extends State<RankingsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Figma empty-state badge — three layered shapes:
-            //  1) Outer light-grey circle (#F4F4F5) backdrop
-            //  2) Document.svg document in the background (crisp vector)
-            //  3) A darker-grey circle (#D4D4D8) with a white X cross,
-            //     nudged to the document's upper-centre.
-            //
-            // The document art doesn't render the X on its own, so we draw
-            // the cross badge explicitly on top.
             SizedBox(
               width: 80.w,
               height: 80.w,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 1) Outer light backdrop circle
                   Container(
                     width: 80.w,
                     height: 80.w,
@@ -693,15 +832,12 @@ class _RankingsPageState extends State<RankingsPage> {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  // 2) Document (48 × 60.27 per Figma) — crisp SVG vector.
                   SvgPicture.asset(
                     "assets/svgs/Document.svg",
                     width: 48.w,
                     height: 60.w,
                     fit: BoxFit.contain,
                   ),
-                  // 3) Grey cross badge — centred in the circle (sits in
-                  //    the middle of the document, not up at its head).
                   Container(
                     width: 25.w,
                     height: 25.w,
@@ -769,8 +905,6 @@ class _Ranker {
   });
 }
 
-/// Scatters faint asterisk marks across the podium card to echo the
-/// subtle Figma background texture (white at ~5% opacity).
 class _PodiumPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

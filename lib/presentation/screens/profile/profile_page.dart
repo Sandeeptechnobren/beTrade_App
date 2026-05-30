@@ -87,14 +87,8 @@ class _ProfilePageState extends State<ProfilePage> {
         await AuthService.logout(token);
       }
     } catch (e) {
-      // Server-side logout can fail (token already revoked, network down). We
-      // still need to clean up locally so the user actually gets logged out.
       debugPrint("Logout server call failed (continuing local cleanup): $e");
     } finally {
-      // ALWAYS clear local state, regardless of whether the server call
-      // succeeded. Otherwise the user is stuck signed in locally with a
-      // server-dead token, and the stale Authorization header would leak into
-      // the next user's multipart uploads via DioClient.multipartInstance.
       await LocalStorage.clearToken();
       DioClient.removeToken();
       if (mounted) {
@@ -144,14 +138,9 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Opens the "Edit Profile Photo" sheet (Take a Selfie / Choose from
-  /// Gallery / Select an Avatar). All three upload through
-  /// ProfileProvider.updateProfile, which refreshes the card on success.
   void _openEditPhoto() {
     CommonBottomSheet.open(
       context: context,
-      // Fixed = content-hugging: the sheet is exactly as tall as its content
-      // (Figma ≈ 360px), with no draggable expansion and no empty white band.
       fixed: true,
       builder: (controller) =>
           EditProfilePhotoSheet(scrollController: controller),
@@ -196,7 +185,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           ? Icon(Icons.person, size: 30.sp, color: Colors.grey)
                           : null,
                     ),
-                    // Figma — dark scrim + white pen, signalling "tap to edit".
                     Container(
                       width: 76.w,
                       height: 76.w,
@@ -256,11 +244,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Coerce a dynamic stat value to double (0 when absent / non-numeric).
   double _statDouble(dynamic v) => v is num ? v.toDouble() : 0.0;
-
-  /// Format GHS earnings with the cedi symbol + K/M abbreviation. Net P&L
-  /// can be negative (e.g. "-₵20"); zero shows as "₵0".
   String _formatGhs(double v) {
     final neg = v < 0;
     final a = v.abs();
@@ -317,9 +301,6 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () {
         CommonBottomSheet.open(
           context: context,
-          // Content-hugging: AchievementsSheet is a Column(mainAxisSize.min)
-          // (header + badge grid), so `fixed` makes the sheet exactly that
-          // tall — matches the Figma sheet with no empty band and no drag.
           fixed: true,
           builder: (controller) =>
               AchievementsSheet(scrollController: controller),
@@ -377,14 +358,10 @@ class _ProfilePageState extends State<ProfilePage> {
           width: 1.5,
         ),
       ),
-      // Hybrid: senior's real-data badge (earned → gold ring), but the client's
-      // SVG art instead of a trophy/lock icon. Earned badges render crisp;
-      // locked ones are blurred (frosted) to signal they're not unlocked yet.
       child: ClipOval(child: _badgeArt(a)),
     );
   }
 
-  /// Earned → crisp SVG art. Locked → the same art blurred (frosted).
   Widget _badgeArt(AchievementModel a) {
     final Widget art = SvgPicture.asset(
       _badgeAsset(a),
@@ -394,13 +371,10 @@ class _ProfilePageState extends State<ProfilePage> {
     );
     if (a.earned) return art;
     return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX:3, sigmaY:3),
+      imageFilter: ui.ImageFilter.blur(sigmaX:0, sigmaY:0),
       child: art,
     );
   }
-
-  /// Maps an achievement to one of the bundled SVG badge arts by its key/name
-  /// (deposit / trade / win), falling back to the deposit art.
   static String _badgeAsset(AchievementModel a) {
     final k = '${a.key} ${a.name}'.toLowerCase();
     if (k.contains('win')) return 'assets/svgs/firstwin.svg';
@@ -653,7 +627,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-// Figma switch — 57x32 track, 24x24 white thumb. Mirrors Frame 1171276422.
 class _FigmaSwitch extends StatelessWidget {
   const _FigmaSwitch({
     required this.value,
