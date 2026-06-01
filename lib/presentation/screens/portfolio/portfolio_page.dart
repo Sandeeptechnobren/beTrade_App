@@ -1,3 +1,4 @@
+import 'package:betrade/core/utils/app_notify.dart';
 import 'package:betrade/data/model/position_model.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
@@ -459,11 +460,11 @@ class _PortfolioPageState extends State<PortfolioPage>
               child: OutlinedButton(
                 onPressed: () async {
                   if (p.marketUuid == null) return;
-                  final messenger = ScaffoldMessenger.of(context);
                   final sold = await SellPositionSheet.open(context, p);
                   if (sold == true) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Position closed.')),
+                    AppNotify.success(
+                      'Your position has been closed.',
+                      title: 'Position closed',
                     );
                   }
                 },

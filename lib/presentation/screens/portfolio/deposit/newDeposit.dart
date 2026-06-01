@@ -1,3 +1,4 @@
+import 'package:betrade/core/utils/app_notify.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -605,14 +606,11 @@ class _DepositPageState extends State<DepositPage> {
   /// error code message on failure.
   Future<void> _submitDeposit() async {
     final wallet = context.read<WalletProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
     final amount = double.tryParse(amountController.text.trim()) ?? 0;
     if (amount <= 0) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please enter an amount.')),
-      );
+      AppNotify.error('Please enter an amount.');
       return;
     }
 
@@ -654,9 +652,7 @@ class _DepositPageState extends State<DepositPage> {
     } else {
       // Should be unreachable — _step2Valid keeps Confirm disabled
       // for any unknown method. Defensive fallback.
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Unknown payment method.')),
-      );
+      AppNotify.error('Unknown payment method.');
       return;
     }
 
@@ -669,12 +665,12 @@ class _DepositPageState extends State<DepositPage> {
     if (!mounted) return;
 
     if (initiated == null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            wallet.lastInitiateMessage ?? 'Could not initiate deposit.',
-          ),
-        ),
+      // Map the typed backend code (BELOW_MIN_AMOUNT, GATEWAY_UNAVAILABLE,
+      // INVALID_METHOD, …) to a friendly message via BackendErrors instead
+      // of surfacing the raw `lastInitiateMessage` string.
+      AppNotify.fromCode(
+        code: wallet.lastInitiateCode,
+        fallback: 'Could not initiate deposit. Please try again.',
       );
       return;
     }

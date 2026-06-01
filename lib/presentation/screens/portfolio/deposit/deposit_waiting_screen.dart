@@ -1,3 +1,4 @@
+import 'package:betrade/core/utils/app_notify.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -341,11 +342,9 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: value));
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$label copied'),
-                    duration: const Duration(seconds: 1),
-                  ),
+                AppNotify.success(
+                  '$label copied',
+                  duration: const Duration(seconds: 1),
                 );
               },
             ),
