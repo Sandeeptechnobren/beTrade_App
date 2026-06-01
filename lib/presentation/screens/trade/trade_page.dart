@@ -395,14 +395,22 @@ class _TradePageState extends State<TradePage> {
                       ),
                     ],
                     SizedBox(height: 24.h),
-                    _quoteSummary(
-                      price: price,
-                      shares: shares,
-                      payout: payout,
-                      profit: profit,
-                    ),
-                    SizedBox(height: 8.h),
-                    _infoBanner(shares: shares, price: price),
+                    // The quote summary + info banner only make sense once
+                    // the user has typed an amount. Rendering them at
+                    // amount == 0 used to show "0 GHS / 0.00 / 0.00 GHS /
+                    // +0.00 GHS" (price rounds to 0 via toStringAsFixed(0))
+                    // — visually identical to a broken quote.
+                    if (amount > 0) ...[
+                      _quoteSummary(
+                        price: price,
+                        shares: shares,
+                        payout: payout,
+                        profit: profit,
+                      ),
+                      SizedBox(height: 8.h),
+                      _infoBanner(shares: shares, price: price),
+                    ] else
+                      _quotePlaceholder(),
                   ],
                 ),
               ),
@@ -615,6 +623,32 @@ class _TradePageState extends State<TradePage> {
   /// Outlined quote summary — labels 16/500/#71717A, values
   /// 16/600/#3F3F46. Profit row flips to #22C55E green for positive,
   /// red for negative. Matches Figma's "Input" stat panel.
+  /// Shown in place of the quote summary while the user hasn't entered
+  /// an amount yet. Same card chrome as the real summary so the layout
+  /// stays stable when they start typing.
+  Widget _quotePlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 1),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Center(
+        child: Text(
+          'Enter an amount to see your quote',
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondaryDynamic(context),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _quoteSummary({
     required double price,
     required double shares,
@@ -631,7 +665,9 @@ class _TradePageState extends State<TradePage> {
       ),
       child: Column(
         children: [
-          _summaryRow('Price per Share', '${price.toStringAsFixed(0)} GHS'),
+          // LMSR Yes/No prices live in (0, 1) GHS — must show 2 decimals,
+          // not 0, or 0.50 GHS renders as "0 GHS" and looks broken.
+          _summaryRow('Price per Share', '${price.toStringAsFixed(2)} GHS'),
           SizedBox(height: 16.h),
           _summaryRow(
             'Your ${isYesSelected ? 'Yes' : 'No'} Shares',
