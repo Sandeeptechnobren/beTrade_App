@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../data/model/ranking_entry.dart';
-import '../../../data/model/rankings_response.dart';
 import '../../../data/provider/rankings_provider.dart';
 import '../../widget/Common_header_withlogo.dart';
 
@@ -24,7 +23,6 @@ const Color _kRowOdd = Color(0xFFFAFAFA);
 const Color _kRowYou = Color(0xFFFAF4FF); // current-user highlight
 const Color _kListText = Color(0xFF27272A);
 const Color _kPodiumSubText = Color(0xFFE4E4E7);
-const Color _kSkeleton = Color(0xFFEEEEEE);
 
 /// Tab index → backend `category` string. Order matches the visible
 /// label list below.
@@ -212,13 +210,27 @@ class _TabContent extends StatelessWidget {
       builder: (context, provider, _) {
         final state = provider.stateFor(category);
 
+        // First-time fetch — keep it visually quiet (plain spinner, no
+        // skeleton); preserves Abhishek's Figma chrome on success.
         if (state.isLoading && state.response == null) {
-          return const _SkeletonView();
+          return const Center(child: CircularProgressIndicator());
         }
+        // Network/parse failure: minimal centered text — no icon, no
+        // button, doesn't introduce a new designed widget.
         if (state.error != null && state.response == null) {
-          return _ErrorView(
-            message: state.error!,
-            onRetry: () => provider.refreshFor(category),
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 28.w),
+              child: Text(
+                state.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTextStyle.fontFamily,
+                  fontSize: 14.sp,
+                  color: AppColors.textSecondaryDynamic(context),
+                ),
+              ),
+            ),
           );
         }
         final r = state.response;
@@ -226,32 +238,14 @@ class _TabContent extends StatelessWidget {
           return const _EmptyView();
         }
 
-        return RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: () => provider.refreshFor(category),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            padding: EdgeInsets.only(bottom: 24.h),
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                if (r.currentUserRank != null && r.podium.isNotEmpty)
-                  _YouChip(rank: r.currentUserRank!, response: r),
-                if (r.podium.length == 3) _Podium(entries: r.podium),
-                _LeaderboardList(entries: r.leaderboard, unit: r.unit),
-                if (state.isLoadingMore)
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: const Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+        return SingleChildScrollView(
+          controller: scrollController,
+          padding: EdgeInsets.only(bottom: 24.h),
+          child: Column(
+            children: [
+              if (r.podium.length == 3) _Podium(entries: r.podium),
+              _LeaderboardList(entries: r.leaderboard, unit: r.unit),
+            ],
           ),
         );
       },
@@ -259,117 +253,7 @@ class _TabContent extends StatelessWidget {
   }
 }
 
-// ── States: loading / error / empty ──────────────────────────────────
-
-class _SkeletonView extends StatelessWidget {
-  const _SkeletonView();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(bottom: 24.h),
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        children: [
-          // Skeleton podium block
-          Container(
-            margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-            height: 200.h,
-            decoration: BoxDecoration(
-              color: _kSkeleton,
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-          ),
-          // 6 skeleton rows
-          ...List.generate(6, (i) {
-            final bg = i.isEven ? _kRowEven : _kRowOdd;
-            return Container(
-              height: 64.h,
-              color: bg,
-              padding: EdgeInsets.symmetric(horizontal: 28.w),
-              child: Row(
-                children: [
-                  Container(width: 20.w, height: 14.h, color: _kSkeleton),
-                  SizedBox(width: 18.w),
-                  Container(
-                    width: 32.w,
-                    height: 32.w,
-                    decoration: const BoxDecoration(
-                      color: _kSkeleton,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Container(height: 14.h, color: _kSkeleton),
-                  ),
-                  SizedBox(width: 16.w),
-                  Container(width: 60.w, height: 14.h, color: _kSkeleton),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 28.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.wifi_off_rounded,
-              size: 48.sp,
-              color: AppColors.textSecondaryDynamic(context),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppTextStyle.fontFamily,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimaryDynamic(context),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            OutlinedButton(
-              onPressed: onRetry,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.borderDynamic(context)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28.r),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-              ),
-              child: Text(
-                'Retry',
-                style: TextStyle(
-                  fontFamily: AppTextStyle.fontFamily,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimaryDynamic(context),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ── States: empty ────────────────────────────────────────────────────
 
 class _EmptyView extends StatelessWidget {
   const _EmptyView();
@@ -438,83 +322,6 @@ class _EmptyView extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── "YOU #N" sticky chip ────────────────────────────────────────────
-
-class _YouChip extends StatelessWidget {
-  const _YouChip({required this.rank, required this.response});
-  final int rank;
-  final RankingsResponse response;
-
-  @override
-  Widget build(BuildContext context) {
-    // Look up the user's value across podium + leaderboard so the chip
-    // can echo their score next to the rank.
-    final all = [...response.podium, ...response.leaderboard];
-    final me = all.firstWhere(
-      (e) => e.isCurrentUser,
-      orElse: () => RankingEntry(
-        userId: 0,
-        name: 'You',
-        value: 0,
-        rank: rank,
-        movement: 'none',
-        isCurrentUser: true,
-      ),
-    );
-    return Container(
-      margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF4FF),
-        border: Border.all(color: const Color(0xFFD9C7FF), width: 1),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: AppColors.electricViolet900,
-              borderRadius: BorderRadius.circular(999.r),
-            ),
-            child: Text(
-              'YOU',
-              style: TextStyle(
-                fontFamily: AppTextStyle.fontFamily,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              'You are ranked #$rank',
-              style: TextStyle(
-                fontFamily: AppTextStyle.fontFamily,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF3D006D),
-              ),
-            ),
-          ),
-          Text(
-            _formatValue(me.value, response.unit),
-            style: TextStyle(
-              fontFamily: AppTextStyle.fontFamily,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF3D006D),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -728,12 +535,12 @@ Widget _trendIcon(String movement) {
     case 'down':
       return Icon(Icons.arrow_circle_down, size: 20.sp, color: _kTrendDown);
     case 'same':
-      return Icon(Icons.remove_circle, size: 20.sp, color: _kTrendSame);
     case 'none':
     default:
-      // v1 always returns 'none' — render a neutral dash so the row
-      // layout stays stable.
-      return Icon(Icons.horizontal_rule_rounded, size: 20.sp, color: _kTrendSame);
+      // v1 backend always returns 'none' (real arrows arrive with v2's
+      // daily rank snapshots). Render the same grey dash-in-circle the
+      // Figma uses for the no-change rows so the layout stays identical.
+      return Icon(Icons.remove_circle, size: 20.sp, color: _kTrendSame);
   }
 }
 
