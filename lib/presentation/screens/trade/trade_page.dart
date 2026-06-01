@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../data/model/quote_model.dart';
+import '../../../core/utils/money.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
 import '../../../data/services/trade_quote_service.dart';
@@ -195,7 +196,9 @@ class _TradePageState extends State<TradePage> {
     setState(() => _serverQuote = result);
   }
 
-  bool get isEnabled => amount > 0;
+  // Buy is enabled only for a valid amount (> 0, at most 2 decimal places).
+  // Min/max bounds are enforced by the backend (BELOW_MIN_COST / ABOVE_MAX_COST).
+  bool get isEnabled => Money.validateAmount(amountController.text) == null;
 
   /// Show the confirm-and-buy bottom sheet for the current
   /// (outcome, amount). Refreshes trade detail on success so the

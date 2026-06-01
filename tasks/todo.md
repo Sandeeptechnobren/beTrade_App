@@ -2,6 +2,34 @@
 
 ## In Progress
 
+### 2026-06-01 — Flutter-side challenge fixes (branch `feature/challenge`)
+
+Scope: fix only the **Flutter-side** items from the challenges PDF (F1–F18). Backend (B*) / Server (S*) reported to those teams. No commit/push — left for user verification.
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| F1 | Plaintext token | ✅ Done | `flutter_secure_storage` + sync cache + legacy migration |
+| F2 | Floating-point money | ✅ Done (client) | `core/utils/money.dart`; minor-units = backend B4 |
+| F3 | Idempotency per tap | ✅ Done | one key/order reused on retry; buy/sell/deposit/withdraw |
+| F4 | Simulated chart | ⏭️ Skipped | user asked to leave the chart as-is |
+| F5 | Money input validation | ✅ Done | min/max/decimals/balance + inline errors |
+| F6 | Broken tests | ✅ Done | scaffold removed; 12 unit tests (Money, Idempotency) green |
+| F7 | Cleartext traffic | ✅ Done | Android `false`; iOS ATS already secure; pinning = follow-up |
+| F8 | Two HTTP clients | ✅ Done | live code Dio-only; removed unused `http` dep |
+| F9 | No retry/offline | ✅ Done | `RetryInterceptor` + `connectivity_plus` offline message |
+| F10 | No crash reporting | ✅ Done | `firebase_crashlytics` wired; Gradle symbol plugin = follow-up |
+| F11 | Abrupt session expiry | ⏳ Backend-dep | poll+dialog OK on client; true refresh needs backend B6 |
+| F12 | Provider sprawl | ⏳ Deferred | existing pattern reasonable; deep refactor = risk > value |
+| F13 | Pagination | ✅ Already present | HomeScreen scroll → `loadMore()` already wired |
+| F14 | FCM payload trust | ✅ Done | safe coercion + route whitelist |
+| F16 | print logging | ✅ Done (core) | `app_logger.dart` + redaction; killed `print(token)` leak; full migration = mechanical follow-up |
+| F17 | Filename typo / dead code | ✅ Rename already done | `api_endpoint.dart` already single-dot; commented dead-code = cosmetic follow-up |
+| F18 | Rankings stub | ✅ Done | mock behind documented `_useMockRankings` flag |
+
+Verified: `flutter analyze` = 0 errors; `flutter test` = all pass. New deps: `flutter_secure_storage`, `connectivity_plus`, `firebase_crashlytics`, `mocktail` (dev); removed `http`.
+
+---
+
 ### 2026-05-23 — Login + OTP critical bug fixes (COMPLETED — see Completed section)
 
 Status: implemented & committed. Verification pending APK smoke test on device.

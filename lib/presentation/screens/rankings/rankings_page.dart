@@ -275,7 +275,13 @@ class _RankingsPageState extends State<RankingsPage> {
     'Win Rate',
     'Hot Streak',
   ];
-  final bool _hasRankings = true;
+  /// Rankings currently render MOCK data — there is NO backend leaderboard
+  /// endpoint yet (CHALLENGES F18). This flag is the single gate: keep it
+  /// `true` for demo/QA builds that should show a populated board; flip to
+  /// `false` to show the "No Rankings Yet" empty state, or replace with a real
+  /// fetch once the `/leaderboard` endpoint lands. Behaviour is unchanged for
+  /// now — this just makes the mock explicit and one-line switchable.
+  static const bool _useMockRankings = true;
   final List<_Ranker> _overall = const [
     _Ranker(
         rank: 1,
@@ -541,8 +547,9 @@ class _RankingsPageState extends State<RankingsPage> {
               controller: _pageController,
               onPageChanged: (i) => setState(() => _selectedTab = i),
               itemCount: _tabs.length,
-              itemBuilder: (context, i) =>
-                  _hasRankings ? _buildRankingContent(i) : _buildEmptyState(),
+              itemBuilder: (context, i) => _useMockRankings
+                  ? _buildRankingContent(i)
+                  : _buildEmptyState(),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/utils/app_logger.dart';
 import '../model/buy_response.dart';
 import '../model/quote_response.dart';
 import 'local_storage.dart';
@@ -17,7 +18,6 @@ class HomeService {
 
     try {
       final token = LocalStorage.getToken();
-      print(token);
       if (token == null || token.isEmpty) {
         debugPrint("❌ No auth token");
         return QuoteResponse.networkFailure('Not signed in.');
@@ -46,14 +46,14 @@ class HomeService {
       }
       return QuoteResponse.networkFailure();
     } on DioException catch (e) {
-      debugPrint("❌ Dio error: ${e.response?.data}");
+      AppLogger.e('HomeService.getQuote', 'quote failed', error: e);
       final body = e.response?.data;
       if (body is Map) {
         return QuoteResponse.fromJson(Map<String, dynamic>.from(body));
       }
       return QuoteResponse.networkFailure(e.message);
     } catch (e) {
-      debugPrint("❌ Exception: $e");
+      AppLogger.e('HomeService.getQuote', 'unexpected error', error: e);
       return QuoteResponse.networkFailure();
     }
   }
@@ -98,14 +98,14 @@ class HomeService {
       }
       return BuyResponse.networkFailure();
     } on DioException catch (e) {
-      debugPrint("❌ Buy Dio error: ${e.response?.data}");
+      AppLogger.e('HomeService.buyTrade', 'buy failed', error: e);
       final data = e.response?.data;
       if (data is Map) {
         return BuyResponse.fromJson(Map<String, dynamic>.from(data));
       }
       return BuyResponse.networkFailure(e.message);
     } catch (e) {
-      debugPrint("❌ Buy exception: $e");
+      AppLogger.e('HomeService.buyTrade', 'unexpected error', error: e);
       return BuyResponse.networkFailure();
     }
   }

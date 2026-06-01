@@ -1,29 +1,83 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Local persistence.
+///
+/// - The auth **bearer token** is stored in the OS secure store
+///   (Keychain on iOS, Keystore-backed encrypted prefs on Android) via
+///   [FlutterSecureStorage]. It is mirrored into an in-memory cache so the
+///   rest of the app can keep reading it **synchronously** via [getToken].
+/// - Non-sensitive flags (theme, onboarding, KYC banner status) stay in plain
+///   [SharedPreferences].
 class LocalStorage {
   static const String themeKey = "theme_mode";
+  static const String _tokenKey = "token";
+
+  static late SharedPreferences _prefs;
+
+  // Android/iOS defaults are Keystore/Keychain-backed; the plugin encrypts at
+  // rest automatically (the old `encryptedSharedPreferences` flag is removed).
+  static const FlutterSecureStorage _secure = FlutterSecureStorage();
+
+  /// In-memory mirror of the bearer token so [getToken] stays synchronous.
+  static String? _token;
+
+  static Future init() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadToken();
+  }
+
+  /// Loads the token into [_token] and migrates any legacy plaintext token
+  /// (older builds wrote it to SharedPreferences) into secure storage.
+  static Future<void> _loadToken() async {
+    try {
+      _token = await _secure.read(key: _tokenKey);
+
+      if (_token == null || _token!.isEmpty) {
+        final legacy = _prefs.getString(_tokenKey);
+        if (legacy != null && legacy.isNotEmpty) {
+          await _secure.write(key: _tokenKey, value: legacy);
+          _token = legacy;
+        }
+      }
+
+      // Never leave a plaintext copy behind.
+      if (_prefs.containsKey(_tokenKey)) {
+        await _prefs.remove(_tokenKey);
+      }
+    } catch (_) {
+      _token = null;
+    }
+  }
+
+  // ---- Auth token (secure) ----
+  static Future setToken(String token) async {
+    _token = token;
+    await _secure.write(key: _tokenKey, value: token);
+  }
+
+  static String? getToken() => _token;
+
+  static Future clearToken() async {
+    _token = null;
+    await _secure.delete(key: _tokenKey);
+    await _prefs.remove("doc_upload_status");
+  }
+
+  // ---- Theme (non-sensitive) ----
   static Future<void> saveThemeMode(String mode) async {
     await _prefs.setString(themeKey, mode);
   }
+
   static String? getThemeMode() {
     return _prefs.getString(themeKey);
   }
-  static late SharedPreferences _prefs;
-  static Future init() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
-  static Future setToken(String token) async {
-    await _prefs.setString("token", token);
-  }
-  static String? getToken() {
-    return _prefs.getString("token");
-  }
-  static Future clearToken() async {
-    await _prefs.remove("token");
-    await _prefs.remove("doc_upload_status");
-  }
+
+  // ---- Onboarding (non-sensitive) ----
   static Future setOnboardingDone() async {
     await _prefs.setBool("onboardingDone", true);
   }
+
   static bool isOnboardingDone() {
     return _prefs.getBool("onboardingDone") ?? false;
   }
@@ -33,9 +87,11 @@ class LocalStorage {
   static Future setDocUploadStatus(int status) async {
     await _prefs.setInt("doc_upload_status", status);
   }
+
   static int? getDocUploadStatus() {
     return _prefs.getInt("doc_upload_status");
   }
+
   static Future clearDocUploadStatus() async {
     await _prefs.remove("doc_upload_status");
   }

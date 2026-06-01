@@ -1,3 +1,5 @@
+import 'package:betrade/core/utils/idempotency.dart';
+import 'package:betrade/core/utils/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -92,6 +94,10 @@ class _DepositPageState extends State<DepositPage> {
 
   int step = 1;
 
+  /// One idempotency key per confirmed deposit. Reset on any input change so
+  /// retries of the *same* deposit reuse it (no duplicate pending charge).
+  String? _idempotencyKey;
+
   final TextEditingController amountController = TextEditingController();
   String paymentMethod = "card";
   final TextEditingController cardNumber = TextEditingController();
@@ -132,13 +138,14 @@ class _DepositPageState extends State<DepositPage> {
   }
 
   void _rebuildOnInput() {
+    // Any input change starts a new logical order, so drop the cached key.
+    _idempotencyKey = null;
     if (mounted) setState(() {});
   }
 
-  bool get _step1Valid {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
-    return amount > 0;
-  }
+  String? get _amountError => Money.validateAmount(amountController.text);
+
+  bool get _step1Valid => _amountError == null;
 
   bool get _step2Valid {
     if (paymentMethod == 'card') {
@@ -325,6 +332,17 @@ class _DepositPageState extends State<DepositPage> {
               .map((amt) => _amountChip(amt))
               .toList(growable: false),
         ),
+        if (amountController.text.trim().isNotEmpty && _amountError != null) ...[
+          SizedBox(height: 12.h),
+          Text(
+            _amountError!,
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
+              fontSize: 13.sp,
+              color: const Color(0xFFD32F2F),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -608,13 +626,12 @@ class _DepositPageState extends State<DepositPage> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
-    if (amount <= 0) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please enter an amount.')),
-      );
+    final amountError = _amountError;
+    if (amountError != null) {
+      messenger.showSnackBar(SnackBar(content: Text(amountError)));
       return;
     }
+    final amount = Money.parse(amountController.text);
 
     // Build the method-specific payload that the backend expects.
     // Card data is intentionally tokenized client-side in a real
@@ -660,10 +677,12 @@ class _DepositPageState extends State<DepositPage> {
       return;
     }
 
+    _idempotencyKey ??= Idempotency.newKey();
     final initiated = await wallet.submitDepositInitiate(
       amountGhs: amount,
       method: backendMethod,
       methodPayload: methodPayload,
+      idempotencyKey: _idempotencyKey,
     );
 
     if (!mounted) return;

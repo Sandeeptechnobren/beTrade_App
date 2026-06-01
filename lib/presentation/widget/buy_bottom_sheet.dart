@@ -12,8 +12,9 @@ import '../../data/services/trade_quote_service.dart';
 /// Lifecycle:
 ///   1. Opens → immediately calls [TradeQuoteService.quote] to show
 ///      live LMSR pricing for the entered (outcome, costGhs).
-///   2. User taps Confirm → calls [TradeBuyService.buy] with a fresh
-///      UUID v4 idempotency key generated client-side.
+///   2. User taps Confirm → calls [TradeBuyService.buy] with a stable
+///      per-sheet idempotency key (reused on every retry, so a re-tap after
+///      a timeout cannot create a duplicate buy).
 ///   3. On success → returns true via Navigator.pop so the parent can
 ///      refresh the trade detail + wallet balance.
 ///   4. On typed backend error → shows the message inline and lets the
@@ -47,6 +48,11 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
 
   bool _isPlacingBuy = false;
   String? _buyError;
+
+  /// One idempotency key per sheet instance = one logical order. Generated
+  /// once and reused on every Confirm tap, so a retry after a network failure
+  /// can never be seen by the backend as a second, duplicate buy.
+  late final String _idempotencyKey = TradeBuyService.generateIdempotencyKey();
 
   @override
   void initState() {
@@ -84,7 +90,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
       marketUuid: widget.marketUuid,
       outcomeSlug: widget.outcomeSlug,
       costGhs: widget.costGhs,
-      idempotencyKey: TradeBuyService.generateIdempotencyKey(),
+      idempotencyKey: _idempotencyKey,
     );
 
     if (!mounted) return;

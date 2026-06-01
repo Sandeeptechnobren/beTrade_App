@@ -2,50 +2,78 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<!-- App Info -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
 	<key>CFBundleDisplayName</key>
 	<string>Betrade</string>
+
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+
 	<key>CFBundleName</key>
 	<string>betrade</string>
+
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- Camera Permission -->
 	<key>NSCameraUsageDescription</key>
-	<string>We use the camera to capture documents for KYC verification.</string>
-	<key>NSDocumentsFolderUsageDescription</key>
-	<string>We need access to files to upload documents.</string>
+	<string>We use the camera to capture documents and profile images.</string>
+
+	<!-- Microphone Permission -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is required for recording videos.</string>
+
+	<!-- Photo Library Permission -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to upload images and documents.</string>
+
+	<!-- Save Photo Permission -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>We need permission to save images to your photo library.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to upload documents.</string>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
+
+	<!-- Push Notifications -->
 	<key>UIBackgroundModes</key>
-    <array>
-        <string>remote-notification</string>
-    </array>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- Keyboard / Mouse -->
+	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Launch Screen -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
+	<!-- Main Storyboard -->
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
+	<!-- Orientation -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
@@ -53,5 +81,10 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
+
+	<!-- FPS Optimization -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+
 </dict>
 </plist>

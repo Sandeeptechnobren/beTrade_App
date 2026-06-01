@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/utils/app_logger.dart';
 import 'local_storage.dart';
 import 'trade_buy_service.dart';
 
@@ -95,11 +96,10 @@ class TradeSellService {
       }
       return null;
     } on DioException catch (e) {
-      print('TradeSellService.quoteSell DioException: ${e.message}; '
-          'response=${e.response?.data}');
+      AppLogger.w('TradeSellService.quoteSell', 'quote failed', e);
       return null;
     } catch (e) {
-      print('TradeSellService.quoteSell error: $e');
+      AppLogger.w('TradeSellService.quoteSell', 'unexpected error', e);
       return null;
     }
   }
@@ -152,13 +152,13 @@ class TradeSellService {
       final body = e.response?.data;
       final code = body is Map ? body['code']?.toString() : null;
       final message = body is Map ? body['message']?.toString() : null;
-      print('TradeSellService.sell DioException: code=$code message=$message');
+      AppLogger.e('TradeSellService.sell', 'sell failed (code=$code)', error: e);
       return SellResult.failure(
         message: message ?? e.message ?? 'Could not complete the sell.',
         code: code,
       );
     } catch (e) {
-      print('TradeSellService.sell error: $e');
+      AppLogger.e('TradeSellService.sell', 'unexpected error', error: e);
       return SellResult.failure(message: 'Could not complete the sell.');
     }
   }

@@ -1,8 +1,8 @@
-import 'dart:math';
-
 import 'package:dio/dio.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/utils/app_logger.dart';
+import '../../core/utils/idempotency.dart';
 import '../model/buy_response.dart';
 import 'local_storage.dart';
 
@@ -49,28 +49,18 @@ class TradeBuyService {
       //   BELOW/ABOVE_*COST  → in-line cost validation hint
       //   UNKNOWN_OUTCOME    → developer bug; show generic
       final body = e.response?.data;
-      print('TradeBuyService DioException: ${e.message}; response=$body');
+      AppLogger.e('TradeBuyService.buy', 'buy failed', error: e);
       if (body is Map) {
         return BuyResponse.fromJson(Map<String, dynamic>.from(body));
       }
       return BuyResponse.networkFailure(e.message);
     } catch (e) {
-      print('TradeBuyService error: $e');
+      AppLogger.e('TradeBuyService.buy', 'unexpected error', error: e);
       return BuyResponse.networkFailure();
     }
   }
 
-  static String generateIdempotencyKey() {
-    final rng = Random.secure();
-    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int n) => n.toRadixString(16).padLeft(2, '0');
-    final s = bytes.map(hex).join();
-    return '${s.substring(0, 8)}-'
-        '${s.substring(8, 12)}-'
-        '${s.substring(12, 16)}-'
-        '${s.substring(16, 20)}-'
-        '${s.substring(20, 32)}';
-  }
+  /// Delegates to [Idempotency.newKey]. Kept for existing callers; new code
+  /// should call [Idempotency.newKey] directly.
+  static String generateIdempotencyKey() => Idempotency.newKey();
 }

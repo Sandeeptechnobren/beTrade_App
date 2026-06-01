@@ -8,7 +8,9 @@ import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -20,6 +22,7 @@ import 'data/provider/profile_provider.dart';
 import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
 import 'data/provider/theme_provider.dart';
+import 'core/utils/app_logger.dart';
 import 'data/services/local_storage.dart';
 import 'data/services/notification_services.dart';
 import 'firebase_options.dart';
@@ -55,14 +58,6 @@ Future<void> _firebaseBackgroundHandler(
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-
-    debugPrint(
-      "FLUTTER ERROR: ${details.exception}",
-    );
-  };
-
   await runZonedGuarded(
         () async {
       await Firebase.initializeApp(
@@ -72,6 +67,22 @@ Future<void> main() async {
       debugPrint(
         "FIREBASE INITIALIZED SUCCESSFULLY ✅",
       );
+
+      // Crash reporting (CHALLENGES F10). Collection is OFF in debug so local
+      // runs don't pollute the dashboard. Flutter framework errors and
+      // uncaught async errors (via the zone below) are routed to Crashlytics;
+      // AppLogger.e forwards handled service errors too.
+      await FirebaseCrashlytics.instance
+          .setCrashlyticsCollectionEnabled(!kDebugMode);
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      };
+      AppLogger.registerErrorSink((error, stack, {reason, fatal = false}) {
+        FirebaseCrashlytics.instance
+            .recordError(error, stack, reason: reason, fatal: fatal);
+      });
+
       FirebaseMessaging.onBackgroundMessage(
         _firebaseBackgroundHandler,
       );
@@ -132,13 +143,11 @@ Future<void> main() async {
       );
     },
         (error, stack) {
-      debugPrint(
-        "GLOBAL ASYNC ERROR: $error",
-      );
-
-      debugPrint(
-        "STACK TRACE: $stack",
-      );
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      if (kDebugMode) {
+        debugPrint("GLOBAL ASYNC ERROR: $error");
+        debugPrint("STACK TRACE: $stack");
+      }
     },
   );
 }

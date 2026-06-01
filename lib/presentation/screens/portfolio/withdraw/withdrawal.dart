@@ -1,3 +1,5 @@
+import 'package:betrade/core/utils/idempotency.dart';
+import 'package:betrade/core/utils/money.dart';
 import 'package:betrade/presentation/widget/customSnackBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -69,6 +71,11 @@ class _WithdrawPageState extends State<WithdrawPage> {
   String provider = "";
   String selectedBank = "";
 
+  /// One idempotency key per confirmed withdrawal. Reset whenever an input
+  /// changes (= a new logical order) so that retries of the *same* withdrawal
+  /// reuse the key and the backend cannot debit the wallet twice.
+  String? _idempotencyKey;
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +88,11 @@ class _WithdrawPageState extends State<WithdrawPage> {
     expiry.addListener(_rebuildOnInput);
     cvc.addListener(_rebuildOnInput);
     phone.addListener(_rebuildOnInput);
+
+    // Load the balance so we can validate the amount against available funds.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<WalletProvider>().fetchBalance();
+    });
   }
 
   @override
@@ -96,13 +108,22 @@ class _WithdrawPageState extends State<WithdrawPage> {
   }
 
   void _rebuildOnInput() {
+    // Any input change starts a new logical order, so drop the cached key.
+    _idempotencyKey = null;
     if (mounted) setState(() {});
   }
 
-  bool get _step1Valid {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
-    return amount > 0;
+  /// Cap withdrawals at the loaded wallet balance. Null when the balance has
+  /// not been fetched yet, so we don't block the user on a stale 0.
+  double? get _balanceCap {
+    final w = context.read<WalletProvider>();
+    return w.lastUpdated != null ? w.balance : null;
   }
+
+  String? get _amountError =>
+      Money.validateAmount(amountController.text, balance: _balanceCap);
+
+  bool get _step1Valid => _amountError == null;
 
   bool get _step2Valid {
     if (paymentMethod == 'bank') {
@@ -272,6 +293,38 @@ class _WithdrawPageState extends State<WithdrawPage> {
           amountController,
           '0.00',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        SizedBox(height: 10.h),
+        Consumer<WalletProvider>(
+          builder: (context, wallet, _) {
+            final showError = amountController.text.trim().isNotEmpty &&
+                _amountError != null;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (wallet.lastUpdated != null)
+                  Text(
+                    'Available: ${Money.ghs(wallet.balance)}',
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 13.sp,
+                      color: _hintColor,
+                    ),
+                  ),
+                if (showError) ...[
+                  SizedBox(height: 6.h),
+                  Text(
+                    _amountError!,
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 13.sp,
+                      color: const Color(0xFFD32F2F),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -503,11 +556,12 @@ class _WithdrawPageState extends State<WithdrawPage> {
   Future<void> _submitWithdraw() async {
     final wallet = context.read<WalletProvider>();
 
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
-    if (amount <= 0) {
-      CustomSnackBar.showError(context, message: 'Please enter an amount.');
+    final amountError = _amountError;
+    if (amountError != null) {
+      CustomSnackBar.showError(context, message: amountError);
       return;
     }
+    final amount = Money.parse(amountController.text);
 
     // Build a destination string from the form fields.
     //   - Bank: bankId:accountNumber
@@ -529,10 +583,12 @@ class _WithdrawPageState extends State<WithdrawPage> {
       destination = card.isEmpty ? 'card' : 'card:$card';
     }
 
+    _idempotencyKey ??= Idempotency.newKey();
     final ok = await wallet.submitWithdraw(
       amountGhs: amount,
       destination: destination,
       msisdn: msisdn,
+      idempotencyKey: _idempotencyKey,
     );
 
     if (!mounted) return;

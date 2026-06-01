@@ -294,7 +294,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // ── List area: skeleton / empty / error / cards ──────────────────
   Widget _listArea(ExploreProvider provider) {
     if (provider.isLoading && provider.trades.isEmpty) {
       return ListView(
@@ -322,7 +321,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // Flat results list (search mode) — no section headers.
   Widget _searchResults(ExploreProvider provider) {
     return ListView.builder(
       controller: _scrollController,
@@ -336,9 +334,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // Browsing mode — "Trending" holds every market (the Explore API exposes no
-  // trending/new flag); "New" stays empty until the backend tags new markets
-  // (never faked, per the product decision).
   Widget _trendingNewList(ExploreProvider provider) {
     final trending = provider.trades;
     return ListView(
@@ -358,7 +353,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // Figma section heading (SF Pro Rounded, 20 / 600).
   Widget _sectionHeader(String title) {
     return Text(
       title,
@@ -569,8 +563,6 @@ class _ExplorePageState extends State<ExplorePage> {
       ),
     );
   }
-
-  // ── Skeleton / empty / error ─────────────────────────────────────
   Widget _skeletonCard() {
     Widget block(double w, double h) => Container(
           width: w,

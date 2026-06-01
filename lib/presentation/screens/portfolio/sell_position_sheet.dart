@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/idempotency.dart';
 import '../../../data/model/position_model.dart';
 import '../../../data/provider/positions_provider.dart';
 import '../../../data/provider/wallet_provider.dart';
@@ -47,6 +48,11 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
   String? _error;
   Timer? _debounce;
 
+  /// One idempotency key per confirmed sell. Reset whenever the share amount
+  /// changes (= a new logical order) so a retry after a timeout can't sell
+  /// the position twice.
+  String? _idempotencyKey;
+
   double get _maxShares => widget.position.shares;
 
   @override
@@ -64,6 +70,7 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
   }
 
   void _onSliderChanged(double v) {
+    _idempotencyKey = null; // amount changed → new logical order
     setState(() => _sharesToSell = v);
   }
 
@@ -99,10 +106,12 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
       _error = null;
     });
 
+    _idempotencyKey ??= Idempotency.newKey();
     final result = await TradeSellService.sell(
       marketUuid: widget.position.marketUuid!,
       outcomeSlug: widget.position.outcomeSlug,
       shares: _sharesToSell,
+      idempotencyKey: _idempotencyKey,
     );
 
     if (!mounted) return;
@@ -226,6 +235,7 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
                   onPressed: _submitting
                       ? null
                       : () {
+                          _idempotencyKey = null;
                           setState(() => _sharesToSell = _maxShares);
                           _fetchQuote();
                         },
