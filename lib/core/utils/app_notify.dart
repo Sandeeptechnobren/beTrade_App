@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../presentation/widget/app_confirm_dialog.dart';
 import '../../presentation/widget/app_success_dialog.dart';
@@ -111,7 +112,7 @@ class AppNotify {
       );
 
   /// Hide the current toast (loading or otherwise).
-  static void dismiss() => messengerKey.currentState?.hideCurrentSnackBar();
+  static void dismiss() => _removeCurrent();
 
   // ── Backend code → toast ─────────────────────────────────────────
 
@@ -197,6 +198,28 @@ class AppNotify {
 
   // ── Internals ────────────────────────────────────────────────────
 
+  /// The OverlayEntry hosting the currently-visible toast (null if none).
+  /// We use a top-positioned overlay instead of a SnackBar so the toast
+  /// lives at the top of the screen, where it can't be obscured by the
+  /// bottom nav, keyboard, or floating action buttons.
+  static OverlayEntry? _currentEntry;
+  static Timer? _autoDismissTimer;
+
+  /// Tear down the current toast immediately (no exit animation).
+  static void _removeCurrent() {
+    _autoDismissTimer?.cancel();
+    _autoDismissTimer = null;
+    final entry = _currentEntry;
+    _currentEntry = null;
+    if (entry != null && entry.mounted) {
+      try {
+        entry.remove();
+      } catch (_) {
+        // overlay already detached during teardown — ignore.
+      }
+    }
+  }
+
   static void _show(
     NotifyVariant variant,
     String message, {
@@ -204,36 +227,57 @@ class AppNotify {
     NotifyAction? action,
     required Duration duration,
   }) {
-    final messenger = messengerKey.currentState;
-    if (messenger == null) {
-      // No messenger yet (called before MaterialApp built or during
-      // teardown). Best we can do is drop it — the alternative is a
-      // crash. Log if needed for debugging.
+    final ctx = messengerKey.currentContext;
+    if (ctx == null) {
       assert(() {
         debugPrint(
-            '⚠ AppNotify._show called with no ScaffoldMessenger '
+            '⚠ AppNotify._show: no messenger context '
             '(variant=$variant, message="$message")');
         return true;
       }());
       return;
     }
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        duration: duration,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: 80.h, left: 16.w, right: 16.w),
-        padding: EdgeInsets.zero,
-        content: AppToast(
-          variant: variant,
-          title: title,
-          message: message,
-          action: action,
-          onDismiss: messenger.hideCurrentSnackBar,
-        ),
+    // Walk up to the root overlay (above MaterialApp's Navigator) so
+    // the toast paints on top of all routes — including bottom sheets
+    // and dialogs.
+    final overlay = Overlay.maybeOf(ctx, rootOverlay: true);
+    if (overlay == null) {
+      assert(() {
+        debugPrint(
+            '⚠ AppNotify._show: no Overlay above messenger context '
+            '(variant=$variant, message="$message")');
+        return true;
+      }());
+      return;
+    }
+
+    // Replace any in-flight toast so the new one slides in clean.
+    _removeCurrent();
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => AppToastOverlay(
+        variant: variant,
+        title: title,
+        message: message,
+        action: action,
+        onRemove: () {
+          // Only remove if this is still the active toast (guards
+          // against a stale callback after a replacement).
+          if (_currentEntry == entry) _removeCurrent();
+        },
       ),
     );
+    _currentEntry = entry;
+    overlay.insert(entry);
+
+    // Auto-dismiss after the configured duration. Loading toasts are
+    // persistent — they only go away via AppNotify.dismiss() or when
+    // a new toast replaces them.
+    if (variant != NotifyVariant.loading) {
+      _autoDismissTimer = Timer(duration, () {
+        if (_currentEntry == entry) _removeCurrent();
+      });
+    }
   }
 }

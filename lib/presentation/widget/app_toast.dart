@@ -165,6 +165,99 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+/// Positions an [AppToast] at the TOP of the screen (below the status
+/// bar via SafeArea), with a 220 ms slide-down + fade-in animation.
+/// Tap the toast to dismiss early; AppNotify schedules the
+/// auto-dismiss timer separately.
+///
+/// Driven by an OverlayEntry inserted by [AppNotify._show]. We use an
+/// overlay rather than a SnackBar so the toast can live at the top —
+/// Flutter's ScaffoldMessenger only supports bottom placement.
+class AppToastOverlay extends StatefulWidget {
+  const AppToastOverlay({
+    super.key,
+    required this.variant,
+    required this.message,
+    required this.onRemove,
+    this.title,
+    this.action,
+  });
+
+  /// Called when the user taps the toast (or the trailing action /
+  /// loading close-X). AppNotify wires this to remove the OverlayEntry.
+  final VoidCallback onRemove;
+  final NotifyVariant variant;
+  final String? title;
+  final String message;
+  final NotifyAction? action;
+
+  @override
+  State<AppToastOverlay> createState() => _AppToastOverlayState();
+}
+
+class _AppToastOverlayState extends State<AppToastOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, -0.3),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _ctrl,
+    curve: Curves.easeOut,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.only(top: 8.h, left: 16.w, right: 16.w),
+          child: SlideTransition(
+            position: _slide,
+            child: FadeTransition(
+              opacity: _fade,
+              child: Material(
+                color: Colors.transparent,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onRemove,
+                  child: AppToast(
+                    variant: widget.variant,
+                    title: widget.title,
+                    message: widget.message,
+                    action: widget.action,
+                    onDismiss: widget.onRemove,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// {bg, fg, border, icon} for a given variant + theme brightness.
 class _ToastTokens {
   const _ToastTokens(this.bg, this.fg, this.border, this.icon);
