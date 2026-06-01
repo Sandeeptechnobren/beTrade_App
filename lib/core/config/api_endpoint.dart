@@ -117,5 +117,15 @@ class ApiEndpoints {
   static String  tradeDetail(String tradeId) =>
       '${EnvConfig.baseUrl}/trade/tradedetail/$tradeId';
 
-
+  /// GET `/api/rankings?category=…&page=…&per_page=…`. Category is one
+  /// of: 'overall' | 'profit' | 'win_rate' | 'hot_streak'.
+  static String rankings({
+    required String category,
+    int page = 1,
+    int perPage = 25,
+  }) {
+    final c = Uri.encodeQueryComponent(category);
+    return '${EnvConfig.baseUrl}/rankings'
+        '?category=$c&page=$page&per_page=$perPage';
+  }
 }

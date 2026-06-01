@@ -1,248 +1,15 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_screenutil/flutter_screenutil.dart';
-//
-// import '../../../core/theme/app_colors.dart';
-// import '../../../core/theme/app_text_style.dart';
-//
-// /// Rankings tab landing screen.
-// ///
-// /// Empty-state for now — backend leaderboard isn't wired up yet so all
-// /// four tabs render the same "No Rankings Yet" placeholder. Tab state
-// /// is tracked locally so tapping animates the underline, but no data
-// /// fetch happens per tab change.
-// class RankingsPage extends StatefulWidget {
-//   const RankingsPage({super.key});
-//
-//   @override
-//   State<RankingsPage> createState() => _RankingsPageState();
-// }
-//
-// class _RankingsPageState extends State<RankingsPage> {
-//   int _selectedTab = 0;
-//
-//   static const List<String> _tabs = [
-//     'Overall',
-//     'Profit',
-//     'Win Rate',
-//     'Hot Streak',
-//   ];
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: AppColors.cardBackgroundDynamic(context),
-//       body: SafeArea(
-//         child: Column(
-//           children: [
-//             _buildTopBar(),
-//             _buildTabBar(),
-//             Expanded(child: _buildEmptyState()),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-//
-//   Widget _buildTopBar() {
-//     return Padding(
-//       padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 12.h),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//         children: [
-//           Row(
-//             children: [
-//               Image.asset("assets/logo/IconLogo.png", height: 33.h),
-//               SizedBox(width: 5.w),
-//               RichText(
-//                 text: TextSpan(
-//                   children: [
-//                     TextSpan(
-//                       text: "BeTrade",
-//                       style: TextStyle(
-//                         fontFamily: AppTextStyle.fontFamily,
-//                         fontSize: 15.sp,
-//                         fontWeight: FontWeight.w700,
-//                         color: AppColors.textPrimaryDynamic(context),
-//                       ),
-//                     ),
-//                     WidgetSpan(
-//                       alignment: PlaceholderAlignment.top,
-//                       child: Transform.translate(
-//                         offset: const Offset(1, -5),
-//                         child: Text(
-//                           "™",
-//                           style: TextStyle(
-//                             fontFamily: AppTextStyle.fontFamily,
-//                             fontSize: 10.sp,
-//                             fontWeight: FontWeight.w600,
-//                             color: AppColors.textPrimaryDynamic(context),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ),
-//           Container(
-//             width: 40.w,
-//             height: 40.h,
-//             decoration: BoxDecoration(
-//               color: AppColors.iconContainerDynamic(context),
-//               shape: BoxShape.circle,
-//             ),
-//             child: Center(
-//               child: Image.asset(
-//                 "assets/images/Bell.png",
-//                 width: 20.w,
-//                 height: 20.h,
-//                 fit: BoxFit.contain,
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   Widget _buildTabBar() {
-//     return Container(
-//       padding: EdgeInsets.symmetric(horizontal: 16.w),
-//       decoration: BoxDecoration(
-//         border: Border(
-//           bottom: BorderSide(
-//             color: AppColors.borderDynamic(context),
-//             width: 1,
-//           ),
-//         ),
-//       ),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//         children: List.generate(_tabs.length, (i) {
-//           return Padding(
-//             padding: EdgeInsets.only(right: i == _tabs.length - 1 ? 0 : 20.w),
-//             child: _tabItem(i),
-//           );
-//         }),
-//       ),
-//     );
-//   }
-//
-//   /// IntrinsicWidth so the underline pill stretches to exactly the
-//   /// text width — Figma shows the underline matching each label's
-//   /// glyph width (50 / 37 / 62 / 74).
-//   Widget _tabItem(int i) {
-//     final selected = _selectedTab == i;
-//     return IntrinsicWidth(
-//       child: GestureDetector(
-//         behavior: HitTestBehavior.opaque,
-//         onTap: () => setState(() => _selectedTab = i),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.stretch,
-//           children: [
-//             Padding(
-//               padding: EdgeInsets.only(bottom: 4.h),
-//               child: Text(
-//                 _tabs[i],
-//                 textAlign: TextAlign.center,
-//                 style: TextStyle(
-//                   fontFamily: AppTextStyle.fontFamily,
-//                   fontSize: 16.sp,
-//                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-//                   color: selected
-//                       ? AppColors.textPrimaryDynamic(context)
-//                       : AppColors.textSecondaryDynamic(context),
-//                 ),
-//               ),
-//             ),
-//             Container(
-//               height: 4.h,
-//               decoration: BoxDecoration(
-//                 color: selected
-//                     ? const Color(0xFFAA45FF)
-//                     : Colors.transparent,
-//                 borderRadius: BorderRadius.circular(9999.r),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-//
-//   Widget _buildEmptyState() {
-//     return Center(
-//       child: Padding(
-//         padding: EdgeInsets.symmetric(horizontal: 28.w),
-//         child: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             // Figma empty-state badge — three layered shapes:
-//             //  1) Outer light-grey circle (#F4F4F5) backdrop
-//             //  2) subs.png document scroll inside it
-//             //  3) Small darker-grey circle on the document with the X
-//             //
-//             // We stack them explicitly so the cross sits crisply on
-//             // top regardless of what's baked into the PNG.
-//             SizedBox(
-//               width: 80.w,
-//               height: 80.w,
-//               child: Stack(
-//                 alignment: Alignment.center,
-//                 children: [
-//                   Container(
-//                     width: 80.w,
-//                     height: 80.w,
-//                     decoration: BoxDecoration(
-//                       color: AppColors.iconContainerDynamic(context),
-//                       shape: BoxShape.circle,
-//                     ),
-//                   ),
-//                   Image.asset(
-//                     "assets/images/subs.png",
-//                     width: 60.w,
-//                     height: 60.w,
-//                     fit: BoxFit.contain,
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             SizedBox(height: 16.h),
-//             Text(
-//               "No Rankings Yet",
-//               style: TextStyle(
-//                 fontFamily: AppTextStyle.fontFamily,
-//                 fontSize: 16.sp,
-//                 fontWeight: FontWeight.w600,
-//                 color: AppColors.textPrimaryDynamic(context),
-//               ),
-//             ),
-//             SizedBox(height: 8.h),
-//             Text(
-//               "Start trading to see how you rank.",
-//               textAlign: TextAlign.center,
-//               style: TextStyle(
-//                 fontFamily: AppTextStyle.fontFamily,
-//                 fontSize: 16.sp,
-//                 fontWeight: FontWeight.w400,
-//                 color: AppColors.textSecondaryDynamic(context),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
+import '../../../data/model/ranking_entry.dart';
+import '../../../data/model/rankings_response.dart';
+import '../../../data/provider/rankings_provider.dart';
 import '../../widget/Common_header_withlogo.dart';
 
 const Color _kPodiumPurple = Color(0xFF2E1065);
@@ -257,7 +24,33 @@ const Color _kRowOdd = Color(0xFFFAFAFA);
 const Color _kRowYou = Color(0xFFFAF4FF); // current-user highlight
 const Color _kListText = Color(0xFF27272A);
 const Color _kPodiumSubText = Color(0xFFE4E4E7);
+const Color _kSkeleton = Color(0xFFEEEEEE);
 
+/// Tab index → backend `category` string. Order matches the visible
+/// label list below.
+const List<String> _kCategories = [
+  'overall',
+  'profit',
+  'win_rate',
+  'hot_streak',
+];
+const List<String> _kTabLabels = [
+  'Overall',
+  'Profit',
+  'Win Rate',
+  'Hot Streak',
+];
+
+/// Rankings tab — wired to `RankingsProvider` ➜ `GET /api/rankings`.
+///
+/// Each tab caches its own state in the provider so swiping between them
+/// is instant after first load. Page is built as four states:
+///   - loading first page  → skeleton cards
+///   - error               → centred message + Retry
+///   - empty (total_users=0) → "No Rankings Yet" CTA card
+///   - loaded              → optional "YOU #N" sticky chip, podium
+///                           (top 3 in #2/#1/#3 layout), zebra list
+///                           with infinite scroll + RefreshIndicator
 class RankingsPage extends StatefulWidget {
   const RankingsPage({super.key});
 
@@ -268,264 +61,61 @@ class RankingsPage extends StatefulWidget {
 class _RankingsPageState extends State<RankingsPage> {
   int _selectedTab = 0;
   final PageController _pageController = PageController();
+  // One scroll controller per tab so each tab's list scrolls
+  // independently and the infinite-scroll listener can target the
+  // correct category.
+  final List<ScrollController> _scrollControllers = List.generate(
+    _kCategories.length,
+    (_) => ScrollController(),
+  );
 
-  static const List<String> _tabs = [
-    'Overall',
-    'Profit',
-    'Win Rate',
-    'Hot Streak',
-  ];
-  final bool _hasRankings = true;
-  final List<_Ranker> _overall = const [
-    _Ranker(
-        rank: 1,
-        name: 'Kwabena O.',
-        avatar: 'assets/svgs/Frame 25.svg',
-        value: '40 trades',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 2,
-        name: 'Adwoa M.',
-        avatar: 'assets/svgs/Frame 25 (1).svg',
-        value: '38 trades',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 3,
-        name: 'Yaw B.',
-        avatar: 'assets/svgs/Frame 25 (2).svg',
-        value: '35 trades',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 4,
-        name: 'Akosua D.',
-        avatar: 'assets/svgs/Frame 25 (3).svg',
-        value: '31 trades',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 5,
-        name: 'Kofi A.',
-        avatar: 'assets/svgs/Frame 26.svg',
-        value: '29 trades',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 6,
-        name: 'Ama S.',
-        avatar: 'assets/svgs/Frame 26 (1).svg',
-        value: '27 trades',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 7,
-        name: 'You',
-        avatar: 'assets/svgs/Frame 26 (2).svg',
-        value: '24 trades',
-        trend: _Trend.up,
-        isYou: true),
-    _Ranker(
-        rank: 8,
-        name: 'Esi N.',
-        avatar: 'assets/svgs/Frame 26 (3).svg',
-        value: '21 trades',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 9,
-        name: 'Fiifi K.',
-        avatar: 'assets/svgs/Frame 27.svg',
-        value: '18 trades',
-        trend: _Trend.down),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = context.read<RankingsProvider>();
+      provider.setCategory(_kCategories[0]);
+      provider.ensureLoaded();
+    });
+    for (var i = 0; i < _scrollControllers.length; i++) {
+      _scrollControllers[i].addListener(() => _onScroll(i));
+    }
+  }
 
-  final List<_Ranker> _profit = const [
-    _Ranker(
-        rank: 1,
-        name: 'Adwoa M.',
-        avatar: 'assets/svgs/Frame 25 (1).svg',
-        value: '¢12.5k',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 2,
-        name: 'Kwabena O.',
-        avatar: 'assets/svgs/Frame 25.svg',
-        value: '¢11.7k',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 3,
-        name: 'Kofi A.',
-        avatar: 'assets/svgs/Frame 26.svg',
-        value: '¢10.2k',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 4,
-        name: 'Yaw B.',
-        avatar: 'assets/svgs/Frame 25 (2).svg',
-        value: '¢9.4k',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 5,
-        name: 'Akosua D.',
-        avatar: 'assets/svgs/Frame 25 (3).svg',
-        value: '¢8.1k',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 6,
-        name: 'You',
-        avatar: 'assets/svgs/Frame 26 (2).svg',
-        value: '¢6.8k',
-        trend: _Trend.up,
-        isYou: true),
-    _Ranker(
-        rank: 7,
-        name: 'Ama S.',
-        avatar: 'assets/svgs/Frame 26 (1).svg',
-        value: '¢5.3k',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 8,
-        name: 'Esi N.',
-        avatar: 'assets/svgs/Frame 26 (3).svg',
-        value: '¢4.6k',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 9,
-        name: 'Fiifi K.',
-        avatar: 'assets/svgs/Frame 27.svg',
-        value: '¢3.9k',
-        trend: _Trend.down),
-  ];
-
-  final List<_Ranker> _winRate = const [
-    _Ranker(
-        rank: 1,
-        name: 'Yaw B.',
-        avatar: 'assets/svgs/Frame 25 (2).svg',
-        value: '95%',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 2,
-        name: 'Esi N.',
-        avatar: 'assets/svgs/Frame 26 (3).svg',
-        value: '89%',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 3,
-        name: 'Akosua D.',
-        avatar: 'assets/svgs/Frame 25 (3).svg',
-        value: '85%',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 4,
-        name: 'Adwoa M.',
-        avatar: 'assets/svgs/Frame 25 (1).svg',
-        value: '82%',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 5,
-        name: 'Kwabena O.',
-        avatar: 'assets/svgs/Frame 25.svg',
-        value: '78%',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 6,
-        name: 'Kofi A.',
-        avatar: 'assets/svgs/Frame 26.svg',
-        value: '74%',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 7,
-        name: 'You',
-        avatar: 'assets/svgs/Frame 26 (2).svg',
-        value: '71%',
-        trend: _Trend.up,
-        isYou: true),
-    _Ranker(
-        rank: 8,
-        name: 'Ama S.',
-        avatar: 'assets/svgs/Frame 26 (1).svg',
-        value: '67%',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 9,
-        name: 'Fiifi K.',
-        avatar: 'assets/svgs/Frame 27.svg',
-        value: '60%',
-        trend: _Trend.down),
-  ];
-
-  final List<_Ranker> _hotStreak = const [
-    _Ranker(
-        rank: 1,
-        name: 'Kofi A.',
-        avatar: 'assets/svgs/Frame 26.svg',
-        value: '14 days',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 2,
-        name: 'Kwabena O.',
-        avatar: 'assets/svgs/Frame 25.svg',
-        value: '11 days',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 3,
-        name: 'Ama S.',
-        avatar: 'assets/svgs/Frame 26 (1).svg',
-        value: '9 days',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 4,
-        name: 'Yaw B.',
-        avatar: 'assets/svgs/Frame 25 (2).svg',
-        value: '7 days',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 5,
-        name: 'Adwoa M.',
-        avatar: 'assets/svgs/Frame 25 (1).svg',
-        value: '5 days',
-        trend: _Trend.up),
-    _Ranker(
-        rank: 6,
-        name: 'Akosua D.',
-        avatar: 'assets/svgs/Frame 25 (3).svg',
-        value: '3 days',
-        trend: _Trend.down),
-    _Ranker(
-        rank: 7,
-        name: 'Esi N.',
-        avatar: 'assets/svgs/Frame 26 (3).svg',
-        value: '2 days',
-        trend: _Trend.same),
-    _Ranker(
-        rank: 8,
-        name: 'You',
-        avatar: 'assets/svgs/Frame 26 (2).svg',
-        value: '1 day',
-        trend: _Trend.up,
-        isYou: true),
-    _Ranker(
-        rank: 9,
-        name: 'Fiifi K.',
-        avatar: 'assets/svgs/Frame 27.svg',
-        value: '1 day',
-        trend: _Trend.same),
-  ];
-
-  List<_Ranker> _rankersFor(int tab) {
-    switch (tab) {
-      case 1:
-        return _profit;
-      case 2:
-        return _winRate;
-      case 3:
-        return _hotStreak;
-      case 0:
-      default:
-        return _overall;
+  void _onScroll(int tabIdx) {
+    if (tabIdx != _selectedTab) return;
+    final c = _scrollControllers[tabIdx];
+    if (!c.hasClients) return;
+    // Trigger pagination when ~200 px from the bottom.
+    if (c.position.pixels >= c.position.maxScrollExtent - 200) {
+      context.read<RankingsProvider>().loadMoreFor(_kCategories[tabIdx]);
     }
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    for (final c in _scrollControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _selectTab(int i) {
+    if (i == _selectedTab) return;
+    setState(() => _selectedTab = i);
+    context.read<RankingsProvider>().setCategory(_kCategories[i]);
+    _pageController.animateToPage(
+      i,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _onPageChanged(int i) {
+    setState(() => _selectedTab = i);
+    context.read<RankingsProvider>().setCategory(_kCategories[i]);
   }
 
   @override
@@ -539,10 +129,13 @@ class _RankingsPageState extends State<RankingsPage> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
-              onPageChanged: (i) => setState(() => _selectedTab = i),
-              itemCount: _tabs.length,
-              itemBuilder: (context, i) =>
-                  _hasRankings ? _buildRankingContent(i) : _buildEmptyState(),
+              onPageChanged: _onPageChanged,
+              itemCount: _kTabLabels.length,
+              itemBuilder: (context, i) => _TabContent(
+                key: ValueKey('rankings_tab_$i'),
+                category: _kCategories[i],
+                scrollController: _scrollControllers[i],
+              ),
             ),
           ),
         ],
@@ -561,257 +154,228 @@ class _RankingsPageState extends State<RankingsPage> {
           ),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(_tabs.length, (i) {
-          return Padding(
-            padding: EdgeInsets.only(right: i == _tabs.length - 1 ? 0 : 20.w),
-            child: _tabItem(i),
-          );
-        }),
+      child: IntrinsicWidth(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(_kTabLabels.length, (i) {
+            final bool active = i == _selectedTab;
+            return GestureDetector(
+              onTap: () => _selectTab(i),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: active
+                          ? const Color(0xFFAA45FF)
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  _kTabLabels[i],
+                  style: TextStyle(
+                    fontFamily: AppTextStyle.fontFamily,
+                    fontSize: 14.sp,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: active
+                        ? AppColors.textPrimaryDynamic(context)
+                        : AppColors.textSecondaryDynamic(context),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
+}
 
-  Widget _tabItem(int i) {
-    final selected = _selectedTab == i;
-    return IntrinsicWidth(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          setState(() => _selectedTab = i);
-          _pageController.animateToPage(
-            i,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
+// ── Per-tab content ──────────────────────────────────────────────────
+
+class _TabContent extends StatelessWidget {
+  const _TabContent({
+    super.key,
+    required this.category,
+    required this.scrollController,
+  });
+
+  final String category;
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<RankingsProvider>(
+      builder: (context, provider, _) {
+        final state = provider.stateFor(category);
+
+        if (state.isLoading && state.response == null) {
+          return const _SkeletonView();
+        }
+        if (state.error != null && state.response == null) {
+          return _ErrorView(
+            message: state.error!,
+            onRetry: () => provider.refreshFor(category),
           );
-        },
+        }
+        final r = state.response;
+        if (r == null || r.totalUsers == 0) {
+          return const _EmptyView();
+        }
+
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => provider.refreshFor(category),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: EdgeInsets.only(bottom: 24.h),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                if (r.currentUserRank != null && r.podium.isNotEmpty)
+                  _YouChip(rank: r.currentUserRank!, response: r),
+                if (r.podium.length == 3) _Podium(entries: r.podium),
+                _LeaderboardList(entries: r.leaderboard, unit: r.unit),
+                if (state.isLoadingMore)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── States: loading / error / empty ──────────────────────────────────
+
+class _SkeletonView extends StatelessWidget {
+  const _SkeletonView();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: 24.h),
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        children: [
+          // Skeleton podium block
+          Container(
+            margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+            height: 200.h,
+            decoration: BoxDecoration(
+              color: _kSkeleton,
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+          ),
+          // 6 skeleton rows
+          ...List.generate(6, (i) {
+            final bg = i.isEven ? _kRowEven : _kRowOdd;
+            return Container(
+              height: 64.h,
+              color: bg,
+              padding: EdgeInsets.symmetric(horizontal: 28.w),
+              child: Row(
+                children: [
+                  Container(width: 20.w, height: 14.h, color: _kSkeleton),
+                  SizedBox(width: 18.w),
+                  Container(
+                    width: 32.w,
+                    height: 32.w,
+                    decoration: const BoxDecoration(
+                      color: _kSkeleton,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Container(height: 14.h, color: _kSkeleton),
+                  ),
+                  SizedBox(width: 16.w),
+                  Container(width: 60.w, height: 14.h, color: _kSkeleton),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 28.w),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: EdgeInsets.only(bottom: 4.h),
+            Icon(
+              Icons.wifi_off_rounded,
+              size: 48.sp,
+              color: AppColors.textSecondaryDynamic(context),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimaryDynamic(context),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            OutlinedButton(
+              onPressed: onRetry,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.borderDynamic(context)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+              ),
               child: Text(
-                _tabs[i],
-                textAlign: TextAlign.center,
+                'Retry',
                 style: TextStyle(
                   fontFamily: AppTextStyle.fontFamily,
-                  fontSize: 16.sp,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected
-                      ? AppColors.textPrimaryDynamic(context)
-                      : AppColors.textSecondaryDynamic(context),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
             ),
-            Container(
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFFAA45FF) : Colors.transparent,
-                borderRadius: BorderRadius.circular(9999.r),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildRankingContent(int tab) {
-    final data = _rankersFor(tab);
-    final podium = data.take(3).toList();
-    final rest = data.length > 3 ? data.sublist(3) : const <_Ranker>[];
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(bottom: 24.h),
-      child: Column(
-        children: [
-          if (podium.length == 3) _buildPodium(podium),
-          _buildList(rest),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPodium(List<_Ranker> top) {
-    return Container(
-      margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-      decoration: BoxDecoration(
-        color: _kPodiumPurple,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Stack(
-          children: [
-            // Faint Figma background texture (white at ~5% opacity).
-            Positioned.fill(
-              child: CustomPaint(painter: _PodiumPatternPainter()),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(child: _podiumAvatar(top[1], _PodiumRank.second)),
-                  Expanded(child: _podiumAvatar(top[0], _PodiumRank.first)),
-                  Expanded(child: _podiumAvatar(top[2], _PodiumRank.third)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _podiumAvatar(_Ranker r, _PodiumRank pos) {
-    final bool isFirst = pos == _PodiumRank.first;
-    final Color ringColor = pos == _PodiumRank.first
-        ? _kRingGold
-        : pos == _PodiumRank.second
-            ? _kRingSilver
-            : _kRingBronze;
-    final String crown = pos == _PodiumRank.first
-        ? 'assets/svgs/Ytaj.svg'
-        : pos == _PodiumRank.second
-            ? 'assets/svgs/Staj.svg'
-            : 'assets/svgs/Otaj.svg';
-
-    final double avatarSize = isFirst ? 92.w : 76.w;
-    final double crownWidth = isFirst ? 46.w : 34.w;
-    final double ringWidth = isFirst ? 4.w : 3.w;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SvgPicture.asset(crown, width: crownWidth, fit: BoxFit.contain),
-        SizedBox(height: 6.h),
-        Container(
-          padding: EdgeInsets.all(3.w),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: ringColor, width: ringWidth),
-          ),
-          child: ClipOval(
-            child: SvgPicture.asset(
-              r.avatar,
-              width: avatarSize,
-              height: avatarSize,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          r.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: AppTextStyle.fontFamily,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          r.value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontFamily: AppTextStyle.fontFamily,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w400,
-            color: _kPodiumSubText,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildList(List<_Ranker> rows) {
-    return Column(
-      children: List.generate(rows.length, (i) {
-        final r = rows[i];
-        final Color bg = r.isYou ? _kRowYou : (i.isEven ? _kRowEven : _kRowOdd);
-        return _rankRow(r, bg);
-      }),
-    );
-  }
-
-  Widget _rankRow(_Ranker r, Color bg) {
-    final FontWeight weight = r.isYou ? FontWeight.w600 : FontWeight.w400;
-    return Container(
-      height: 64.h,
-      color: bg,
-      padding: EdgeInsets.symmetric(horizontal: 28.w),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 22.w,
-            child: Text(
-              '${r.rank}',
-              style: TextStyle(
-                fontFamily: AppTextStyle.fontFamily,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: _kListText,
-              ),
-            ),
-          ),
-          SizedBox(width: 6.w),
-          _trendIcon(r.trend),
-          SizedBox(width: 12.w),
-          ClipOval(
-            child: SvgPicture.asset(
-              r.avatar,
-              width: 32.w,
-              height: 32.w,
-              fit: BoxFit.cover,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              r.isYou ? 'You' : r.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: AppTextStyle.fontFamily,
-                fontSize: 16.sp,
-                fontWeight: weight,
-                color: _kListText,
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Text(
-            r.value,
-            style: TextStyle(
-              fontFamily: AppTextStyle.fontFamily,
-              fontSize: 16.sp,
-              fontWeight: weight,
-              color: _kListText,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _trendIcon(_Trend t) {
-    switch (t) {
-      case _Trend.up:
-        return Icon(Icons.arrow_circle_up, size: 20.sp, color: _kTrendUp);
-      case _Trend.down:
-        return Icon(Icons.arrow_circle_down, size: 20.sp, color: _kTrendDown);
-      case _Trend.same:
-        return Icon(Icons.remove_circle, size: 20.sp, color: _kTrendSame);
-    }
-  }
-
-  Widget _buildEmptyState() {
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 28.w),
@@ -846,11 +410,7 @@ class _RankingsPageState extends State<RankingsPage> {
                       color: Color(0xFFD4D4D8),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 15.sp,
-                    ),
+                    child: Icon(Icons.close, color: Colors.white, size: 15.sp),
                   ),
                 ],
               ),
@@ -883,33 +443,369 @@ class _RankingsPageState extends State<RankingsPage> {
   }
 }
 
-enum _Trend { up, down, same }
+// ── "YOU #N" sticky chip ────────────────────────────────────────────
 
-enum _PodiumRank { first, second, third }
-
-class _Ranker {
+class _YouChip extends StatelessWidget {
+  const _YouChip({required this.rank, required this.response});
   final int rank;
-  final String name;
-  final String avatar;
-  final String value;
-  final _Trend trend;
-  final bool isYou;
+  final RankingsResponse response;
 
-  const _Ranker({
-    required this.rank,
-    required this.name,
-    required this.avatar,
-    required this.value,
-    required this.trend,
-    this.isYou = false,
-  });
+  @override
+  Widget build(BuildContext context) {
+    // Look up the user's value across podium + leaderboard so the chip
+    // can echo their score next to the rank.
+    final all = [...response.podium, ...response.leaderboard];
+    final me = all.firstWhere(
+      (e) => e.isCurrentUser,
+      orElse: () => RankingEntry(
+        userId: 0,
+        name: 'You',
+        value: 0,
+        rank: rank,
+        movement: 'none',
+        isCurrentUser: true,
+      ),
+    );
+    return Container(
+      margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF4FF),
+        border: Border.all(color: const Color(0xFFD9C7FF), width: 1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: AppColors.electricViolet900,
+              borderRadius: BorderRadius.circular(999.r),
+            ),
+            child: Text(
+              'YOU',
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              'You are ranked #$rank',
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF3D006D),
+              ),
+            ),
+          ),
+          Text(
+            _formatValue(me.value, response.unit),
+            style: TextStyle(
+              fontFamily: AppTextStyle.fontFamily,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF3D006D),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+// ── Podium ──────────────────────────────────────────────────────────
+
+class _Podium extends StatelessWidget {
+  const _Podium({required this.entries});
+  final List<RankingEntry> entries; // backend has reordered to [#2, #1, #3]
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+      decoration: BoxDecoration(
+        color: _kPodiumPurple,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _PodiumPatternPainter())),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: _PodiumAvatar(r: entries[0], pos: _PodiumPos.second)),
+                  Expanded(child: _PodiumAvatar(r: entries[1], pos: _PodiumPos.first)),
+                  Expanded(child: _PodiumAvatar(r: entries[2], pos: _PodiumPos.third)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _PodiumPos { first, second, third }
+
+class _PodiumAvatar extends StatelessWidget {
+  const _PodiumAvatar({required this.r, required this.pos});
+  final RankingEntry r;
+  final _PodiumPos pos;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isFirst = pos == _PodiumPos.first;
+    final Color ringColor = pos == _PodiumPos.first
+        ? _kRingGold
+        : pos == _PodiumPos.second
+            ? _kRingSilver
+            : _kRingBronze;
+    final String crown = pos == _PodiumPos.first
+        ? 'assets/svgs/Ytaj.svg'
+        : pos == _PodiumPos.second
+            ? 'assets/svgs/Staj.svg'
+            : 'assets/svgs/Otaj.svg';
+
+    final double avatarSize = isFirst ? 92.w : 76.w;
+    final double crownWidth = isFirst ? 46.w : 34.w;
+    final double ringWidth = isFirst ? 4.w : 3.w;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SvgPicture.asset(crown, width: crownWidth, fit: BoxFit.contain),
+        SizedBox(height: 6.h),
+        Container(
+          padding: EdgeInsets.all(3.w),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: ringColor, width: ringWidth),
+          ),
+          child: ClipOval(
+            child: _AvatarImage(url: r.displayImageUrl, size: avatarSize),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          r.isCurrentUser ? 'You' : r.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          _formatValue(r.value, _unitFromContext(context, pos)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: _kPodiumSubText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// The unit string is on the response, not the entry. Read it from the
+// nearest provider since the podium is rebuilt cheaply on each change.
+String _unitFromContext(BuildContext context, _PodiumPos pos) {
+  final prov = context.read<RankingsProvider>();
+  return prov.currentState.response?.unit ?? '';
+}
+
+// ── Leaderboard list ────────────────────────────────────────────────
+
+class _LeaderboardList extends StatelessWidget {
+  const _LeaderboardList({required this.entries, required this.unit});
+  final List<RankingEntry> entries;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: List.generate(entries.length, (i) {
+        final r = entries[i];
+        final Color bg = r.isCurrentUser
+            ? _kRowYou
+            : (i.isEven ? _kRowEven : _kRowOdd);
+        return _RankRow(r: r, unit: unit, bg: bg);
+      }),
+    );
+  }
+}
+
+class _RankRow extends StatelessWidget {
+  const _RankRow({required this.r, required this.unit, required this.bg});
+  final RankingEntry r;
+  final String unit;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    final FontWeight weight =
+        r.isCurrentUser ? FontWeight.w600 : FontWeight.w400;
+    return Container(
+      height: 64.h,
+      color: bg,
+      padding: EdgeInsets.symmetric(horizontal: 28.w),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22.w,
+            child: Text(
+              '${r.rank}',
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: _kListText,
+              ),
+            ),
+          ),
+          SizedBox(width: 6.w),
+          _trendIcon(r.movement),
+          SizedBox(width: 12.w),
+          ClipOval(
+            child: _AvatarImage(url: r.displayImageUrl, size: 32.w),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              r.isCurrentUser ? 'You' : r.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppTextStyle.fontFamily,
+                fontSize: 16.sp,
+                fontWeight: weight,
+                color: _kListText,
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            _formatValue(r.value, unit),
+            style: TextStyle(
+              fontFamily: AppTextStyle.fontFamily,
+              fontSize: 16.sp,
+              fontWeight: weight,
+              color: _kListText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _trendIcon(String movement) {
+  switch (movement) {
+    case 'up':
+      return Icon(Icons.arrow_circle_up, size: 20.sp, color: _kTrendUp);
+    case 'down':
+      return Icon(Icons.arrow_circle_down, size: 20.sp, color: _kTrendDown);
+    case 'same':
+      return Icon(Icons.remove_circle, size: 20.sp, color: _kTrendSame);
+    case 'none':
+    default:
+      // v1 always returns 'none' — render a neutral dash so the row
+      // layout stays stable.
+      return Icon(Icons.horizontal_rule_rounded, size: 20.sp, color: _kTrendSame);
+  }
+}
+
+/// Format the unit-erased `value` per the category unit string.
+///   trades / days → integer count.
+///   GHS           → "₵12.50" with sign.
+///   %             → "85%".
+String _formatValue(double value, String unit) {
+  switch (unit) {
+    case 'GHS':
+      return '₵${value.toStringAsFixed(2)}';
+    case '%':
+      return '${value.round()}%';
+    case 'days':
+      final n = value.round();
+      return n == 1 ? '1 day' : '$n days';
+    case 'trades':
+      final n = value.round();
+      return n == 1 ? '1 trade' : '$n trades';
+    default:
+      return value.toStringAsFixed(2);
+  }
+}
+
+/// NetworkImage with a graceful fallback if [url] is null or fails to load.
+class _AvatarImage extends StatelessWidget {
+  const _AvatarImage({required this.url, required this.size});
+  final String? url;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        color: const Color(0xFFE4E4E7),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.person,
+          size: size * 0.6,
+          color: const Color(0xFFA1A1AA),
+        ),
+      );
+    }
+    return Image.network(
+      url!,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: size,
+        height: size,
+        color: const Color(0xFFE4E4E7),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.person,
+          size: size * 0.6,
+          color: const Color(0xFFA1A1AA),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Podium background texture (preserved from the Figma design) ─────
 
 class _PodiumPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
 
