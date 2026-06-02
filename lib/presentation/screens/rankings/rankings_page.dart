@@ -143,7 +143,7 @@ class _RankingsPageState extends State<RankingsPage> {
 
   Widget _buildTabBar() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -152,41 +152,48 @@ class _RankingsPageState extends State<RankingsPage> {
           ),
         ),
       ),
-      child: IntrinsicWidth(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(_kTabLabels.length, (i) {
-            final bool active = i == _selectedTab;
-            return GestureDetector(
+      // Figma: tabs are spread edge-to-edge (space-between), and each tab's
+      // underline matches the *text* width (IntrinsicWidth) — not text+padding.
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(_kTabLabels.length, (i) {
+          final bool active = i == _selectedTab;
+          return IntrinsicWidth(
+            child: GestureDetector(
               onTap: () => _selectTab(i),
               behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 4.h),
+                    child: Text(
+                      _kTabLabels[i],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTextStyle.fontFamily,
+                        fontSize: 16.sp,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                        color: active
+                            ? AppColors.textPrimaryDynamic(context)
+                            : AppColors.textSecondaryDynamic(context),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: 4.h,
+                    decoration: BoxDecoration(
                       color: active
                           ? const Color(0xFFAA45FF)
                           : Colors.transparent,
-                      width: 2,
+                      borderRadius: BorderRadius.circular(9999.r),
                     ),
                   ),
-                ),
-                child: Text(
-                  _kTabLabels[i],
-                  style: TextStyle(
-                    fontFamily: AppTextStyle.fontFamily,
-                    fontSize: 14.sp,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    color: active
-                        ? AppColors.textPrimaryDynamic(context)
-                        : AppColors.textSecondaryDynamic(context),
-                  ),
-                ),
+                ],
               ),
-            );
-          }),
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
