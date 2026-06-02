@@ -1,3 +1,4 @@
+import 'package:betrade/core/utils/app_notify.dart';
 import 'package:betrade/core/utils/idempotency.dart';
 import 'package:betrade/core/utils/money.dart';
 import 'package:betrade/presentation/widget/customSnackBar.dart';
@@ -558,7 +559,7 @@ class _WithdrawPageState extends State<WithdrawPage> {
 
     final amountError = _amountError;
     if (amountError != null) {
-      CustomSnackBar.showError(context, message: amountError);
+      AppNotify.error(amountError);
       return;
     }
     final amount = Money.parse(amountController.text);
@@ -601,10 +602,12 @@ class _WithdrawPageState extends State<WithdrawPage> {
       // the portfolio (the sheet was already popped above).
       withdrawalSuccessDialog(context);
     } else {
-      CustomSnackBar.showError(
-        context,
-        message: wallet.lastSubmitMessage ?? 'Could not submit withdrawal.',
-      );
+      // WalletProvider doesn't yet expose a typed code for the withdraw
+      // path (only the raw backend `lastSubmitMessage`). Surface a friendly
+      // generic message instead of leaking the raw string. Follow-up:
+      // add `lastSubmitCode` to WalletProvider so we can route through
+      // AppNotify.fromCode like the deposit path.
+      AppNotify.error('Could not submit withdrawal. Please try again.');
     }
   }
 }

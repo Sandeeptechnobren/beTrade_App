@@ -102,11 +102,15 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (wallet.transactionsError != null) {
+                    // Friendly fallback — `wallet.transactionsError` holds
+                    // a raw backend string (no typed code yet). Don't leak
+                    // it to the user; surface a generic message and let
+                    // them pull-to-refresh.
                     return Center(
                       child: Padding(
                         padding: EdgeInsets.all(20.w),
                         child: Text(
-                          wallet.transactionsError!,
+                          'Could not load wallet history. Please try again.',
                           textAlign: TextAlign.center,
                           style: AppTextStyle.body,
                         ),

@@ -3,6 +3,7 @@ import 'package:betrade/data/provider/category_provider.dart';
 import 'package:betrade/data/provider/default_amount_provider.dart';
 import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
+import 'package:betrade/data/provider/rankings_provider.dart';
 import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
@@ -23,6 +24,7 @@ import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
 import 'data/provider/theme_provider.dart';
 import 'core/utils/app_logger.dart';
+import 'core/utils/app_notify.dart';
 import 'data/services/local_storage.dart';
 import 'data/services/notification_services.dart';
 import 'firebase_options.dart';
@@ -198,6 +200,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PositionsProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => RankingsProvider(),
+        ),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
@@ -212,6 +217,10 @@ class MyApp extends StatelessWidget {
                 ) {
               return MaterialApp(
                 navigatorKey: navigatorKey,
+                // Global key so AppNotify.{success,error,warning,info,
+                // loading,fromCode} work from anywhere (providers,
+                // services, post-pop callbacks) without a BuildContext.
+                scaffoldMessengerKey: AppNotify.messengerKey,
                 title: "BeTrade",
                 debugShowCheckedModeBanner: false,
                 themeMode: themeProvider.themeMode,

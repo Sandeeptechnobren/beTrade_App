@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:betrade/core/theme/app_colors.dart';
+import 'package:betrade/core/utils/app_notify.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/profile/default_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -206,7 +207,6 @@ class _TradePageState extends State<TradePage> {
   Future<void> _openBuySheet(BuildContext context) async {
     // Capture context-dependent objects BEFORE the await so we don't
     // touch BuildContext across an async gap.
-    final messenger = ScaffoldMessenger.of(context);
     final detailProvider = context.read<TradeDetailProvider>();
 
     final result = await showModalBottomSheet<bool>(
@@ -227,8 +227,9 @@ class _TradePageState extends State<TradePage> {
     if (result == true && mounted) {
       // Refresh detail so the new price + volume reflect this fill.
       detailProvider.fetch(widget.tradeUuid);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Order filled.')),
+      AppNotify.success(
+        'Your order has been filled.',
+        title: 'Buy successful',
       );
     }
   }

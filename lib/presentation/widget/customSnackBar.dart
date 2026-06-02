@@ -1,128 +1,47 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/utils/app_notify.dart';
+
+/// Backwards-compatible shim — delegates to [AppNotify] so the 41
+/// pre-existing call sites pick up the unified style automatically.
+///
+/// **For new code, call `AppNotify.success/error/warning/info(…)` directly.**
+/// This shim still requires a `BuildContext`, doesn't accept a title or
+/// trailing action, and has no `warning` variant — all addressed by
+/// `AppNotify`. We'll delete this file once every call site has been
+/// migrated in Phase 2.
+///
+/// Mapping kept stable:
+///   - `showError`   → `AppNotify.error`
+///   - `showSuccess` → `AppNotify.success`
+///   - `showLoader`  → `AppNotify.info` (the legacy loader was just a
+///     purple-bg snackbar; `AppNotify.loading` would persist, which is
+///     not what the old `showLoader(duration: 3s)` callers expect, so
+///     this maps to a single 3 s info toast instead).
 class CustomSnackBar {
+  CustomSnackBar._();
+
   static void showError(
-      BuildContext context, {
-        required String message,
-        Duration duration = const Duration(seconds: 3),
-      }) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: duration,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(
-          bottom: 80.h, // Button se upar
-          left: 16.w,
-          right: 16.w,
-        ),
-        padding: EdgeInsets.zero, //  Default padding remove
-        content: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.red.shade200,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(
-              color: Colors.red.shade300,
-            ),
-          ),
-          child: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.red.shade800,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static void showLoader(
-      BuildContext context, {
-        required String message,
-        Duration duration = const Duration(seconds: 3),
-      }) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: duration,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(
-          bottom: 80.h, //  Button se upar
-          left: 16.w,
-          right: 16.w,
-        ),
-        padding: EdgeInsets.zero, //  Default padding remove
-        content: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.shade200,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(
-              color: Colors.deepPurple.shade300,
-            ),
-          ),
-          child: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.deepPurple.shade800,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
+    BuildContext context, {
+    required String message,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    AppNotify.error(message, duration: duration);
   }
 
   static void showSuccess(
-      BuildContext context, {
-        required String message,
-        Duration duration = const Duration(seconds: 3),
-      }) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    BuildContext context, {
+    required String message,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    AppNotify.success(message, duration: duration);
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: duration,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(
-          bottom: 80.h, //  Button se upar
-          left: 16.w,
-          right: 16.w,
-        ),
-        padding: EdgeInsets.zero, //  Default padding remove
-        content: Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.green.shade200,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(
-              color: Colors.green.shade300,
-            ),
-          ),
-          child: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.green.shade800,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
+  static void showLoader(
+    BuildContext context, {
+    required String message,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    AppNotify.info(message, duration: duration);
   }
 }
