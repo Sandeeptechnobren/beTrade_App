@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "577626610829-f3ua65m1p39a3o3m6mg0s43lnmjgaphg.apps.googleusercontent.com",
+          "client_id": "577626610829-neesuauindmo8lfl1rbe12k0lq7oe4lh.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.build.betrade",
-            "certificate_hash": "947f4de9ab2067adac8ac2c5031648de19cdc467"
+            "certificate_hash": "78f3055606719966b5ef48fb52b85a80c17fedd2"
           }
         },
         {
