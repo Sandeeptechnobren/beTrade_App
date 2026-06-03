@@ -131,8 +131,18 @@ import '../../data/provider/signin_provider.dart';
 import '../screens/splash/signup_screen.dart';
 import '../widget/purple_button.dart';
 
-class AuthBottomSheet extends StatelessWidget {
+class AuthBottomSheet extends StatefulWidget {
   const AuthBottomSheet({super.key});
+
+  @override
+  State<AuthBottomSheet> createState() => _AuthBottomSheetState();
+}
+
+class _AuthBottomSheetState extends State<AuthBottomSheet> {
+  // Per-button loading flags so the tapped social button shows a spinner
+  // (clear "tap registered + working" feedback) while its sign-in runs.
+  bool _googleLoading = false;
+  bool _appleLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -231,14 +241,16 @@ class AuthBottomSheet extends StatelessWidget {
             context,
             "Continue with",
             "assets/images/google.png",
-                () => _handleGoogleSignIn(context),
+            loading: _googleLoading,
+            onTap: () => _handleGoogleSignIn(context),
           ),
           SizedBox(height: 10.h),
           _buildSocialButton(
             context,
             "Continue with",
             "assets/images/apple.png",
-                () {},
+            loading: _appleLoading,
+            onTap: () => _handleAppleSignIn(context),
           ),
           SizedBox(height: 10.h),
         ],
@@ -246,14 +258,15 @@ class AuthBottomSheet extends StatelessWidget {
     );
   }
 
-  /// Continue-with-Google from the entry auth sheet — popup-only milestone.
-  ///
-  /// This sheet is a StatelessWidget, so there's no local loading flag;
-  /// [AuthProvider.signInWithGoogle] guards re-entry. On a successful pick we
-  /// just confirm the account via [AppNotify] (no navigation/backend yet —
-  /// pending the senior's decision). A cancelled chooser stays silent.
+  /// Continue-with-Google from the entry auth sheet. Shows a spinner on the
+  /// Google button while signing in; on success routes to AttachPhoneScreen
+  /// (new user) or MainScreen, else shows a toast. A cancelled chooser stays
+  /// silent.
   Future<void> _handleGoogleSignIn(BuildContext context) async {
+    if (_googleLoading || _appleLoading) return;
+    setState(() => _googleLoading = true);
     final result = await context.read<AuthProvider>().signInWithGoogle();
+    if (mounted) setState(() => _googleLoading = false);
     if (!context.mounted) return;
     if (result['cancelled'] == true) return;
     if (result['success'] == true) {
@@ -283,21 +296,47 @@ class AuthBottomSheet extends StatelessWidget {
     }
   }
 
+  /// Continue-with-Apple from the entry auth sheet. Mirrors the login/signup
+  /// screens: a successful Apple sign-in is a full backend login, so we land
+  /// on MainScreen. A cancelled sheet stays silent; errors show a toast.
+  /// (Stateless sheet, so [AuthProvider.signInWithApple] guards re-entry.)
+  Future<void> _handleAppleSignIn(BuildContext context) async {
+    if (_googleLoading || _appleLoading) return;
+    setState(() => _appleLoading = true);
+    final result = await context.read<AuthProvider>().signInWithApple();
+    if (mounted) setState(() => _appleLoading = false);
+    if (!context.mounted) return;
+    if (result['cancelled'] == true) return;
+    if (result['success'] == true) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+        (route) => false,
+      );
+    } else {
+      AppNotify.error((result['message'] as String?)?.isNotEmpty == true
+          ? result['message']
+          : "Apple sign-in failed. Please try again.");
+    }
+  }
+
   Widget _buildGreyButton(BuildContext context, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14.h),
-        decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(25.r),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: AppTextStyle.smallNav.copyWith(
-            color: AppColors.textPrimaryDynamic(context),
+    return Material(
+      color: AppColors.inputFieldBgDynamic(context),
+      borderRadius: BorderRadius.circular(25.r),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(25.r),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 14.h),
+          alignment: Alignment.center,
+          child: Text(
+            text,
+            style: AppTextStyle.smallNav.copyWith(
+              color: AppColors.textPrimaryDynamic(context),
+            ),
           ),
         ),
       ),
@@ -307,39 +346,56 @@ class AuthBottomSheet extends StatelessWidget {
   Widget _buildSocialButton(
       BuildContext context,
       String text,
-      String icon,
-      VoidCallback onTap,
-      ) {
+      String icon, {
+      required bool loading,
+      required VoidCallback onTap,
+      }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // While either social sign-in is running, disable BOTH buttons so the
+    // user can't fire a second one; the tapped button shows the spinner.
+    final bool anyBusy = _googleLoading || _appleLoading;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(25.r),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              text,
-              style: AppTextStyle.smallNav.copyWith(
-                color: AppColors.textPrimaryDynamic(context),
-              ),
-            ),
-            SizedBox(width: 10.w),
-            Image.asset(
-              icon,
-              height: 18.h,
-              // Apple icon ke liye dark mode mein white chahiye
-              color: isDarkMode && icon.contains('apple')
-                  ? Colors.white
-                  : null,
-            ),
-          ],
+    return Material(
+      color: AppColors.inputFieldBgDynamic(context),
+      borderRadius: BorderRadius.circular(25.r),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: anyBusy ? null : onTap,
+        borderRadius: BorderRadius.circular(25.r),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          child: loading
+              ? Center(
+                  child: SizedBox(
+                    height: 18.h,
+                    width: 18.h,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      text,
+                      style: AppTextStyle.smallNav.copyWith(
+                        color: AppColors.textPrimaryDynamic(context),
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Image.asset(
+                      icon,
+                      height: 18.h,
+                      // Apple icon ke liye dark mode mein white chahiye
+                      color: isDarkMode && icon.contains('apple')
+                          ? Colors.white
+                          : null,
+                    ),
+                  ],
+                ),
         ),
       ),
     );
