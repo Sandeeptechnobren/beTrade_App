@@ -2,6 +2,32 @@
 
 ## In Progress
 
+### 2026-06-03 — Complete Google Sign-In (Android + iOS)
+
+Pulled `c1dbf82` (Abhishek's popup-only Google integration: opens chooser, gets idToken, stops — no backend exchange). Standardizing on **betrade-new** Firebase project (Abhishek extended it with OAuth clients; FCM unaffected). Discarding the `vibetrade-6b4af` file.
+
+Backend `/login-with-google`, `/profile/attach-phone`, `/profile/verify-attach-phone`, and the `google_id` column are all live + migrated on the server. Only the `GOOGLE_OAUTH_*` env vars are missing (0 set).
+
+Built via 3 parallel agents against a shared contract (data layer / new screen / screen-wiring — disjoint file sets), then verified the seams with `flutter analyze` (0 errors).
+
+| # | File / target | Change | Status |
+|---|---------------|--------|--------|
+| 1 | `lib/core/config/api_endpoint.dart` | add `loginWithGoogle`, `attachPhone`, `verifyAttachPhone` endpoints | ✅ Done |
+| 2 | `lib/data/services/auth_service.dart` | add `loginWithGoogle(idToken)` (POST {id_token}, store token+doc_status), `attachPhone(phone)`, `verifyAttachPhone(phone,otp)` | ✅ Done |
+| 3 | `lib/data/provider/signin_provider.dart` | rewrite `signInWithGoogle()` → call backend, best-effort FCM save, return {success,cancelled,message,needs_phone,email,doc_status}; add attachPhone/verifyAttachPhone | ✅ Done |
+| 4 | `lib/presentation/screens/signin/attach_phone_screen.dart` (NEW) | phone → OTP → verify → MainScreen (applies the OTP-bug-fix patterns) | ✅ Done |
+| 5 | `lib/presentation/screens/signin/login_screen.dart` | `_handleGoogleSignIn` → needs_phone ? AttachPhone : MainScreen | ✅ Done |
+| 6 | `lib/presentation/screens/splash/signup_screen.dart` | same navigation (+ removed now-dead `_showSuccess`) | ✅ Done |
+| 7 | `lib/presentation/auth/auth_bottom_sheet.dart` | same navigation | ✅ Done |
+| 8 | `ios/Runner/Info.plist` | CFBundleURLTypes = REVERSED_CLIENT_ID | ⏭️ Deferred (iOS round — Android first per user) |
+| 9 | server `.env` | set `GOOGLE_OAUTH_WEB_CLIENT_ID` (…o3mkqr4d1…) + `ANDROID_CLIENT_ID` (…f3ua65m1…); config:cache; apache restart | ✅ Done + verified (endpoint returns 401 "Invalid Google sign-in token" for dummy token = config gate passes) |
+
+**⚠ BLOCKING — user action (Google Cloud Console):** add debug SHA-1 `e4c3a212aca301ad78b695072f91ddae71bdd76a` to the **betrade-new** Android OAuth client (package `com.build.betrade`). Takes effect for the already-installed app (no rebuild needed). Without it, the native chooser throws `ApiException: 10` (DEVELOPER_ERROR).
+
+iOS env (`GOOGLE_OAUTH_IOS_CLIENT_ID` = …27nsvg4v…) + Info.plist URL scheme to be done together in the iOS round.
+
+
+
 ### 2026-06-02 — Client-reported OTP bugs (sign-in flow)
 
 Two bugs raised by client during testing:

@@ -1,4 +1,5 @@
 import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/Gender_step.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/OTP_step.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/authlayout.dart';
@@ -161,16 +162,6 @@ class _SignupScreenState extends State<SignupScreen> {
   void _showError(String message) {
     if (_isDisposed || !mounted) return;
     CustomSnackBar.showError(
-      context,
-      message: message,
-      duration: const Duration(seconds: 3),
-    );
-  }
-
-  void _showSuccess(String message) {
-    if (_isDisposed || !mounted) return;
-
-    CustomSnackBar.showSuccess(
       context,
       message: message,
       duration: const Duration(seconds: 3),
@@ -354,7 +345,23 @@ class _SignupScreenState extends State<SignupScreen> {
       if (result['cancelled'] == true) return;
 
       if (result['success'] == true) {
-        _showSuccess("Signed in as ${result['email'] ?? 'Google account'}");
+        if (_isDisposed || !mounted) return;
+        if (result['needs_phone'] == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AttachPhoneScreen(
+                email: result['email'] as String?,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+            (route) => false,
+          );
+        }
       } else {
         _showError((result['message'] as String?)?.isNotEmpty == true
             ? result['message']

@@ -1,5 +1,6 @@
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
@@ -266,11 +267,23 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['cancelled'] == true) return;
 
       if (result['success'] == true) {
-        CustomSnackBar.showSuccess(
-          context,
-          message: "Signed in as ${result['email'] ?? 'Google account'}",
-          duration: const Duration(seconds: 3),
-        );
+        if (_isDisposed || !mounted) return;
+        if (result['needs_phone'] == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AttachPhoneScreen(
+                email: result['email'] as String?,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+            (route) => false,
+          );
+        }
       } else {
         CustomSnackBar.showError(
           context,

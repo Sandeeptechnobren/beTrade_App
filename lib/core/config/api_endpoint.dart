@@ -105,6 +105,16 @@ class ApiEndpoints {
   // TODO(backend): confirm path — could be /social-login or /sign-in/apple.
   static String get socialLogin => '${EnvConfig.baseUrl}/auth/apple';
 
+  // Continue-with-Google. Backend verifies the Google id_token, creates-or-
+  // fetches the user, and returns a JWT envelope plus a `needs_phone` flag.
+  static String get loginWithGoogle => '${EnvConfig.baseUrl}/login-with-google';
+
+  // Phone attach + OTP verify for Google users who have no phone on file yet.
+  static String get attachPhone => '${EnvConfig.baseUrl}/profile/attach-phone';
+
+  static String get verifyAttachPhone =>
+      '${EnvConfig.baseUrl}/profile/verify-attach-phone';
+
   static String get notificationPreferences =>
       '${EnvConfig.baseUrl}/notificationPreferences';
 

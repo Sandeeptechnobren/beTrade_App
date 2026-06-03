@@ -120,6 +120,8 @@
 
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/signin/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -252,9 +254,28 @@ class AuthBottomSheet extends StatelessWidget {
   /// pending the senior's decision). A cancelled chooser stays silent.
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     final result = await context.read<AuthProvider>().signInWithGoogle();
+    if (!context.mounted) return;
     if (result['cancelled'] == true) return;
     if (result['success'] == true) {
-      AppNotify.success("Signed in as ${result['email'] ?? 'Google account'}");
+      if (result['needs_phone'] == true) {
+        // Dismiss the bottom sheet first, then push the attach-phone screen.
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AttachPhoneScreen(
+              email: result['email'] as String?,
+            ),
+          ),
+        );
+      } else {
+        // pushAndRemoveUntil with (_) => false clears the sheet route too.
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      }
     } else {
       AppNotify.error((result['message'] as String?)?.isNotEmpty == true
           ? result['message']
