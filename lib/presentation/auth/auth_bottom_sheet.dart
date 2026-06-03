@@ -123,6 +123,9 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/signin/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../core/utils/app_notify.dart';
+import '../../data/provider/signin_provider.dart';
 import '../screens/splash/signup_screen.dart';
 import '../widget/purple_button.dart';
 
@@ -226,7 +229,7 @@ class AuthBottomSheet extends StatelessWidget {
             context,
             "Continue with",
             "assets/images/google.png",
-                () {},
+                () => _handleGoogleSignIn(context),
           ),
           SizedBox(height: 10.h),
           _buildSocialButton(
@@ -239,6 +242,24 @@ class AuthBottomSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Continue-with-Google from the entry auth sheet — popup-only milestone.
+  ///
+  /// This sheet is a StatelessWidget, so there's no local loading flag;
+  /// [AuthProvider.signInWithGoogle] guards re-entry. On a successful pick we
+  /// just confirm the account via [AppNotify] (no navigation/backend yet —
+  /// pending the senior's decision). A cancelled chooser stays silent.
+  Future<void> _handleGoogleSignIn(BuildContext context) async {
+    final result = await context.read<AuthProvider>().signInWithGoogle();
+    if (result['cancelled'] == true) return;
+    if (result['success'] == true) {
+      AppNotify.success("Signed in as ${result['email'] ?? 'Google account'}");
+    } else {
+      AppNotify.error((result['message'] as String?)?.isNotEmpty == true
+          ? result['message']
+          : "Sign-in failed. Please try again.");
+    }
   }
 
   Widget _buildGreyButton(BuildContext context, String text, VoidCallback onTap) {

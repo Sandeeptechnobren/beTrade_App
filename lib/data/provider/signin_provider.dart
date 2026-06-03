@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../services/apple_auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -127,6 +129,55 @@ class AuthProvider extends ChangeNotifier {
       debugPrint("🍎 Unexpected Apple sign-in error: $e");
       return {
         "success": false,
+        "message": "Something went wrong. Please try again.",
+      };
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Continue-with-Google — popup-only for now.
+  ///
+  /// Opens the native Google account chooser via [GoogleAuthService] and
+  /// returns a `{success, cancelled, email, displayName, idToken}` envelope.
+  /// The backend exchange (`/auth/google`) is intentionally NOT called yet —
+  /// pending the agreed process. Once known, add an [AuthService.socialLogin]
+  /// call here exactly like [signInWithApple] and return the same
+  /// {success, message, data, doc_upload_status} shape.
+  Future<Map<String, dynamic>> signInWithGoogle() async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final credential = await GoogleAuthService.signIn();
+      debugPrint("🟢 Google sign-in success: ${credential.email}");
+
+      return {
+        "success": true,
+        "cancelled": false,
+        "email": credential.email,
+        "displayName": credential.displayName,
+        "idToken": credential.idToken,
+      };
+    } on GoogleSignInException catch (e) {
+      // User dismissed the chooser — keep the UI silent.
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        debugPrint("🟢 Google sign-in cancelled by user");
+        return {"success": false, "cancelled": true};
+      }
+      debugPrint(
+          "🟢 Google auth error: code=${e.code} message=${e.description}");
+      return {
+        "success": false,
+        "cancelled": false,
+        "message": "Google sign-in failed. Please try again.",
+      };
+    } catch (e) {
+      debugPrint("🟢 Unexpected Google sign-in error: $e");
+      return {
+        "success": false,
+        "cancelled": false,
         "message": "Something went wrong. Please try again.",
       };
     } finally {
