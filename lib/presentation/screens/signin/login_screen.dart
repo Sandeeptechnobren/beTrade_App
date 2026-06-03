@@ -230,6 +230,54 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Continue-with-Google on the Login screen — popup-only milestone.
+  ///
+  /// Opens the Google account chooser; on a successful pick we just confirm
+  /// which account was selected (no navigation/backend yet — that's pending
+  /// the senior's decision). Shares [_isLoading] with the OTP/Apple flows so
+  /// only one can run at a time. A user-cancelled chooser stays silent.
+  Future<void> _handleGoogleSignIn() async {
+    if (_isDisposed || !mounted || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await context.read<AuthProvider>().signInWithGoogle();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed the chooser — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        CustomSnackBar.showSuccess(
+          context,
+          message: "Signed in as ${result['email'] ?? 'Google account'}",
+          duration: const Duration(seconds: 3),
+        );
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: (result['message'] as String?)?.isNotEmpty == true
+              ? result['message']
+              : "Sign-in failed. Please try again.",
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      debugPrint("Google sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      CustomSnackBar.showError(
+        context,
+        message: "Something went wrong. Please try again.",
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   // void _showSnackBar(String message) {
   //   if (_isDisposed || !mounted) return;
   //   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -416,7 +464,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor:
                             AppColors.buttonSecondaryDynamic(context),
                       ),
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
