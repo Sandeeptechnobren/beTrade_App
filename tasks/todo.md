@@ -2,6 +2,26 @@
 
 ## In Progress
 
+### 2026-06-02 — Client-reported OTP bugs (sign-in flow)
+
+Two bugs raised by client during testing:
+1. **"After entering pin the button is not responsive"** — login OTP screen `isOtpComplete` state can desync from the visible cells; button at `otp_screen.dart:412` is gated on `isOtpComplete` and goes `onPressed: null`. Signup OTP has a related issue: failed verify nukes `isOtpValid` but leaves the 6 cells filled, so user sees full input + disabled button.
+2. **"When OTP fails to send it doesn't issue a resend"** — login screen failed `sendLoginOtp` shows only a transient snackbar; the OTP screen (where Resend lives) is never reached. AND when OTP screen IS reached, its `_resendOtp` ignores `status:false` from the API and runs the success path anyway, locking the user for another 30 s on a silently-failed resend.
+
+| # | File | Change | Status |
+|---|------|--------|--------|
+| 1 | `signin/otp_screen.dart` | Button always tappable when `!_isVerifying`; `_verifyOtp` handles "incomplete OTP" message internally | ✅ Done |
+| 2 | `signin/otp_screen.dart` | `_resendOtp` inspects `{status,message}`; only restart cooldown on success; keep Resend tappable on failure | ✅ Done |
+| 3 | `signin/otp_screen.dart` | `_showMessage` actually respects `isError` (was always calling `showError`) | ✅ Done |
+| 4 | `signin/login_screen.dart` | Persistent inline error chip below phone row when send fails; clear on type; button label switches to "Try again" | ✅ Done |
+| 5 | `splash/signup_screen.dart` | On failed verify, stop calling `provider.setOtp("")` + `isOtpValid=false` — leave the user's 6 digits visible so they can correct one cell | ✅ Done |
+
+Backend "fire-and-forget" `dispatchAfterResponse` for WhApi is by design (Phase 2 server hardening would be a separate task). Client-side mitigation = the resend + retry UX above.
+
+Verified: `flutter analyze` on the 3 edited files = 0 errors, no new warnings. Awaiting APK build + user verification on device.
+
+---
+
 ### 2026-06-01 — Flutter-side challenge fixes (branch `feature/challenge`)
 
 Scope: fix only the **Flutter-side** items from the challenges PDF (F1–F18). Backend (B*) / Server (S*) reported to those teams. No commit/push — left for user verification.

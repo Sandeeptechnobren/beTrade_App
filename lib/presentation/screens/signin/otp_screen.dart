@@ -86,12 +86,21 @@ class _OTPScreenState extends State<OTPScreen> {
   void _showMessage(String message, {bool isError = true}) {
     if (_isDisposed || !mounted) return;
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    CustomSnackBar.showError(
-      context,
-      message: message,
-      duration: const Duration(seconds: 3),
-    );
+    // Honour the `isError` flag — previously this always called showError,
+    // so success messages (e.g. "OTP resent successfully") were rendered red.
+    if (isError) {
+      CustomSnackBar.showError(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
+    } else {
+      CustomSnackBar.showSuccess(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   void _navigateToHome(int docUploadStatus) {
@@ -174,13 +183,29 @@ class _OTPScreenState extends State<OTPScreen> {
 
     try {
       final provider = context.read<AuthProvider>();
-      await provider.sendLoginOtp(widget.phone);
+      final result = await provider.sendLoginOtp(widget.phone);
 
       if (_isDisposed || !mounted) return;
 
-      _clearOtpFields();
-      _startTimer();
-      _showMessage("OTP resent successfully", isError: false);
+      // Previously this method ran the success path unconditionally — even
+      // when the API returned `{status: false}` — so a silently-failed
+      // resend reset the 30 s cooldown AND showed "OTP resent successfully".
+      // Now we honour the envelope: only restart the cooldown + clear the
+      // cells when the backend confirmed `status: true`. On failure we keep
+      // the existing cooldown state so the user can immediately retry
+      // (canResend stays true if it was already true).
+      final parsed = _safeParseResult({
+        'success': result['status'] == true,
+        'message': result['message'],
+      });
+
+      if (parsed['success'] == true) {
+        _clearOtpFields();
+        _startTimer();
+        _showMessage("OTP resent successfully", isError: false);
+      } else {
+        _showMessage(parsed['message']);
+      }
     } catch (e) {
       if (_isDisposed || !mounted) return;
       _showMessage("Failed to resend OTP. Please try again.");
@@ -344,7 +369,15 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final isButtonEnabled = isOtpComplete && !_isVerifying && !_isDisposed;
+    // The button is tappable whenever a verify isn't already in flight. We
+    // intentionally drop the `isOtpComplete` gate here — a controller/state
+    // race could leave that flag stale even when all 6 cells visibly have
+    // digits, producing the "button not responsive" bug clients reported.
+    // `_verifyOtp` validates length internally and shows "Please enter
+    // complete OTP" when fewer than 6 digits are present, so the user
+    // always gets feedback on tap.
+    final canTapVerify = !_isVerifying && !_isDisposed;
+    final isButtonEnabled = isOtpComplete && canTapVerify;
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -409,7 +442,7 @@ class _OTPScreenState extends State<OTPScreen> {
               width: double.infinity,
               height: 55.h,
               child: ElevatedButton(
-                onPressed: isButtonEnabled ? _verifyOtp : null,
+                onPressed: canTapVerify ? _verifyOtp : null,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   padding: EdgeInsets.zero,

@@ -25,6 +25,11 @@ class _LoginScreenState extends State<LoginScreen> {
   CountryModel? _selectedCountry;
   bool _isDisposed = false;
   bool _isLoading = false;
+  // Holds the most recent "OTP send failed" message so the UI can show
+  // it as a persistent inline chip below the phone input (not just a
+  // transient snackbar). Cleared when the user edits the phone number
+  // or when a subsequent send succeeds. See `_handleContinue`.
+  String? _lastSendError;
 
   @override
   void initState() {
@@ -158,24 +163,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final parsed = _safeParseResult(result);
       if (parsed['success'] == true) {
+        // Clear any stale error from a previous failed attempt before
+        // navigating away.
+        if (_lastSendError != null) {
+          setState(() => _lastSendError = null);
+        }
         _navigateToOtp(fullPhone);
       } else {
+        // Both surface the transient toast AND set the persistent inline
+        // chip. The toast catches the eye; the chip ensures the failure
+        // doesn't disappear after 3 s, which left the user feeling there
+        // was no retry path. Button label flips to "Try again" via build().
         CustomSnackBar.showError(
           context,
           message: parsed['message'],
           duration: const Duration(seconds: 3),
         );
+        setState(() => _lastSendError = parsed['message']);
       }
     } catch (e) {
       // Network failure / DNS / DioException — surface a user-friendly message
       // rather than leaking the raw exception text.
       debugPrint("Login error: $e");
       if (_isDisposed || !mounted) return;
+      const networkMsg = "Network error. Please check your connection.";
       CustomSnackBar.showError(
         context,
-        message: "Network error. Please check your connection.",
+        message: networkMsg,
         duration: const Duration(seconds: 3),
       );
+      setState(() => _lastSendError = networkMsg);
     } finally {
       if (!_isDisposed && mounted) {
         setState(() => _isLoading = false);
@@ -340,6 +357,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 50.h,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12.r),
+                      border: _lastSendError != null
+                          ? Border.all(
+                              color: AppColors.errorFgDynamic(context),
+                              width: 1,
+                            )
+                          : null,
                     ),
                     child: TextField(
                       controller: _phoneController,
@@ -349,6 +372,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         color: AppColors.textPrimaryDynamic(context),
                       ),
+                      // Clear the persistent error chip the moment the
+                      // user starts editing the number. Without this the
+                      // chip would stick around even after the user fixed
+                      // the typo that caused the failure.
+                      onChanged: (_) {
+                        if (_lastSendError != null) {
+                          setState(() => _lastSendError = null);
+                        }
+                      },
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: AppColors.inputFieldBgDynamic(context),
@@ -386,6 +418,49 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+            // Persistent inline error chip for failed send attempts.
+            // Shown alongside the transient toast so the user keeps a
+            // visible cue (and a clear retry CTA) after the toast fades.
+            // Clears when the user edits the phone number or a send
+            // succeeds — see `_handleContinue` + the phone TextField's
+            // onChanged.
+            if (_lastSendError != null) ...[
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12.w,
+                  vertical: 10.h,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBgDynamic(context),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: AppColors.errorBorderDynamic(context),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 18.sp,
+                      color: AppColors.errorFgDynamic(context),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        _lastSendError!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: AppColors.errorFgDynamic(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const Spacer(),
             _isLoading
                 ? Center(
@@ -394,7 +469,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   )
                 : Button(
-                    title: "Continue",
+                    // Flip the label to "Try again" after a failed send so
+                    // the persistent chip + the button together make the
+                    // retry intent obvious.
+                    title:
+                        _lastSendError != null ? "Try again" : "Continue",
                     onPressed: _handleContinue,
                   ),
             SizedBox(height: 15.h),

@@ -231,17 +231,19 @@ class _SignupScreenState extends State<SignupScreen> {
               // ✅ OTP is correct - Move to Gender page
               next();
             } else {
-              // ❌ OTP is invalid - Stay on OTP page
+              // ❌ OTP is invalid - Stay on OTP page.
+              //
+              // Previously we wiped `isOtpValid = false` AND cleared
+              // `provider.otp` here. That produced the client-reported bug:
+              // the 6 cells in StepOtp still showed the user's input
+              // (their controllers weren't cleared) but the Continue
+              // button became `onPressed: null` — taps felt unresponsive.
+              //
+              // Leave the user's input intact so they can correct a
+              // single digit and retry without re-entering all 6 cells.
+              // Just clear `_isProcessing` to re-enable the button.
               _showError("Invalid OTP. Please try again.");
-
-              // Reset OTP valid state
-              setState(() {
-                isOtpValid = false;
-                _isProcessing = false;
-              });
-
-              // Clear OTP from provider
-              provider.setOtp("");
+              setState(() => _isProcessing = false);
             }
           }
           break;
