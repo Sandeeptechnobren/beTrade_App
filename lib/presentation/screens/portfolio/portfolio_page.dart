@@ -24,13 +24,7 @@ class PortfolioPage extends StatefulWidget {
 
 class _PortfolioPageState extends State<PortfolioPage>
     with SingleTickerProviderStateMixin {
-  // Explicit controller (was DefaultTabController) so we can re-fetch
-  // the Closed list when the user switches to that tab — gives the
-  // Closed Positions tab the same first-load spinner as Open and keeps
-  // it fresh after a sell.
   late final TabController _tabController;
-
-  // Figma tokens (Portfolio screen)
   static const Color _walletBg = Color(0xFF2E1065); // wallet card bg
   static const Color _walletMenuBg = Color(0xFFC178FF); // ··· circle
   static const Color _depositBg = Color(0xFF8E10FC); // Deposit pill
@@ -44,33 +38,22 @@ class _PortfolioPageState extends State<PortfolioPage>
   static const Color _profitGreen = Color(0xFF16A34A);
   static const Color _profitRed = Color(0xFFDC2626);
   static const Color _closeBtnText = Color(0xFF18181B);
-
-  /// Wallet balance visibility toggle — tapped via the eye icon next to
-  /// "Available to trade". Session-only (resets on app restart).
   bool _balanceHidden = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Re-fetch the Closed list each time the user lands on that tab so
-    // the spinner shows (matching Open's first-load behaviour) and the
-    // list reflects any position just closed via a sell.
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       if (_tabController.index == 1 && mounted) {
         context.read<PositionsProvider>().fetchSettledPositions();
       }
     });
-    // Fetch real balance + transactions + open positions on first
-    // paint. WalletProvider replaces the hardcoded "0.00" balance card,
-    // PositionsProvider populates the Open Positions list below.
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<WalletProvider>().fetchBalance();
       context.read<WalletProvider>().fetchTransactions();
-      // P0-C: fire both list fetches in parallel so the Closed
-      // Positions tab is ready when the user switches to it.
       context.read<PositionsProvider>().fetchOpenPositions();
       context.read<PositionsProvider>().fetchSettledPositions();
     });
@@ -95,36 +78,45 @@ class _PortfolioPageState extends State<PortfolioPage>
 
   @override
   Widget build(BuildContext context) {
+    final double tabBarHeight = (48.h).clamp(48.0, 60.0).toDouble();
     return Scaffold(
       appBar: GlobalAppBar(),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
-              child: _walletCard(),
-            ),
-            SizedBox(height: 20.h),
-            _tabBar(),
-            Expanded(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [_openPositions(), _closedPositions()],
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 20.h),
+                child: _walletCard(),
+              ),
+            ),
+            SliverOverlapAbsorber(
+              handle:
+                  NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver: SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedTabBarDelegate(
+                  height: tabBarHeight,
+                  child: ColoredBox(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: _tabBar(),
+                  ),
                 ),
               ),
             ),
           ],
+          body: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: TabBarView(
+              controller: _tabController,
+              children: [_openPositions(), _closedPositions()],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // ─── Wallet card ──────────────────────────────────────────────────
-
-  /// Dark-purple Figma wallet card — `Frame 1000003916` (#2E1065 bg,
-  /// 20.r radius, 16 padding). Header row + balance + 2 pill buttons.
   Widget _walletCard() {
     return Container(
       width: double.infinity,
@@ -140,9 +132,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: "Available to trade" + balance
               Expanded(child: _walletLabelAndBalance()),
-              // Right: ··· menu chip
               Material(
                 color: _walletMenuBg,
                 shape: const CircleBorder(),
@@ -213,8 +203,6 @@ class _PortfolioPageState extends State<PortfolioPage>
       builder: (context, wallet, _) {
         final loading = wallet.isLoadingBalance && wallet.balance == 0;
         final numeric = loading ? '...' : wallet.balance.toStringAsFixed(2);
-        // When hidden, swap the number for fixed-width bullets so the
-        // card doesn't reflow as the real balance changes.
         final display = _balanceHidden ? '••••••' : numeric;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,8 +219,6 @@ class _PortfolioPageState extends State<PortfolioPage>
                   ),
                 ),
                 SizedBox(width: 4.w),
-                // Eye / Eye-slash toggle. Hit target is widened with
-                // Padding so the tap lands comfortably on phone.
                 GestureDetector(
                   onTap: () => setState(() => _balanceHidden = !_balanceHidden),
                   behavior: HitTestBehavior.opaque,
@@ -303,11 +289,6 @@ class _PortfolioPageState extends State<PortfolioPage>
       ),
     );
   }
-
-  // ─── Tabs ─────────────────────────────────────────────────────────
-
-  /// Figma "Frame 1000005059" — labels 16/600 with a 47×6 rounded
-  /// rectangle indicator (#3D006D) sitting below the active label.
   Widget _tabBar() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -338,50 +319,64 @@ class _PortfolioPageState extends State<PortfolioPage>
     );
   }
 
-  // ─── Open positions ───────────────────────────────────────────────
+  Widget _tabScrollView(BuildContext context, Widget bodySliver) {
+    return RefreshIndicator(
+      onRefresh: _refreshAll,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverOverlapInjector(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          ),
+          bodySliver,
+        ],
+      ),
+    );
+  }
 
   Widget _openPositions() {
     return Consumer<PositionsProvider>(
       builder: (context, provider, _) {
-        // First load — show a spinner so users don't see the empty
-        // state flash before data arrives.
+        final Widget body;
         if (provider.isLoadingOpen && provider.openPositions.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (provider.openError != null && provider.openPositions.isEmpty) {
-          return _positionsErrorState(provider);
-        }
-        if (provider.openPositions.isEmpty) {
-          return _emptyOpenPositions();
-        }
-        return RefreshIndicator(
-          onRefresh: _refreshAll,
-          child: ListView.separated(
+          body = const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        } else if (provider.openError != null &&
+            provider.openPositions.isEmpty) {
+          body = SliverFillRemaining(
+            hasScrollBody: false,
+            child: _positionsErrorBody(provider),
+          );
+        } else if (provider.openPositions.isEmpty) {
+          body = SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: _emptyStatePlaceholder(
+                title: "No Open Positions",
+                subtitle:
+                    "When you trade on a market, your active positions will appear here.",
+              ),
+            ),
+          );
+        } else {
+          body = SliverPadding(
             padding: EdgeInsets.symmetric(vertical: 16.h),
-            itemCount: provider.openPositions.length,
-            separatorBuilder: (_, __) => SizedBox(height: 12.h),
-            itemBuilder: (_, i) => _positionCard(provider.openPositions[i]),
-          ),
-        );
+            sliver: SliverList.separated(
+              itemCount: provider.openPositions.length,
+              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              itemBuilder: (_, i) => _positionCard(provider.openPositions[i]),
+            ),
+          );
+        }
+        return _tabScrollView(context, body);
       },
     );
   }
-
-  /// Position card — Figma `Frame 1171276423`.
-  ///   - Outer:   white bg, 1px #E4E4E7, 12 radius, 16 padding, gap 8
-  ///   - Title:   market question 16/400/#09090B
-  ///   - Inner:   #F4F4F5 panel, 6 radius, 12 padding, gap 4
-  ///   - 4 rows:  Entry Price, Prediction, Profit Earned, Shares
-  ///              (label 14/400 #71717A, value 14/500 #71717A; profit
-  ///              flips to #16A34A green / #DC2626 red by sign)
-  ///   - Footer:  "Close position" outlined pill (white bg, 1px border,
-  ///              9999 radius, 44 height, 16/500 #18181B text)
   Widget _positionCard(PositionModel p) {
     final isProfit = p.unrealisedPnlGhs >= 0;
     final profitColor = isProfit ? _profitGreen : _profitRed;
-
-    // Shares: integer if whole, else 2 decimals to match Figma's "119
-    // shares" while still respecting fractional positions ("3.76 shares").
     final sharesText = p.shares == p.shares.roundToDouble()
         ? p.shares.toStringAsFixed(0)
         : p.shares.toStringAsFixed(2);
@@ -453,8 +448,6 @@ class _PortfolioPageState extends State<PortfolioPage>
               ),
             ),
             SizedBox(height: 8.h),
-            // Close position — opens the sell sheet (P0-D). On a
-            // completed sell, refresh + show a confirmation snackbar.
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -520,11 +513,6 @@ class _PortfolioPageState extends State<PortfolioPage>
       ],
     );
   }
-
-  /// Figma empty-state badge — `Frame 1171276360`. An 80×80 document
-  /// illustration (light #F4F4F5 disc + scroll + #D4D4D8 cross badge)
-  /// above a title and an optional subtitle. Reconstructed from shapes
-  /// so the cross stays crisp at any density. Shared by both tabs.
   Widget _emptyStatePlaceholder({required String title, String? subtitle}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -598,101 +586,65 @@ class _PortfolioPageState extends State<PortfolioPage>
     );
   }
 
-  /// Empty state for the Open Positions tab — centered Figma badge.
-  /// Kept inside a scrollable so pull-to-refresh still works.
-  Widget _emptyOpenPositions() {
-    return RefreshIndicator(
-      onRefresh: _refreshAll,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: _emptyStatePlaceholder(
-                  title: "No Open Positions",
-                  subtitle:
-                      "When you trade on a market, your active positions will appear here.",
-                ),
-              ),
+  Widget _positionsErrorBody(PositionsProvider provider) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              provider.openError ?? 'Could not load positions.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.sp),
             ),
-          );
-        },
+            SizedBox(height: 12.h),
+            TextButton(
+              onPressed: () => provider.fetchOpenPositions(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  Widget _positionsErrorState(PositionsProvider provider) {
-    return RefreshIndicator(
-      onRefresh: _refreshAll,
-      child: ListView(
-        children: [
-          SizedBox(height: 60.h),
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                children: [
-                  Text(
-                    provider.openError ?? 'Could not load positions.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13.sp),
-                  ),
-                  SizedBox(height: 12.h),
-                  TextButton(
-                    onPressed: () => provider.fetchOpenPositions(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// P0-C — Closed Positions tab. Reads `provider.settledPositions`
-  /// which is populated by `GET /api/positions?status=settled`. Each
-  /// row carries `realized_pnl_ghs` (positive for winners, negative
-  /// for losers) and `payout_ghs` (non-null only when the user won
-  /// and the SettleMarketJob wrote a Payout row).
   Widget _closedPositions() {
     return Consumer<PositionsProvider>(
       builder: (context, provider, _) {
+        final Widget body;
         if (provider.isLoadingSettled && provider.settledPositions.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (provider.settledPositions.isEmpty) {
-          return Center(
-            child: _emptyStatePlaceholder(title: 'No Closed Positions',       subtitle:
-            "When you trade on a market, your close positions will appear here.",),
+          body = const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        } else if (provider.settledPositions.isEmpty) {
+          body = SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: _emptyStatePlaceholder(
+                title: 'No Closed Positions',
+                subtitle:
+                    "When you trade on a market, your close positions will appear here.",
+              ),
+            ),
+          );
+        } else {
+          body = SliverPadding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            sliver: SliverList.separated(
+              itemCount: provider.settledPositions.length,
+              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              itemBuilder: (_, i) =>
+                  _closedPositionCard(provider.settledPositions[i]),
+            ),
           );
         }
-        return RefreshIndicator(
-          onRefresh: _refreshAll,
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            itemCount: provider.settledPositions.length,
-            separatorBuilder: (_, __) => SizedBox(height: 12.h),
-            itemBuilder: (_, i) =>
-                _closedPositionCard(provider.settledPositions[i]),
-          ),
-        );
+        return _tabScrollView(context, body);
       },
     );
   }
 
-  /// Card for one closed position. Mirrors the open-position layout
-  /// but swaps the "Profit Earned" row for "Realized P&L" + a payout
-  /// row, and replaces the "Close position" button with a dimmed
-  /// status pill (Won / Lost).
   Widget _closedPositionCard(PositionModel p) {
-    // Three closed states:
-    //   - Sold  → exited by selling (settled_at null). Neutral grey.
-    //   - Won   → market resolved in the user's favour.
-    //   - Lost  → market resolved against the user.
     final bool isSettled = p.settledAt != null;
     final String statusLabel;
     final Color statusColor;
@@ -814,9 +766,29 @@ class _PortfolioPageState extends State<PortfolioPage>
   }
 }
 
-/// Figma tab indicator — a 47×6 rounded rectangle (radius 1000) sitting
-/// just below the active label. Matches "Rectangle 248" in
-/// `Frame 1000004991`.
+class _PinnedTabBarDelegate extends SliverPersistentHeaderDelegate {
+  const _PinnedTabBarDelegate({required this.child, required this.height});
+
+  final Widget child;
+  final double height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_PinnedTabBarDelegate oldDelegate) =>
+      oldDelegate.height != height || oldDelegate.child != child;
+}
+
 class _FigmaTabIndicator extends Decoration {
   final Color color;
 
