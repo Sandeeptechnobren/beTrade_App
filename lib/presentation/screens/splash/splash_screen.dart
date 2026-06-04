@@ -3,6 +3,7 @@ import 'package:betrade/presentation/auth/auth_screen.dart';
 import 'package:betrade/presentation/screens/main_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
 import '../../onboarding/onboarding_screen.dart';
@@ -93,8 +94,8 @@ class _SplashScreenState extends State<SplashScreen> {
           Center(
             child: Image.asset(
               "assets/images/IconLogo.png",
-              height: 175,
-              width: 142,
+              height: 175.h,
+              width: 142.w,
               errorBuilder: (context, error, stack) => const SizedBox(),
             ),
           ),

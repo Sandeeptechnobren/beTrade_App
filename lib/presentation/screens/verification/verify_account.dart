@@ -12,6 +12,7 @@ import '../../../core/config/api_endpoint.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/model/country_model.dart';
 import '../../../data/services/local_storage.dart';
+import '../../../data/services/profile_service.dart';
 import '../../widget/customSnackBar.dart';
 import '../camera/camera_screen.dart';
 import '../camera/selfie_camera.dart';
@@ -288,6 +289,11 @@ class _VerificationFlowState extends State<VerificationFlow> {
           await LocalStorage.setDocUploadStatus(1);
           debugPrint("✅ Persisted doc_upload_status = 1 locally");
           debugPrint("==========================================\n");
+          // Google users have no avatar (signup avatar step skipped) — reuse
+          // the KYC selfie as their profile picture. Awaited so the avatar is
+          // in place before we land on Home; best-effort (never throws).
+          await _setSelfieAsAvatarIfNeeded();
+          if (_isDisposed || !mounted) return;
           _showSuccess("KYC submitted successfully!");
           _safeNavigateToHome();
         } else {
@@ -318,6 +324,33 @@ class _VerificationFlowState extends State<VerificationFlow> {
       if (!_isDisposed && mounted) {
         _safeSetState(() => isSubmittingKyc = false);
       }
+    }
+  }
+
+  /// New Google users skip the signup avatar step, so their profile has no
+  /// picture. When such a user finishes KYC, reuse the selfie they just
+  /// uploaded as their profile avatar — via the existing /edit-profile
+  /// endpoint (no backend change). Only fills an EMPTY avatar, so a user who
+  /// already chose a picture during signup is left untouched. Best-effort:
+  /// wrapped in try/catch so it never blocks KYC completion.
+  Future<void> _setSelfieAsAvatarIfNeeded() async {
+    if (selfieImage == null) return;
+    try {
+      final profile = await ProfileService.getProfile();
+      if (profile == null) return;
+      if (profile.avatar.trim().isNotEmpty) {
+        debugPrint("ℹ️ Avatar already set — skipping selfie-as-avatar");
+        return;
+      }
+      debugPrint("🖼️ No avatar on file — setting KYC selfie as profile avatar");
+      await ProfileService.updateProfile(
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        phone: profile.phone ?? '',
+        image: selfieImage,
+      );
+    } catch (e) {
+      debugPrint("Set selfie-as-avatar error (ignored): $e");
     }
   }
 

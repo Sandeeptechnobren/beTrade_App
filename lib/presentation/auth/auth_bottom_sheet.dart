@@ -125,6 +125,7 @@ import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/signin/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../core/utils/app_notify.dart';
 import '../../data/provider/signin_provider.dart';
@@ -240,7 +241,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
           _buildSocialButton(
             context,
             "Continue with",
-            "assets/images/google.png",
+            "assets/svgs/google.svg",
             loading: _googleLoading,
             onTap: () => _handleGoogleSignIn(context),
           ),
@@ -248,7 +249,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
           _buildSocialButton(
             context,
             "Continue with",
-            "assets/images/apple.png",
+            "assets/svgs/apple.svg",
             loading: _appleLoading,
             onTap: () => _handleAppleSignIn(context),
           ),
@@ -258,10 +259,6 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
     );
   }
 
-  /// Continue-with-Google from the entry auth sheet. Shows a spinner on the
-  /// Google button while signing in; on success routes to AttachPhoneScreen
-  /// (new user) or MainScreen, else shows a toast. A cancelled chooser stays
-  /// silent.
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     if (_googleLoading || _appleLoading) return;
     setState(() => _googleLoading = true);
@@ -271,8 +268,6 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
     if (result['cancelled'] == true) return;
     if (result['success'] == true) {
       if (result['needs_phone'] == true) {
-        // Dismiss the bottom sheet first, then push the attach-phone screen.
-        Navigator.pop(context);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -386,12 +381,16 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
                       ),
                     ),
                     SizedBox(width: 10.w),
-                    Image.asset(
+                    SvgPicture.asset(
                       icon,
                       height: 18.h,
-                      // Apple icon ke liye dark mode mein white chahiye
-                      color: isDarkMode && icon.contains('apple')
-                          ? Colors.white
+                      // Apple SVG: dark mein white, light mein black.
+                      // Google SVG (colourful) ko untouched chhodo.
+                      colorFilter: icon.contains('apple')
+                          ? ColorFilter.mode(
+                              isDarkMode ? Colors.white : Colors.black,
+                              BlendMode.srcIn,
+                            )
                           : null,
                     ),
                   ],

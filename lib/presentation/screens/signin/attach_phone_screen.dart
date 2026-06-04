@@ -322,9 +322,17 @@ class _AttachPhoneScreenState extends State<AttachPhoneScreen> {
       final parsed = _safeParseResult(result);
       if (parsed['success'] == true) {
         if (!mounted || _isDisposed) return;
+        // New Google user just attached their phone → land on MainScreen with
+        // the welcome/KYC popup enabled (same as the normal signup success
+        // path). Without showWelcomePopup:true the "verify your details" popup
+        // never appears (it's gated on showWelcomePopup && doc_upload_status==0),
+        // so the user never reaches KYC. doc_upload_status is read from
+        // LocalStorage inside MainScreen (saved by loginWithGoogle).
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
+          MaterialPageRoute(
+            builder: (_) => const MainScreen(showWelcomePopup: true),
+          ),
           (route) => false,
         );
       } else {

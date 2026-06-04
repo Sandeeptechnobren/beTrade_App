@@ -6,6 +6,7 @@ import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
@@ -318,22 +319,6 @@ class _LoginScreenState extends State<LoginScreen> {
   //   );
   // }
 
-  Widget _safeImage(String path,
-      {double? height, double? width, Color? color}) {
-    if (path.isEmpty) return SizedBox(height: height);
-
-    return Image.asset(
-      path,
-      height: height,
-      width: width,
-      color: color,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint(" Missing asset: $path");
-        return SizedBox(height: height, width: width);
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -568,11 +553,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           SizedBox(width: 5.w),
-                          _safeImage(
-                            "assets/images/google.png",
+                          SvgPicture.asset(
+                            "assets/svgs/google.svg",
                             height: 19.h,
                             width: 19.w,
-                            color: isDarkMode ? Colors.white : null,
                           ),
                         ],
                       ),
@@ -609,10 +593,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           SizedBox(width: 2.w),
-                          Icon(
-                            Icons.apple,
-                            size: 24.h,
-                            color: isDarkMode ? Colors.white : Colors.black,
+                          SvgPicture.asset(
+                            "assets/svgs/apple.svg",
+                            height: 20.h,
+                            colorFilter: ColorFilter.mode(
+                              isDarkMode ? Colors.white : Colors.black,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ],
                       ),

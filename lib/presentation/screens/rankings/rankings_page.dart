@@ -143,7 +143,7 @@ class _RankingsPageState extends State<RankingsPage> {
 
   Widget _buildTabBar() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      padding: EdgeInsets.fromLTRB(16.w, 5.h, 16.w, 0.h),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -613,7 +613,6 @@ class _AvatarImage extends StatelessWidget {
   }
 }
 
-// ── Podium background texture (preserved from the Figma design) ─────
 
 class _PodiumPatternPainter extends CustomPainter {
   @override

@@ -8,6 +8,7 @@ import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_name
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../core/animations/success_animation.dart';
 import '../../../core/theme/app_colors.dart';
@@ -411,13 +412,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   SizedBox(width: 5.w),
-                  Image.asset(
-                    "assets/images/google.png",
+                  SvgPicture.asset(
+                    "assets/svgs/google.svg",
                     height: 19.h,
                     width: 19.w,
-                    color: isDarkMode ? Colors.white : null,
-                    errorBuilder: (_, __, ___) =>
-                        SizedBox(height: 19.h, width: 19.w),
                   ),
                 ],
               ),
@@ -454,10 +452,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   SizedBox(width: 2.w),
-                  Icon(
-                    Icons.apple,
-                    size: 24.h,
-                    color: isDarkMode ? Colors.white : Colors.black,
+                  SvgPicture.asset(
+                    "assets/svgs/apple.svg",
+                    height: 20.h,
+                    colorFilter: ColorFilter.mode(
+                      isDarkMode ? Colors.white : Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ],
               ),

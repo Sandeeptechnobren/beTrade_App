@@ -12,7 +12,6 @@ class AuthScreen extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.black,
         image: DecorationImage(
           image: AssetImage("assets/images/splash.png"),
           fit: BoxFit.cover,
@@ -30,8 +29,8 @@ class AuthScreen extends StatelessWidget {
       errorBuilder: (context, error, stackTrace) {
         debugPrint("Logo image missing: $error");
         return Container(
-          height: 80.h,
-          width: 80.w,
+          height: 175.h,
+          width: 142.w,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             shape: BoxShape.circle,
@@ -113,18 +112,6 @@ class AuthScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.center,
                 child: Container(
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
                   child: _buildLogo(),
                 ),
               ),
