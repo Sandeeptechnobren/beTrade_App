@@ -2,6 +2,7 @@ import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -32,16 +33,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int selectedIndex = 0;
   int hintStep = 0;
   bool showHint = false;
   bool _isDisposed = false;
   final ScrollController _scrollController = ScrollController();
 
+  // Loops the swipe/tap hint hand until the user performs the gesture.
+  late final AnimationController _hintCtrl;
+
   @override
   void initState() {
     super.initState();
+    _hintCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
     _scrollController.addListener(() {
       if (!_isDisposed && mounted && _scrollController.hasClients) {
         if (_scrollController.position.pixels >=
@@ -91,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _isDisposed = true;
+    _hintCtrl.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -122,6 +132,105 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint("Close hint error: $e");
     }
+  }
+
+  /// Animated hint hand — nudges left/right for the swipe steps and does a
+  /// tap-pulse for the tap step. Loops via [_hintCtrl] until the user acts.
+  Widget _buildHintHand() {
+    // Figma swipe-hand SVGs for the swipe steps; tap step keeps the Material
+    // tap icon (no tap SVG supplied).
+    final Widget hand = hintStep == 2
+        ? Icon(Icons.touch_app, color: Colors.white, size: 58.sp)
+        : SvgPicture.asset(
+            hintStep == 0
+                ? 'assets/svgs/swipe-left.svg'
+                : 'assets/svgs/swipe-right.svg',
+            width: 58.sp,
+            height: 58.sp,
+          );
+    return AnimatedBuilder(
+      animation: _hintCtrl,
+      builder: (context, child) {
+        final double t = Curves.easeInOut.transform(_hintCtrl.value);
+        if (hintStep == 2) {
+          // Tap step: a ripple ring expands behind a pulsing hand.
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: (1 - t) * 0.6,
+                child: Container(
+                  width: 56.w + 46.w * t,
+                  height: 56.w + 46.w * t,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+              Transform.scale(scale: 1.0 - 0.16 * t, child: child),
+            ],
+          );
+        }
+        // Swipe nudge: left for step 0 (NO), right for step 1 (YES).
+        final double dir = hintStep == 0 ? -1.0 : 1.0;
+        return Transform.translate(
+          offset: Offset(dir * 46 * t, 0),
+          child: child,
+        );
+      },
+      child: hand,
+    );
+  }
+
+  /// The purple swipe arrow for the swipe steps (left for NO, right for YES),
+  /// or a short bar for the tap step — matches the Figma hint. The arrow
+  /// nudges in the swipe direction along with the hand.
+  Widget _hintIndicator() {
+    const Color purple = Color(0xFFC178FF);
+    if (hintStep == 2) {
+      return Container(
+        width: 54.w,
+        height: 4.h,
+        decoration: BoxDecoration(
+          color: purple,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+    final bool toRight = hintStep == 1; // step 0 = left (NO), 1 = right (YES)
+    final Widget line = Container(
+      width: 84.w,
+      height: 4.h,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        gradient: LinearGradient(
+          colors: toRight
+              ? [purple.withValues(alpha: 0.0), purple]
+              : [purple, purple.withValues(alpha: 0.0)],
+        ),
+      ),
+    );
+    final Widget head = Icon(
+      toRight ? Icons.arrow_right : Icons.arrow_left,
+      color: purple,
+      size: 26.sp,
+    );
+    return AnimatedBuilder(
+      animation: _hintCtrl,
+      builder: (context, child) {
+        final double t = Curves.easeInOut.transform(_hintCtrl.value);
+        final double dir = toRight ? 1.0 : -1.0;
+        return Transform.translate(
+          offset: Offset(dir * 14 * t, 0),
+          child: child,
+        );
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: toRight ? [line, head] : [head, line],
+      ),
+    );
   }
 
   @override
@@ -255,16 +364,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
                   if (hintStep == 2) {
+                    HapticFeedback.mediumImpact(); // confirm the tap
                     await _closeHint();
                   }
                 },
                 onHorizontalDragUpdate: (details) {
                   if (!showHint || _isDisposed) return;
                   if (details.delta.dx < -8 && hintStep == 0) {
+                    HapticFeedback.mediumImpact(); // confirm the left swipe
                     _safeSetState(() {
                       hintStep = 1;
                     });
                   } else if (details.delta.dx > 8 && hintStep == 1) {
+                    HapticFeedback.mediumImpact(); // confirm the right swipe
                     _safeSetState(() {
                       hintStep = 2;
                     });
@@ -281,29 +393,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         key: ValueKey(hintStep),
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            hintStep == 0
-                                ? Icons.swipe_left
-                                : hintStep == 1
-                                ? Icons.swipe_right
-                                : Icons.touch_app,
-                            color: Colors.white,
-                            size: 60,
-                          ),
+                          _buildHintHand(),
                           SizedBox(height: 20.h),
                           Text(
                             hintStep == 0
                                 ? "SWIPE LEFT FOR NO"
                                 : hintStep == 1
                                 ? "SWIPE RIGHT FOR YES"
-                                : "TAP TO VIEW DETAILS",
+                                : "TAP TO VIEW THE DETAILS",
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 10.h),
+                          SizedBox(height: 14.h),
+                          _hintIndicator(),
+                          SizedBox(height: 14.h),
                           Text(
                             hintStep == 0
                                 ? "You're not convinced."
@@ -376,7 +482,42 @@ class PollCard extends StatefulWidget {
   State<PollCard> createState() => _PollCardState();
 }
 
-class _PollCardState extends State<PollCard> {
+class _PollCardState extends State<PollCard>
+    with SingleTickerProviderStateMixin {
+  // Live horizontal drag offset (px): >0 = swiping right (YES), <0 = left (NO).
+  double _dragDx = 0;
+
+  // Drives the smooth spring-back to centre after each release.
+  late final AnimationController _swipeCtrl;
+  Animation<double>? _springAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _swipeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    )..addListener(() {
+        if (_springAnim != null && mounted) {
+          setState(() => _dragDx = _springAnim!.value);
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _swipeCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Glide the card smoothly back to centre (runs on every release).
+  void _springBack() {
+    _springAnim = Tween<double>(begin: _dragDx, end: 0).animate(
+      CurvedAnimation(parent: _swipeCtrl, curve: Curves.easeOutCubic),
+    );
+    _swipeCtrl.forward(from: 0);
+  }
+
   /// Swipe and tap both open the same `TradePage` bottom sheet (one
   /// consistent UX) but they differ in how the cost is set:
   ///
@@ -476,21 +617,35 @@ class _PollCardState extends State<PollCard> {
         );
       },
 
-      // 👇 SWIPE LOGIC HERE
+      // 👇 SWIPE LOGIC + live direction feedback (YES = right / NO = left)
+      onHorizontalDragStart: (_) => _swipeCtrl.stop(),
+      onHorizontalDragUpdate: (details) {
+        if (!mounted) return;
+        setState(() => _dragDx += details.delta.dx);
+      },
       onHorizontalDragEnd: (details) {
-        double velocity = details.primaryVelocity ?? 0;
+        final double velocity = details.primaryVelocity ?? 0;
+        final double dx = _dragDx;
+        final double w = MediaQuery.of(context).size.width;
 
-        if (velocity.abs() < 300) return;
+        // Commit on a quick flick OR a far-enough drag.
+        final bool committed = velocity.abs() >= 300 || dx.abs() > w * 0.28;
 
-        if (velocity > 0) {
-          _handleSwipe("yes"); // 👉 RIGHT
-        } else {
-          _handleSwipe("no"); // 👈 LEFT
-        }
+        // Always glide the card back to centre (smooth, not a jump).
+        _springBack();
+
+        if (!committed) return;
+        // Direction from the drag, falling back to the flick velocity.
+        final bool goYes = (dx != 0 ? dx : velocity) > 0;
+        _handleSwipe(goYes ? "yes" : "no"); // 👉 yes = right, 👈 no = left
       },
 
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
+        // Follow the finger + a subtle tilt — production swipe feel.
+        transform: Matrix4.translationValues(_dragDx, 0, 0)
+          ..rotateZ(_dragDx / MediaQuery.of(context).size.width * 0.22),
+        transformAlignment: Alignment.center,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30.r),
           child: Container(
@@ -591,9 +746,56 @@ class _PollCardState extends State<PollCard> {
                     ],
                   ),
                 ),
+
+                // 👉 Swipe-right (YES) stamp — fades in as you drag right.
+                Positioned(
+                  top: 80.h,
+                  left: 24.w,
+                  child: Opacity(
+                    opacity: (_dragDx / 90).clamp(0.0, 1.0),
+                    child: Transform.rotate(
+                      angle: -0.35,
+                      child: _swipeStamp("YES", const Color(0xFF22C55E)),
+                    ),
+                  ),
+                ),
+                // 👈 Swipe-left (NO) stamp — fades in as you drag left.
+                Positioned(
+                  top: 80.h,
+                  right: 24.w,
+                  child: Opacity(
+                    opacity: (-_dragDx / 90).clamp(0.0, 1.0),
+                    child: Transform.rotate(
+                      angle: 0.35,
+                      child: _swipeStamp("NO", const Color(0xFFEF4444)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Tinder-style stamp shown over the card while swiping
+  /// (YES = right / green, NO = left / red). Opacity is driven by [_dragDx].
+  Widget _swipeStamp(String text, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        border: Border.all(color: color, width: 4),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 34.sp,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
         ),
       ),
     );

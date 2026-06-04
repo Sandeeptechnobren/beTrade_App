@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
@@ -11,6 +12,35 @@ import 'package:provider/provider.dart';
 
 class AuthService {
 
+  /// Dev helper: surfaces the OTP from a send-OTP API response so testers
+  /// don't have to ask the backend. Many dev/staging backends echo the OTP
+  /// in the response — if found it's printed prominently; otherwise the full
+  /// response is logged (the OTP was likely sent via SMS only). Scans the
+  /// common key names + a couple of nested spots.
+  static void _logOtp(String where, dynamic data) {
+    // Debug builds only — never surface the OTP in a release build.
+    if (!kDebugMode) return;
+    try {
+      Object? pick(dynamic m) => (m is Map)
+          ? (m['otp'] ??
+              m['code'] ??
+              m['otp_code'] ??
+              m['OTP'] ??
+              m['verification_code'])
+          : null;
+      final otp = pick(data) ??
+          (data is Map ? pick(data['data']) : null) ??
+          (data is Map ? pick(data['user']) : null);
+      if (otp != null) {
+        debugPrint("🔑🔑🔑 [$where] OTP = $otp 🔑🔑🔑");
+      } else {
+        debugPrint("🔑 [$where] No OTP field in response (likely SMS-only). "
+            "Full response: $data");
+      }
+    } catch (e) {
+      debugPrint("🔑 [$where] OTP log error: $e");
+    }
+  }
 
   Future<Map<String, dynamic>> sendOtp(String phone) async {
     try {
@@ -23,6 +53,7 @@ class AuthService {
 
       print("STATUS: ${response.statusCode}");
       print("RESPONSE: ${response.data}");
+      _logOtp("Signup", response.data);
 
       // SUCCESS
       if (response.statusCode == 200) {
@@ -175,6 +206,7 @@ class AuthService {
           "phone": phone,
         },
       );
+      _logOtp("Login", response.data);
 
       // ✅ SUCCESS CASE
       if (response.statusCode == 200 && response.data["status"] == true) {
@@ -291,6 +323,7 @@ class AuthService {
         ApiEndpoints.login,
         data: {"phone": phone},
       );
+      _logOtp("Login", response.data);
 
       final data = response.data;
       if (data is Map) {
@@ -614,6 +647,7 @@ class AuthService {
 
       print("ATTACH PHONE STATUS: ${response.statusCode}");
       print("ATTACH PHONE RESPONSE: ${response.data}");
+      _logOtp("Google attach-phone", response.data);
 
       final data = response.data;
       if (data is Map) {
