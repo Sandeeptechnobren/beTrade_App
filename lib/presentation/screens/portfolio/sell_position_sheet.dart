@@ -177,7 +177,7 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppColors.borderDynamic(context),
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -207,7 +207,9 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Shares to sell ($prediction)',
-                    style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700)),
+                    style: TextStyle(
+                        fontSize: 13.sp,
+                        color: AppColors.textSecondaryDynamic(context))),
                 Text(
                   _sharesToSell.toStringAsFixed(
                       _sharesToSell == _sharesToSell.roundToDouble() ? 0 : 2),
@@ -230,7 +232,10 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('0', style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                Text('0',
+                    style: TextStyle(
+                        fontSize: 11.sp,
+                        color: AppColors.textSecondaryDynamic(context))),
                 TextButton(
                   onPressed: _submitting
                       ? null
@@ -265,7 +270,8 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
                         SizedBox(width: 10.w),
                         Text('Fetching quote…',
                             style: TextStyle(
-                                fontSize: 13.sp, color: Colors.grey.shade700)),
+                                fontSize: 13.sp,
+                                color: AppColors.textSecondaryDynamic(context))),
                       ],
                     )
                   : Column(
@@ -338,7 +344,7 @@ class _SellPositionSheetState extends State<SellPositionSheet> {
               fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
               color: bold
                   ? AppColors.textPrimaryDynamic(context)
-                  : Colors.grey.shade700,
+                  : AppColors.textSecondaryDynamic(context),
             )),
         Text(value,
             style: TextStyle(

@@ -23,6 +23,7 @@ import 'data/provider/profile_provider.dart';
 import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
 import 'data/provider/theme_provider.dart';
+import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 import 'core/utils/app_notify.dart';
 import 'data/services/local_storage.dart';
@@ -224,18 +225,8 @@ class MyApp extends StatelessWidget {
                 title: "BeTrade",
                 debugShowCheckedModeBanner: false,
                 themeMode: themeProvider.themeMode,
-                theme: ThemeData(
-                  brightness: Brightness.light,
-                  scaffoldBackgroundColor: Colors.white,
-                  useMaterial3: true,
-                ),
-                darkTheme: ThemeData(
-                  brightness: Brightness.dark,
-                  scaffoldBackgroundColor: const Color(
-                    0xFF121212,
-                  ),
-                  useMaterial3: true,
-                ),
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
                 home: const SplashScreen(),
               );
             },

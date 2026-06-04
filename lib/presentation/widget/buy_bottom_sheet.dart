@@ -152,7 +152,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: AppColors.borderDynamic(context),
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -183,6 +183,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ],
@@ -193,7 +194,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                 widget.marketTitle!,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -295,7 +296,9 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
           children: [
             Text(
               _quoteError ?? 'Could not fetch quote.',
-              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700),
+              style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textSecondaryDynamic(context)),
             ),
             SizedBox(height: 8.h),
             TextButton(onPressed: _fetchQuote, child: const Text('Retry')),
@@ -353,7 +356,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
             label,
             style: TextStyle(
               fontSize: 13.sp,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           Text(
@@ -361,7 +364,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
             style: TextStyle(
               fontSize: emphasised ? 14.sp : 13.sp,
               fontWeight: emphasised ? FontWeight.w700 : FontWeight.w500,
-              color: color,
+              color: color ?? AppColors.textPrimaryDynamic(context),
             ),
           ),
         ],

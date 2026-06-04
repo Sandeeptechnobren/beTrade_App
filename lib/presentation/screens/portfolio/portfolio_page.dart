@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/utils/app_notify.dart';
 import 'package:betrade/data/model/position_model.dart';
 import 'package:betrade/data/provider/positions_provider.dart';
@@ -28,13 +29,7 @@ class _PortfolioPageState extends State<PortfolioPage>
   static const Color _walletBg = Color(0xFF2E1065); // wallet card bg
   static const Color _walletMenuBg = Color(0xFFC178FF); // ··· circle
   static const Color _depositBg = Color(0xFF8E10FC); // Deposit pill
-  static const Color _tabActiveColor = Color(0xFF09090B);
-  static const Color _tabInactiveColor = Color(0xFF71717A);
   static const Color _tabIndicatorColor = Color(0xFF3D006D);
-  static const Color _cardBorder = Color(0xFFE4E4E7);
-  static const Color _cardTitleColor = Color(0xFF09090B);
-  static const Color _innerPanelBg = Color(0xFFF4F4F5);
-  static const Color _labelMuted = Color(0xFF71717A);
   static const Color _profitGreen = Color(0xFF16A34A);
   static const Color _profitRed = Color(0xFFDC2626);
   static const Color _closeBtnText = Color(0xFF18181B);
@@ -294,8 +289,8 @@ class _PortfolioPageState extends State<PortfolioPage>
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: TabBar(
         controller: _tabController,
-        labelColor: _tabActiveColor,
-        unselectedLabelColor: _tabInactiveColor,
+        labelColor: AppColors.textPrimaryDynamic(context),
+        unselectedLabelColor: AppColors.textSecondaryDynamic(context),
         labelStyle: TextStyle(
           fontFamily: 'SFProRounded',
           fontSize: 16.sp,
@@ -310,7 +305,11 @@ class _PortfolioPageState extends State<PortfolioPage>
         ),
         indicatorSize: TabBarIndicatorSize.label,
         labelPadding: EdgeInsets.symmetric(horizontal: 12.w),
-        indicator: _FigmaTabIndicator(color: _tabIndicatorColor),
+        indicator: _FigmaTabIndicator(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.primary
+              : _tabIndicatorColor,
+        ),
         tabs: const [
           Tab(text: "Open Positions"),
           Tab(text: "Closed Positions"),
@@ -405,8 +404,8 @@ class _PortfolioPageState extends State<PortfolioPage>
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: _cardBorder, width: 1),
+          color: AppColors.cardBackgroundDynamic(context),
+          border: Border.all(color: AppColors.borderDynamic(context), width: 1),
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Column(
@@ -421,7 +420,7 @@ class _PortfolioPageState extends State<PortfolioPage>
                 fontFamily: 'SFProRounded',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
-                color: _cardTitleColor,
+                color: AppColors.textPrimaryDynamic(context),
                 height: 1.4,
               ),
             ),
@@ -430,7 +429,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             Container(
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                color: _innerPanelBg,
+                color: AppColors.iconContainerDynamic(context),
                 borderRadius: BorderRadius.circular(6.r),
               ),
               child: Column(
@@ -462,8 +461,9 @@ class _PortfolioPageState extends State<PortfolioPage>
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: _cardBorder, width: 1),
+                  backgroundColor: AppColors.cardBackgroundDynamic(context),
+                  side: BorderSide(
+                      color: AppColors.borderDynamic(context), width: 1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(9999),
                   ),
@@ -475,7 +475,7 @@ class _PortfolioPageState extends State<PortfolioPage>
                     fontFamily: 'SFProRounded',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
-                    color: _closeBtnText,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ),
@@ -496,7 +496,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             fontFamily: 'SFProRounded',
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
-            color: _labelMuted,
+            color: AppColors.textSecondaryDynamic(context),
             height: 1.4,
           ),
         ),
@@ -506,7 +506,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             fontFamily: 'SFProRounded',
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
-            color: valueColor ?? _labelMuted,
+            color: valueColor ?? AppColors.textSecondaryDynamic(context),
             height: 1.4,
           ),
         ),
@@ -527,8 +527,8 @@ class _PortfolioPageState extends State<PortfolioPage>
               Container(
                 width: 80.w,
                 height: 80.w,
-                decoration: const BoxDecoration(
-                  color: _innerPanelBg,
+                decoration: BoxDecoration(
+                  color: AppColors.iconContainerDynamic(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -562,7 +562,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
             height: 1.4,
-            color: _cardTitleColor, // #09090B
+            color: AppColors.textPrimaryDynamic(context), // #09090B
           ),
         ),
         if (subtitle != null) ...[
@@ -577,7 +577,7 @@ class _PortfolioPageState extends State<PortfolioPage>
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
                 height: 1.4,
-                color: _labelMuted, // #71717A
+                color: AppColors.textSecondaryDynamic(context), // #71717A
               ),
             ),
           ),
@@ -650,7 +650,8 @@ class _PortfolioPageState extends State<PortfolioPage>
     final Color statusColor;
     if (!isSettled) {
       statusLabel = 'Sold';
-      statusColor = _labelMuted; // neutral — neither win nor loss
+      statusColor =
+          AppColors.textSecondaryDynamic(context); // neutral — neither win nor loss
     } else if (p.outcomeIsWinner == true) {
       statusLabel = 'Won';
       statusColor = _profitGreen;
@@ -690,8 +691,8 @@ class _PortfolioPageState extends State<PortfolioPage>
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: _cardBorder, width: 1),
+          color: AppColors.cardBackgroundDynamic(context),
+          border: Border.all(color: AppColors.borderDynamic(context), width: 1),
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Column(
@@ -705,7 +706,7 @@ class _PortfolioPageState extends State<PortfolioPage>
                 fontFamily: 'SFProRounded',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
-                color: _cardTitleColor,
+                color: AppColors.textPrimaryDynamic(context),
                 height: 1.4,
               ),
             ),
@@ -713,7 +714,7 @@ class _PortfolioPageState extends State<PortfolioPage>
             Container(
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                color: _innerPanelBg,
+                color: AppColors.iconContainerDynamic(context),
                 borderRadius: BorderRadius.circular(6.r),
               ),
               child: Column(

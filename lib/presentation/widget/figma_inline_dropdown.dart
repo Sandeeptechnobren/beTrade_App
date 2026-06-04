@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -49,12 +50,11 @@ class FigmaInlineDropdown<T> extends StatefulWidget {
 }
 
 class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
-  static const Color _inputBg = Color(0xFFF4F4F5);
-  static const Color _inputText = Color(0xFF09090B);
-  static const Color _hintColor = Color(0xFFA1A1AA);
-  static const Color _chevron = Color(0xFF1C274C);
-  static const Color _panelBorder = Color(0xFFF4F4F5);
-  static const Color _selectedBg = Color(0xFFF3E6FF);
+  // Selected-item highlight. Light keeps the Figma light-violet (#F3E6FF);
+  // dark uses violet-950 so the white label on top stays readable (the
+  // light tint would render white-on-near-white in dark mode).
+  static const Color _selectedBgLight = Color(0xFFF3E6FF);
+  static const Color _selectedBgDark = Color(0xFF2E1065);
 
   bool _isOpen = false;
 
@@ -84,7 +84,7 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
             height: 62.h,
             padding: EdgeInsets.symmetric(horizontal: 24.w),
             decoration: BoxDecoration(
-              color: _inputBg,
+              color: AppColors.iconContainerDynamic(context),
               borderRadius: BorderRadius.circular(16.r),
             ),
             child: Row(
@@ -97,7 +97,9 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
                       fontFamily: 'SFProRounded',
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w500,
-                      color: showHint ? _hintColor : _inputText,
+                      color: showHint
+                          ? AppColors.textSecondaryDynamic(context)
+                          : AppColors.textPrimaryDynamic(context),
                     ),
                   ),
                 ),
@@ -108,7 +110,7 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 24.sp,
-                    color: _chevron,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ],
@@ -132,9 +134,9 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
       margin: EdgeInsets.only(top: 8.h),
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: _panelBorder, width: 1),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -164,7 +166,11 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
                 padding:
                     EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
                 decoration: BoxDecoration(
-                  color: isSelected ? _selectedBg : Colors.transparent,
+                  color: isSelected
+                      ? (Theme.of(context).brightness == Brightness.dark
+                          ? _selectedBgDark
+                          : _selectedBgLight)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(6.r),
                 ),
                 child: Row(
@@ -176,7 +182,7 @@ class _FigmaInlineDropdownState<T> extends State<FigmaInlineDropdown<T>> {
                           fontFamily: 'SFProRounded',
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w400,
-                          color: _inputText,
+                          color: AppColors.textPrimaryDynamic(context),
                         ),
                       ),
                     ),

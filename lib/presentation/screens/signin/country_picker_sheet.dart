@@ -680,7 +680,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                 "($phoneCode)",
                 style: TextStyle(
                   fontSize: 13.sp,
-
+                  color: AppColors.textSecondaryDynamic(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -775,7 +775,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
           ),
           SizedBox(height: 5.h,),
           Divider(
-            color: Colors.grey,
+            color: AppColors.borderDynamic(context),
             thickness: 0.5,
           ),
           SizedBox(height: 3.h),
@@ -786,7 +786,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                 if (provider.isLoading) {
                   return Center(
                     child: CircularProgressIndicator(
-                      color:AppColors.inputFieldBg,
+                      color: AppColors.primary,
                     ),
                   );
                 }

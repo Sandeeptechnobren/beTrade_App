@@ -101,13 +101,13 @@ class CustomBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  Widget buildNavImage(String path, int index) {
+  Widget buildNavImage(String path, int index, Color unselectedColor) {
     return SvgPicture.asset(
       path,
       width: 22.w,
       height: 22.h,
       colorFilter: ColorFilter.mode(
-        currentIndex == index ? AppColors.primary : Colors.grey,
+        currentIndex == index ? AppColors.primary : unselectedColor,
         BlendMode.srcIn,
       ),
     );
@@ -115,43 +115,50 @@ class CustomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Theme-aware nav colors: bg follows the surface token, unselected
+    // icons/labels use the secondary-text grey for the active brightness.
+    final scheme = Theme.of(context).colorScheme;
+    final unselected = scheme.brightness == Brightness.dark
+        ? const Color(0xFFB3B3B3)
+        : Colors.grey;
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
+      backgroundColor: scheme.surface,
       selectedItemColor: AppColors.primary,
-      unselectedItemColor: Colors.grey,
+      unselectedItemColor: unselected,
       selectedLabelStyle: AppTextStyle.smallNav,
       unselectedLabelStyle: AppTextStyle.smallNav,
 
       items: [
         /// Home
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/svgs/Home.svg", 0),
+          icon: buildNavImage("assets/svgs/Home.svg", 0, unselected),
           label: "Home",
         ),
 
         /// Explore
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/svgs/search.svg", 1),
+          icon: buildNavImage("assets/svgs/search.svg", 1, unselected),
           label: "Explore",
         ),
 
         /// Rankings
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/svgs/ranking.svg", 2),
+          icon: buildNavImage("assets/svgs/ranking.svg", 2, unselected),
           label: "Rankings",
         ),
 
         /// Portfolio
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/svgs/money.svg", 3),
+          icon: buildNavImage("assets/svgs/money.svg", 3, unselected),
           label: "Portfolio",
         ),
 
         /// Profile
         BottomNavigationBarItem(
-          icon: buildNavImage("assets/svgs/Profile.svg", 4),
+          icon: buildNavImage("assets/svgs/Profile.svg", 4, unselected),
           label: "Profile",
         ),
       ],

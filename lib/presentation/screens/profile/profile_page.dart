@@ -43,7 +43,6 @@ class _ProfilePageState extends State<ProfilePage> {
   static const Color _textBodyLight = Color(0xFF3F3F46);
   static const Color _textMutedLight = Color(0xFF52525B);
   static const Color _avatarRing = Color(0xFFD9ADFF);
-  static const Color _switchTrackOff = Color(0xFFE4E4E7);
 
   Color _cardBg(BuildContext c) => Theme.of(c).brightness == Brightness.dark
       ? const Color(0xFF1C1C1E)
@@ -177,12 +176,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     CircleAvatar(
                       radius: 38.r,
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: AppColors.iconContainerDynamic(context),
                       backgroundImage: profile?.avatar.isNotEmpty == true
                           ? NetworkImage(profile.avatar)
                           : null,
                       child: profile?.avatar.isEmpty ?? true
-                          ? Icon(Icons.person, size: 30.sp, color: Colors.grey)
+                          ? Icon(Icons.person,
+                              size: 30.sp,
+                              color: AppColors.textSecondaryDynamic(context))
                           : null,
                     ),
                     Container(
@@ -590,7 +591,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         _FigmaSwitch(
           value: themeProvider.isDark,
-          trackOff: _switchTrackOff,
+          trackOff: AppColors.borderDynamic(context),
           trackOn: AppColors.primary,
           onChanged: (v) => themeProvider.toggleTheme(v),
         ),

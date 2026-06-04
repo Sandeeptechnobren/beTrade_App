@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF5F6FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -64,12 +65,13 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 35.r,
-                                backgroundColor: Colors.white,
+                                backgroundColor:
+                                    AppColors.iconContainerDynamic(context),
                                 backgroundImage: profile.avatar.isNotEmpty
                                     ? NetworkImage(profile.avatar)
                                     : null,
                                 child: profile.avatar.isEmpty
-                                    ? Icon(Icons.person, size: 30.sp, color: Colors.grey,)
+                                    ? Icon(Icons.person, size: 30.sp, color: AppColors.textSecondaryDynamic(context),)
                                     : null,
                               ),
                               SizedBox(width: 15.w),
@@ -121,21 +123,25 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                         SizedBox(height: 25.h),
                         _sectionTitle("Personal Info"),
                         _buildTile(
+                          context,
                           Icons.person,
                           "First Name",
                           profile.firstName,
                         ),
                         _buildTile(
+                          context,
                           Icons.person_outline,
                           "Last Name",
                           profile.lastName,
                         ),
                         _buildTile(
+                          context,
                           Icons.phone,
                           "Phone",
                           profile.phone ?? "N/A",
                         ),
                         _buildTile(
+                          context,
                           Icons.male,
                           "Gender",
                           profile.gender ?? "N/A",
@@ -143,16 +149,19 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                         SizedBox(height: 15.h),
                         _sectionTitle("Preferences"),
                         _buildTile(
+                          context,
                           Icons.flag,
                           "Country",
                           profile.country ?? "N/A",
                         ),
                         _buildTile(
+                          context,
                           Icons.currency_rupee,
                           "Currency",
                           profile.currency ?? "N/A",
                         ),
                         _buildTile(
+                          context,
                           Icons.language,
                           "Language",
                           profile.language ?? "N/A",
@@ -180,12 +189,13 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     );
   }
 
-  Widget _buildTile(IconData icon, String title, String value) {
+  Widget _buildTile(
+      BuildContext context, IconData icon, String title, String value) {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(15.r),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),

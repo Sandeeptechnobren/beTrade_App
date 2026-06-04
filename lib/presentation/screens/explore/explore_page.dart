@@ -178,7 +178,7 @@ class _ExplorePageState extends State<ExplorePage> {
       children: [
         Container(
           alignment: Alignment.center,
-          padding: EdgeInsets.only(left: 24.w, right: 16.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           height: 48.h,
           decoration: BoxDecoration(
             color: AppColors.inputFieldBgDynamic(context),
@@ -204,7 +204,16 @@ class _ExplorePageState extends State<ExplorePage> {
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondaryDynamic(context),
               ),
+              // The Container already provides the grey fill + rounded
+              // shape; kill every InputDecoration border so the global
+              // inputDecorationTheme's outline doesn't leak in here.
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
               isCollapsed: true,
               contentPadding: EdgeInsets.symmetric(vertical: 12.h),
               suffixIcon: _searchController.text.isNotEmpty
@@ -216,10 +225,14 @@ class _ExplorePageState extends State<ExplorePage> {
                       tooltip: "Clear search",
                     )
                   : null,
-              prefixIcon: Icon(Icons.search,
-                  size: 24.sp, color: AppColors.textSecondaryDynamic(context)),
+              prefixIcon: Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: Icon(Icons.search,
+                    size: 20.sp,
+                    color: AppColors.textSecondaryDynamic(context)),
+              ),
               prefixIconConstraints:
-                  BoxConstraints(minHeight: 24.h, minWidth: 32.w),
+                  BoxConstraints(minHeight: 20.h, minWidth: 28.w),
             ),
           ),
         ),

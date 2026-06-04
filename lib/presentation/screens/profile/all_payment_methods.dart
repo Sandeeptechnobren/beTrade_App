@@ -73,7 +73,10 @@ class AllPaymentMethodsPage extends StatelessWidget {
               SizedBox(height: 2.h),
               Text(
                 number,
-                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: AppColors.textSecondaryDynamic(context),
+                ),
               ),
             ],
           ),

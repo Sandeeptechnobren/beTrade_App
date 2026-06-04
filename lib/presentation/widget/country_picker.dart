@@ -173,6 +173,7 @@
 //   }
 // }
 
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -214,7 +215,7 @@ class _CountryPickerBody extends StatelessWidget {
         return Container(
           height: 650.h,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.cardBackgroundDynamic(context),
             borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
           ),
           child: Padding(
@@ -237,10 +238,14 @@ class _CountryPickerBody extends StatelessWidget {
                       child: Container(
                         padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: AppColors.iconContainerDynamic(context),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 16.sp,
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -257,7 +262,7 @@ class _CountryPickerBody extends StatelessWidget {
                 SizedBox(height: 16.h),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppColors.inputFieldBgDynamic(context),
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                   child: TextField(
@@ -331,7 +336,7 @@ class _CountryPickerBody extends StatelessWidget {
                                     country.phoneCode,
                                     style: TextStyle(
                                       fontSize: 14.sp,
-                                      color: Colors.grey.shade700,
+                                      color: AppColors.textSecondaryDynamic(context),
                                     ),
                                   ),
                                 ],

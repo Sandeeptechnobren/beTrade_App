@@ -226,11 +226,14 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   }
 
   Widget _buildTabSwitcher() {
+    // Mirrors the New-Trade Yes/No segmented pill: lighter track
+    // (iconContainerDynamic) with a darker selected segment
+    // (cardBackgroundDynamic) so the active tab reads clearly in dark mode.
     return Container(
-      padding: EdgeInsets.all(3.w),
+      padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(9999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -245,30 +248,22 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   Widget _tabButton(String label, bool selected) {
     return GestureDetector(
       onTap: () => setState(() => _isInfoTab = (label == 'Info')),
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.cardBackgroundDynamic(context)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(18.r),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
+          borderRadius: BorderRadius.circular(99999),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: AppColors.textPrimaryDynamic(context),
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimaryDynamic(context),
           ),
         ),
       ),
@@ -308,7 +303,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
         style: TextStyle(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF3F3F46),
+          color: AppColors.textPrimaryDynamic(context),
         ),
       );
 
@@ -387,7 +382,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F6F6),
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
@@ -398,7 +393,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             "Market Status",
             _capitalize(status),
             valueColor:
-                isOpen ? const Color(0xFF166534) : Colors.grey.shade700,
+                isOpen ? const Color(0xFF166534) : AppColors.textSecondaryDynamic(context),
           ),
           _divider(),
           _activityRow("Total Volume", volume),
@@ -421,7 +416,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             label,
             style: TextStyle(
               fontSize: 14.sp,
-              color: const Color(0xFF71717A),
+              color: AppColors.textSecondaryDynamic(context),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -432,7 +427,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? const Color(0xFF3F3F46),
+                color: valueColor ?? AppColors.textPrimaryDynamic(context),
               ),
             ),
           ),
@@ -443,7 +438,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
   Widget _divider() => Container(
         height: 1,
-        color: const Color(0xFFEDEDED),
+        color: AppColors.borderDynamic(context),
       );
 
   Widget _resolutionCard(TradeDetailModel detail) {
@@ -463,14 +458,14 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F6F6),
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 14.sp,
-          color: const Color(0xFF3F3F46),
+          color: AppColors.textPrimaryDynamic(context),
           fontWeight: FontWeight.w400,
           height: 1.4,
         ),
@@ -492,14 +487,14 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F6F6),
+        color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 14.sp,
-          color: const Color(0xFF3F3F46),
+          color: AppColors.textPrimaryDynamic(context),
           fontWeight: FontWeight.w400,
           height: 1.4,
         ),
@@ -527,36 +522,51 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                 style: TextStyle(
                   fontSize: 24.sp,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF3F3F46),
+                  color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
               // Hardcoded 24h delta badge — needs backend chart endpoint
               // (`/trade/{uuid}/chart`) wired to compute the real delta.
               // See tasks/todo.md.
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(1000.r),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "20%",
-                      style: TextStyle(
-                        color: const Color(0xFF991B1B),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.sp,
-                      ),
+              // Down-delta (loss) badge: light red-50 surface in light mode;
+              // dark red surface in dark mode so the light pink doesn't glow.
+              Builder(
+                builder: (context) {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final badgeBg = isDark
+                      ? const Color(0xFF450A0A) // red-950
+                      : const Color(0xFFFEF2F2); // red-50
+                  final badgeFg = isDark
+                      ? const Color(0xFFFCA5A5) // red-300
+                      : const Color(0xFF991B1B); // red-800
+                  return Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(1000.r),
                     ),
-                    Icon(
-                      Icons.arrow_drop_down,
-                      color: const Color(0xFF991B1B),
-                      size: 18.sp,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "20%",
+                          style: TextStyle(
+                            color: badgeFg,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: badgeFg,
+                          size: 18.sp,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -574,7 +584,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F5),
+        color: AppColors.iconContainerDynamic(context),
         borderRadius: BorderRadius.circular(9999.r),
       ),
       child: Row(
@@ -591,7 +601,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
         duration: const Duration(milliseconds: 160),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected ? AppColors.cardBackgroundDynamic(context) : Colors.transparent,
           borderRadius: BorderRadius.circular(99999.r),
         ),
         alignment: Alignment.center,
@@ -599,7 +609,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           range,
           style: TextStyle(
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: const Color(0xFF09090B),
+            color: AppColors.textPrimaryDynamic(context),
             fontSize: 14.sp,
           ),
         ),
@@ -640,12 +650,12 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           horizontalInterval: 10,
           verticalInterval: 1,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.grey.shade200,
+            color: AppColors.borderDynamic(context),
             strokeWidth: 1,
             dashArray: const [4, 4],
           ),
           getDrawingVerticalLine: (_) => FlLine(
-            color: Colors.grey.shade200,
+            color: AppColors.borderDynamic(context),
             strokeWidth: 1,
             dashArray: const [4, 4],
           ),
@@ -667,7 +677,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                     "${value.toInt()}%",
                     style: TextStyle(
                       fontSize: 10.sp,
-                      color: Colors.grey.shade600,
+                      color: AppColors.textSecondaryDynamic(context),
                     ),
                   ),
                 );

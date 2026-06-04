@@ -132,7 +132,7 @@ class _SelectAvatarSheetState extends State<SelectAvatarSheet> {
                     border: Border.all(
                       color: selected
                           ? AppColors.primary
-                          : const Color(0xFFF4F4F5),
+                          : AppColors.borderDynamic(context),
                       width: selected ? 2.5 : 1,
                     ),
                   ),

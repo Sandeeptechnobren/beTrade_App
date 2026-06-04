@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/model/profile_notification_preferences_model.dart';
 import '../../../data/services/profile_notification_service.dart';
 import '../../widget/common_header.dart';
@@ -27,14 +28,7 @@ class NotificationPreferencesPage extends StatefulWidget {
 class _NotificationPreferencesPageState
     extends State<NotificationPreferencesPage> {
   // Figma tokens
-  static const Color _sheetBg = Color(0xFFFFFFFF);
-  static const Color _cardBg = Color(0xFFFAFAFA);
-  static const Color _hairline = Color(0xFFF4F4F5);
-  static const Color _sectionTitle = Color(0xFF52525B);
-  static const Color _itemTitle = Color(0xFF3F3F46);
-  static const Color _itemSubtitle = Color(0xFF71717A);
   static const Color _switchOn = Color(0xFF6D14B5);
-  static const Color _switchOff = Color(0xFFE4E4E7);
 
   bool _isLoading = true;
   List<NotificationSection> _sections = const [];
@@ -110,7 +104,7 @@ class _NotificationPreferencesPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _sheetBg,
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -145,8 +139,8 @@ class _NotificationPreferencesPageState
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: _cardBg,
-        border: Border.all(color: _hairline, width: 1),
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 1),
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
@@ -158,7 +152,7 @@ class _NotificationPreferencesPageState
               fontFamily: 'SFProRounded',
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
-              color: _sectionTitle,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           SizedBox(height: 16.h),
@@ -188,7 +182,7 @@ class _NotificationPreferencesPageState
                   fontFamily: 'SFProRounded',
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w400,
-                  color: _itemTitle,
+                  color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
               SizedBox(height: 4.h),
@@ -198,7 +192,7 @@ class _NotificationPreferencesPageState
                   fontFamily: 'SFProRounded',
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
-                  color: _itemSubtitle,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
               ),
             ],
@@ -209,7 +203,7 @@ class _NotificationPreferencesPageState
           value: item.isActive,
           onChanged: (v) => _toggleItem(sectionIdx, itemIdx, v),
           trackOn: _switchOn,
-          trackOff: _switchOff,
+          trackOff: AppColors.borderDynamic(context),
         ),
       ],
     );

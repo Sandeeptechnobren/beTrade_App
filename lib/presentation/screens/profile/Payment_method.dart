@@ -47,7 +47,7 @@ class PaymentMethodsPage extends StatelessWidget {
                             ),
                             child: Icon(
                               Icons.close,
-                              color: Colors.grey,
+                              color: AppColors.textSecondaryDynamic(context),
                               size: 30.sp,
                             ),
                           ),
@@ -64,7 +64,7 @@ class PaymentMethodsPage extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.grey,
+                                color: AppColors.textSecondaryDynamic(context),
                               ),
                             ),
                           ),

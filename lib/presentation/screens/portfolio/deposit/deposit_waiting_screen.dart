@@ -69,16 +69,17 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteDynamic(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.whiteDynamic(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back,
+              color: AppColors.textPrimaryDynamic(context)),
           onPressed: () => Navigator.of(context).pop(false),
         ),
         title: Text(
           'Awaiting Payment',
           style: TextStyle(
-            color: Colors.black,
+            color: AppColors.textPrimaryDynamic(context),
             fontSize: 16.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -108,7 +109,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
         Text(
           'Depositing',
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: AppColors.textSecondaryDynamic(context),
             fontSize: 13.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -117,7 +118,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
         Text(
           '${r.amountGhs.toStringAsFixed(2)} GHS',
           style: TextStyle(
-            color: Colors.black,
+            color: AppColors.textPrimaryDynamic(context),
             fontSize: 28.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -126,7 +127,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
         Text(
           'Ref: ${r.ourReference}',
           style: TextStyle(
-            color: Colors.grey.shade500,
+            color: AppColors.textSecondaryDynamic(context),
             fontSize: 11.sp,
             fontFamily: 'monospace',
           ),
@@ -163,7 +164,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
             'gateway — BeTrade never sees it.',
             style: TextStyle(
               fontSize: 13.sp,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           SizedBox(height: 16.h),
@@ -188,7 +189,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
                 'Approve the prompt on your phone within 5 minutes.',
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey.shade800,
+              color: AppColors.textSecondaryDynamic(context),
               height: 1.4,
             ),
           ),
@@ -197,13 +198,13 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
             Row(
               children: [
                 Icon(Icons.timer_outlined,
-                    size: 16.sp, color: Colors.grey.shade600),
+                    size: 16.sp, color: AppColors.textSecondaryDynamic(context)),
                 SizedBox(width: 6.w),
                 Text(
                   'Expires $expiresIn',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondaryDynamic(context),
                   ),
                 ),
               ],
@@ -230,7 +231,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
             'credited automatically.',
             style: TextStyle(
               fontSize: 13.sp,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           SizedBox(height: 16.h),
@@ -253,7 +254,8 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
       body: Text(
         'The payment method "${r.method}" is not recognised by this '
         'build. Update the app and try again.',
-        style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700),
+        style: TextStyle(
+            fontSize: 13.sp, color: AppColors.textSecondaryDynamic(context)),
       ),
     );
   }
@@ -268,7 +270,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.inputFieldBgDynamic(context),
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 0.5),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
@@ -284,7 +286,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
                   style: TextStyle(
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ),
@@ -305,8 +307,8 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 0.5),
         borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
@@ -319,7 +321,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 11.sp,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondaryDynamic(context),
                   ),
                 ),
                 SizedBox(height: 2.h),
@@ -327,7 +329,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
                   value.isEmpty ? '—' : value,
                   style: TextStyle(
                     fontSize: 13.sp,
-                    color: Colors.black,
+                    color: AppColors.textPrimaryDynamic(context),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 2,
@@ -377,7 +379,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
                   : 'Polling paused',
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondaryDynamic(context),
               ),
             ),
           ],
@@ -400,7 +402,7 @@ class _DepositWaitingScreenState extends State<DepositWaitingScreen> {
         child: Text(
           'Cancel',
           style: TextStyle(
-            color: Colors.grey.shade700,
+            color: AppColors.textSecondaryDynamic(context),
             fontSize: 15.sp,
             fontWeight: FontWeight.w600,
           ),

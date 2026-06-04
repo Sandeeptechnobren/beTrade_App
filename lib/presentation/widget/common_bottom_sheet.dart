@@ -31,7 +31,7 @@ class CommonBottomSheet {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20.r),
             child: Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: fixed
                   ? builder(ScrollController())
                   : DraggableScrollableSheet(

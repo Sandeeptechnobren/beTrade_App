@@ -21,7 +21,6 @@ const Color _kTrendSame = Color(0xFFA1A1AA);
 const Color _kRowEven = Color(0xFFFFFFFF);
 const Color _kRowOdd = Color(0xFFFAFAFA);
 const Color _kRowYou = Color(0xFFFAF4FF); // current-user highlight
-const Color _kListText = Color(0xFF27272A);
 const Color _kPodiumSubText = Color(0xFFE4E4E7);
 
 /// Tab index → backend `category` string. Order matches the visible
@@ -459,12 +458,20 @@ class _LeaderboardList extends StatelessWidget {
     if (entries.isEmpty) {
       return const SizedBox.shrink();
     }
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    // Light mode keeps the original white / #FAFAFA zebra. Dark mode uses
+    // the card bg with a faintly lighter odd row so the zebra survives,
+    // and a deep-violet current-user tint instead of the light #FAF4FF.
+    final Color rowEven =
+        isDark ? AppColors.cardBackgroundDynamic(context) : _kRowEven;
+    final Color rowOdd = isDark ? const Color(0xFF242426) : _kRowOdd;
+    final Color rowYou = isDark ? const Color(0xFF2A1E3A) : _kRowYou;
     return Column(
       children: List.generate(entries.length, (i) {
         final r = entries[i];
         final Color bg = r.isCurrentUser
-            ? _kRowYou
-            : (i.isEven ? _kRowEven : _kRowOdd);
+            ? rowYou
+            : (i.isEven ? rowEven : rowOdd);
         return _RankRow(r: r, unit: unit, bg: bg);
       }),
     );
@@ -495,7 +502,7 @@ class _RankRow extends StatelessWidget {
                 fontFamily: AppTextStyle.fontFamily,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
-                color: _kListText,
+                color: AppColors.textPrimaryDynamic(context),
               ),
             ),
           ),
@@ -515,7 +522,7 @@ class _RankRow extends StatelessWidget {
                 fontFamily: AppTextStyle.fontFamily,
                 fontSize: 16.sp,
                 fontWeight: weight,
-                color: _kListText,
+                color: AppColors.textPrimaryDynamic(context),
               ),
             ),
           ),
@@ -526,7 +533,7 @@ class _RankRow extends StatelessWidget {
               fontFamily: AppTextStyle.fontFamily,
               fontSize: 16.sp,
               fontWeight: weight,
-              color: _kListText,
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ),
         ],
@@ -584,12 +591,12 @@ class _AvatarImage extends StatelessWidget {
       return Container(
         width: size,
         height: size,
-        color: const Color(0xFFE4E4E7),
+        color: AppColors.borderDynamic(context),
         alignment: Alignment.center,
         child: Icon(
           Icons.person,
           size: size * 0.6,
-          color: const Color(0xFFA1A1AA),
+          color: AppColors.textSecondaryDynamic(context),
         ),
       );
     }
@@ -601,12 +608,12 @@ class _AvatarImage extends StatelessWidget {
       errorBuilder: (_, __, ___) => Container(
         width: size,
         height: size,
-        color: const Color(0xFFE4E4E7),
+        color: AppColors.borderDynamic(context),
         alignment: Alignment.center,
         child: Icon(
           Icons.person,
           size: size * 0.6,
-          color: const Color(0xFFA1A1AA),
+          color: AppColors.textSecondaryDynamic(context),
         ),
       ),
     );

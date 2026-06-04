@@ -425,7 +425,7 @@ class _StepProfileState extends State<StepProfile> {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
         decoration: BoxDecoration(
           // Figma input row — #F4F4F5, radius 15.6
-          color: const Color(0xFFF4F4F5),
+          color: AppColors.iconContainerDynamic(context),
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(
@@ -439,14 +439,14 @@ class _StepProfileState extends State<StepProfile> {
                   fontFamily: AppTextStyle.fontFamily,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF18181B),
+                  color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
             ),
             Icon(
               Icons.arrow_forward_ios,
               size: 16.sp,
-              color: const Color(0xFF1C274C),
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ],
         ),

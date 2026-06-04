@@ -237,8 +237,6 @@ class _TermsOfServicePageState extends State<TermsOfServicePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: _isLoading
@@ -299,8 +297,7 @@ class _TermsOfServicePageState extends State<TermsOfServicePage> {
               onPressed: _fetchTermsConditions,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor:
-                isDark ? Colors.black : Colors.white,
+                foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: 32.w,
                   vertical: 12.h,

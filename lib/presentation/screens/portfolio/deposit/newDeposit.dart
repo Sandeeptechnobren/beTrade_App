@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/utils/app_notify.dart';
 import 'package:betrade/core/utils/idempotency.dart';
 import 'package:betrade/core/utils/money.dart';
@@ -18,21 +19,13 @@ class DepositPage extends StatefulWidget {
 }
 
 class _DepositPageState extends State<DepositPage> {
-  static const Color _sheetBg = Color(0xFFFFFFFF);
-  static const Color _hairline = Color(0xFFE4E4E7);
-  static const Color _labelColor = Color(0xFF09090B);
-  static const Color _inputBg = Color(0xFFF4F4F5);
-  static const Color _inputText = Color(0xFF09090B);
-  static const Color _hintColor = Color(0xFFA1A1AA);
-  static const Color _stepChipBg = Color(0xFFF4F4F5);
+  // Brand-purple tokens (kept hardcoded — same in light & dark).
   static const Color _stepProgress = Color(0xFF8E10FC);
   static const Color _btnPrimary = Color(0xFF8E10FC);
-  static const Color _chevron = Color(0xFF1C274C);
   // Amount-chip tokens — light-purple fill + purple border when picked,
   // white + thin grey border otherwise. Text stays purple either way.
   static const Color _chipSelectedBg = Color(0xFFF3E6FF);
   static const Color _chipSelectedBorder = Color(0xFF8E10FC);
-  static const Color _chipBorder = Color(0xFFE4E4E7);
   static const Color _chipText = Color(0xFF8E10FC);
 
   // Preset deposit amounts that mirror the Figma chip row.
@@ -178,7 +171,7 @@ class _DepositPageState extends State<DepositPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _sheetBg,
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: Column(
         children: [
           _figmaHeader(),
@@ -222,9 +215,9 @@ class _DepositPageState extends State<DepositPage> {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
       decoration: BoxDecoration(
-        color: _sheetBg,
-        border: const Border(
-          bottom: BorderSide(color: _hairline, width: 1),
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderDynamic(context), width: 1),
         ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(31.r)),
       ),
@@ -240,14 +233,14 @@ class _DepositPageState extends State<DepositPage> {
                   child: Container(
                     height: 36.w,
                     width: 36.w,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _stepChipBg,
+                      color: AppColors.iconContainerDynamic(context),
                     ),
                     child: Icon(
                       Icons.arrow_back_ios_new,
                       size: 16.sp,
-                      color: _chevron,
+                      color: AppColors.textPrimaryDynamic(context),
                     ),
                   ),
                 ),
@@ -259,7 +252,7 @@ class _DepositPageState extends State<DepositPage> {
                       fontFamily: 'SFProRounded',
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w600,
-                      color: _labelColor,
+                      color: AppColors.textPrimaryDynamic(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -284,9 +277,9 @@ class _DepositPageState extends State<DepositPage> {
         alignment: Alignment.center,
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _stepChipBg,
+              color: AppColors.iconContainerDynamic(context),
             ),
           ),
           SizedBox(
@@ -305,7 +298,7 @@ class _DepositPageState extends State<DepositPage> {
               fontFamily: 'SFProRounded',
               fontSize: 15.sp,
               fontWeight: FontWeight.w500,
-              color: _labelColor,
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ),
         ],
@@ -363,9 +356,13 @@ class _DepositPageState extends State<DepositPage> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: selected ? _chipSelectedBg : Colors.white,
+          color: selected
+              ? _chipSelectedBg
+              : AppColors.cardBackgroundDynamic(context),
           border: Border.all(
-            color: selected ? _chipSelectedBorder : _chipBorder,
+            color: selected
+                ? _chipSelectedBorder
+                : AppColors.borderDynamic(context),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(9999),
@@ -505,7 +502,7 @@ class _DepositPageState extends State<DepositPage> {
               errorBuilder: (_, __, ___) => Icon(
                 Icons.phone_android,
                 size: 18.sp,
-                color: _hintColor,
+                color: AppColors.textSecondaryDynamic(context),
               ),
             ),
           );
@@ -527,7 +524,7 @@ class _DepositPageState extends State<DepositPage> {
           fontFamily: 'SFProRounded',
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
-          color: _labelColor,
+          color: AppColors.textPrimaryDynamic(context),
         ),
       );
 
@@ -540,7 +537,7 @@ class _DepositPageState extends State<DepositPage> {
     return Container(
       height: 62.h,
       decoration: BoxDecoration(
-        color: _inputBg,
+        color: AppColors.iconContainerDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: TextField(
@@ -550,7 +547,7 @@ class _DepositPageState extends State<DepositPage> {
           fontFamily: 'SFProRounded',
           fontSize: 16.sp,
           fontWeight: FontWeight.w500,
-          color: _inputText,
+          color: AppColors.textPrimaryDynamic(context),
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
@@ -560,7 +557,7 @@ class _DepositPageState extends State<DepositPage> {
             fontFamily: 'SFProRounded',
             fontSize: 16.sp,
             fontWeight: FontWeight.w500,
-            color: _hintColor,
+            color: AppColors.textSecondaryDynamic(context),
           ),
           contentPadding:
               EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),

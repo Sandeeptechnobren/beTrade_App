@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/widget/common_header.dart';
 import 'package:betrade/presentation/widget/customSnackBar.dart';
@@ -21,11 +22,6 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileState extends State<EditProfile> {
   // Figma tokens (Frame 2609813)
-  static const Color _sheetBg = Color(0xFFFFFFFF);
-  static const Color _labelColor = Color(0xFF09090B);
-  static const Color _inputBg = Color(0xFFF4F4F5);
-  static const Color _inputText = Color(0xFF09090B);
-  static const Color _chevron = Color(0xFF1C274C);
   static const Color _btnPrimary = Color(0xFF8E10FC);
 
   final firstNameController = TextEditingController();
@@ -140,7 +136,7 @@ class _EditProfileState extends State<EditProfile> {
   Widget build(BuildContext context) {
     final provider = Provider.of<ProfileProvider>(context);
     return Scaffold(
-      backgroundColor: _sheetBg,
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -179,20 +175,20 @@ class _EditProfileState extends State<EditProfile> {
         style: TextStyle(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
-          color: _labelColor,
+          color: AppColors.textPrimaryDynamic(context),
           fontFamily: AppTextStyle.fontFamily,
         ),
       );
 
   BoxDecoration get _inputDecoration => BoxDecoration(
-        color: _inputBg,
+        color: AppColors.iconContainerDynamic(context),
         borderRadius: BorderRadius.circular(16.r),
       );
 
   TextStyle get _inputTextStyle => TextStyle(
         fontSize: 16.sp,
         fontWeight: FontWeight.w500,
-        color: _inputText,
+        color: AppColors.textPrimaryDynamic(context),
         fontFamily: AppTextStyle.fontFamily,
       );
 
@@ -235,8 +231,8 @@ class _EditProfileState extends State<EditProfile> {
               value: selectedCountry,
               isExpanded: true,
               icon: Icon(Icons.keyboard_arrow_down,
-                  size: 24.sp, color: _chevron),
-              dropdownColor: _sheetBg,
+                  size: 24.sp, color: AppColors.textPrimaryDynamic(context)),
+              dropdownColor: AppColors.cardBackgroundDynamic(context),
               items: countries.map((e) {
                 return DropdownMenuItem<CountryModel>(
                   value: e,
@@ -291,7 +287,8 @@ class _EditProfileState extends State<EditProfile> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(selectedCurrency ?? '', style: _inputTextStyle),
-              Icon(Icons.keyboard_arrow_down, size: 24.sp, color: _chevron),
+              Icon(Icons.keyboard_arrow_down,
+                  size: 24.sp, color: AppColors.textPrimaryDynamic(context)),
             ],
           ),
         ),
@@ -314,8 +311,8 @@ class _EditProfileState extends State<EditProfile> {
               value: language,
               isExpanded: true,
               icon: Icon(Icons.keyboard_arrow_down,
-                  size: 24.sp, color: _chevron),
-              dropdownColor: _sheetBg,
+                  size: 24.sp, color: AppColors.textPrimaryDynamic(context)),
+              dropdownColor: AppColors.cardBackgroundDynamic(context),
               items: languages.map((e) {
                 return DropdownMenuItem<DropdownItem>(
                   value: e,

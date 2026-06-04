@@ -143,8 +143,6 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: _isLoading
@@ -205,8 +203,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               onPressed: _fetchPrivacyPolicy,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor:
-                isDark ? Colors.black : Colors.white,
+                foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: 32.w,
                   vertical: 12.h,

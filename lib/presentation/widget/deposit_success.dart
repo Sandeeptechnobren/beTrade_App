@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../screens/portfolio/deposit/saved_payment_methods.dart';
 import 'common_bottom_sheet.dart';
 
-/// Figma success-dialog tokens (deposit + withdrawal share the look).
-const Color _dialogBg = Color(0xFFFFFFFF);
-const Color _titleColor = Color(0xFF09090B);
-const Color _bodyColor = Color(0xFFA1A1AA);
+/// Figma success-dialog token for the brand primary pill (deposit +
+/// withdrawal share the look). Surfaces/text are theme-aware via
+/// AppColors `*Dynamic`; this brand violet stays fixed in both modes.
 const Color _primaryBg = Color(0xFF8E10FC);
-const Color _outlineBorder = Color(0xFFE4E4E7);
-const Color _outlineText = Color(0xFF18181B);
 
 /// Deposit success → asks "Save Payment Method" (primary) or "Done".
 ///
@@ -110,7 +108,7 @@ class _FigmaSuccessDialog extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(20.w),
         decoration: BoxDecoration(
-          color: _dialogBg,
+          color: AppColors.cardBackgroundDynamic(context),
           borderRadius: BorderRadius.circular(32.r),
         ),
         child: Column(
@@ -123,7 +121,7 @@ class _FigmaSuccessDialog extends StatelessWidget {
                 fontFamily: 'SFProRounded',
                 fontSize: 20.sp,
                 fontWeight: FontWeight.w600,
-                color: _titleColor,
+                color: AppColors.textPrimaryDynamic(context),
               ),
             ),
             SizedBox(height: 8.h),
@@ -134,7 +132,7 @@ class _FigmaSuccessDialog extends StatelessWidget {
                 fontFamily: 'SFProRounded',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
-                color: _bodyColor,
+                color: AppColors.textSecondaryDynamic(context),
                 height: 1.2,
               ),
             ),
@@ -197,8 +195,8 @@ class _OutlinedPill extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: _outlineBorder, width: 1),
+          backgroundColor: AppColors.cardBackgroundDynamic(context),
+          side: BorderSide(color: AppColors.borderDynamic(context), width: 1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(32.r),
           ),
@@ -209,7 +207,7 @@ class _OutlinedPill extends StatelessWidget {
             fontFamily: 'SFProRounded',
             fontSize: 15.6.sp,
             fontWeight: FontWeight.w700,
-            color: _outlineText,
+            color: AppColors.textPrimaryDynamic(context),
           ),
         ),
       ),

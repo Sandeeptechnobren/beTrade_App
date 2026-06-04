@@ -61,6 +61,7 @@
 //   }
 // }
 
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 
@@ -119,13 +120,16 @@ class StepHeader extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: safeProgress,
                   strokeWidth: 4,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: AppColors.borderDynamic(context),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurple),
                 ),
               ),
               Text(
                 "$displayStep",
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
               ),
             ],
           ),

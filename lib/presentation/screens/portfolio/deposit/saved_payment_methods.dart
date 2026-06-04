@@ -1,3 +1,4 @@
+import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -22,16 +23,9 @@ class SavedPaymentMethodsSheet extends StatefulWidget {
 
 class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
   // Figma tokens (shared with New Deposit sheet)
-  static const Color _sheetBg = Color(0xFFFFFFFF);
-  static const Color _hairline = Color(0xFFE4E4E7);
-  static const Color _labelColor = Color(0xFF09090B);
-  static const Color _stepChipBg = Color(0xFFF4F4F5);
+  // Brand-purple tokens (kept hardcoded — same in light & dark).
   static const Color _stepProgress = Color(0xFF8E10FC);
   static const Color _btnPrimary = Color(0xFF8E10FC);
-  static const Color _chevron = Color(0xFF1C274C);
-  static const Color _panelBg = Color(0xFFF4F4F5);
-  static const Color _mutedText = Color(0xFFA1A1AA);
-  static const Color _radioBorder = Color(0xFFD4D4D8);
 
   // Mock saved methods — swap with provider data when backend lands.
   static const List<_SavedMethod> _mockMethods = [
@@ -60,7 +54,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _sheetBg,
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: Column(
         children: [
           _figmaHeader(),
@@ -73,7 +67,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                   // Saved-methods panel
                   Container(
                     decoration: BoxDecoration(
-                      color: _panelBg,
+                      color: AppColors.iconContainerDynamic(context),
                       borderRadius: BorderRadius.circular(16.r),
                     ),
                     child: Column(
@@ -81,10 +75,10 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                         for (int i = 0; i < _mockMethods.length; i++) ...[
                           _methodRow(_mockMethods[i]),
                           if (i != _mockMethods.length - 1)
-                            const Divider(
+                            Divider(
                               height: 1,
                               thickness: 1,
-                              color: Colors.white,
+                              color: AppColors.cardBackgroundDynamic(context),
                             ),
                         ],
                       ],
@@ -111,9 +105,9 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
       decoration: BoxDecoration(
-        color: _sheetBg,
-        border: const Border(
-          bottom: BorderSide(color: _hairline, width: 1),
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderDynamic(context), width: 1),
         ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(31.r)),
       ),
@@ -128,14 +122,14 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                   child: Container(
                     height: 36.w,
                     width: 36.w,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _stepChipBg,
+                      color: AppColors.iconContainerDynamic(context),
                     ),
                     child: Icon(
                       Icons.arrow_back_ios_new,
                       size: 16.sp,
-                      color: _chevron,
+                      color: AppColors.textPrimaryDynamic(context),
                     ),
                   ),
                 ),
@@ -147,7 +141,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                       fontFamily: 'SFProRounded',
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w600,
-                      color: _labelColor,
+                      color: AppColors.textPrimaryDynamic(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -164,9 +158,9 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
               alignment: Alignment.center,
               children: [
                 Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _stepChipBg,
+                    color: AppColors.iconContainerDynamic(context),
                   ),
                 ),
                 SizedBox(
@@ -185,7 +179,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                     fontFamily: 'SFProRounded',
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w500,
-                    color: _labelColor,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ],
@@ -219,7 +213,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                       fontFamily: 'SFProRounded',
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w500,
-                      color: _labelColor,
+                      color: AppColors.textPrimaryDynamic(context),
                     ),
                   ),
                   SizedBox(height: 2.h),
@@ -229,7 +223,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                       fontFamily: 'SFProRounded',
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w400,
-                      color: _mutedText,
+                      color: AppColors.textSecondaryDynamic(context),
                     ),
                   ),
                 ],
@@ -248,9 +242,9 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
       height: 20.w,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: selected ? _btnPrimary : Colors.white,
+        color: selected ? _btnPrimary : AppColors.cardBackgroundDynamic(context),
         border: Border.all(
-          color: selected ? _btnPrimary : _radioBorder,
+          color: selected ? _btnPrimary : AppColors.borderDynamic(context),
           width: 2,
         ),
       ),
@@ -273,13 +267,14 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
-          color: _panelBg,
+          color: AppColors.iconContainerDynamic(context),
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline, size: 18.sp, color: _mutedText),
+            Icon(Icons.add_circle_outline,
+                size: 18.sp, color: AppColors.textSecondaryDynamic(context)),
             SizedBox(width: 8.w),
             Text(
               'Add New',
@@ -287,7 +282,7 @@ class _SavedPaymentMethodsSheetState extends State<SavedPaymentMethodsSheet> {
                 fontFamily: 'SFProRounded',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
-                color: _mutedText,
+                color: AppColors.textSecondaryDynamic(context),
               ),
             ),
           ],
