@@ -36,8 +36,11 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
       // header gray. Zero both out so the bg stays the bg we set.
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
+      // Header matches the scaffold bg (like Home) so the notification
+      // circle (#2A2A2A) keeps its contrast in dark mode instead of
+      // blending into a same-colored header.
       backgroundColor:
-      backgroundColor ?? (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+          backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
 
       automaticallyImplyLeading: false,
       leading: leading,

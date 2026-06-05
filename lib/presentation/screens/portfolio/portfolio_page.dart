@@ -81,7 +81,7 @@ class _PortfolioPageState extends State<PortfolioPage>
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 20.h),
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 4.h),
                 child: _walletCard(),
               ),
             ),
@@ -305,6 +305,10 @@ class _PortfolioPageState extends State<PortfolioPage>
         ),
         indicatorSize: TabBarIndicatorSize.label,
         labelPadding: EdgeInsets.symmetric(horizontal: 12.w),
+        dividerColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF383838) // app dark-divider token
+            : const Color(0xFFE9E9E9), // Figma: text/50
+        dividerHeight: 1,
         indicator: _FigmaTabIndicator(
           color: Theme.of(context).brightness == Brightness.dark
               ? AppColors.primary

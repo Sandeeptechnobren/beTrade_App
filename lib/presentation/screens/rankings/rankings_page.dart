@@ -144,6 +144,9 @@ class _RankingsPageState extends State<RankingsPage> {
     return Container(
       padding: EdgeInsets.fromLTRB(16.w, 5.h, 16.w, 0.h),
       decoration: BoxDecoration(
+        // Match the GlobalAppBar bg so the tab strip reads as part of the
+        // header in dark mode (in light mode both are white already).
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           bottom: BorderSide(
             color: AppColors.borderDynamic(context),
