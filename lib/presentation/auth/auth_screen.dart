@@ -25,7 +25,8 @@ class AuthScreen extends StatelessWidget {
   Widget _buildLogo() {
     return Image.asset(
       "assets/images/IconLogo.png",
-      height: 80.h,
+      height: 160.h,
+      width: 120.w,
       errorBuilder: (context, error, stackTrace) {
         debugPrint("Logo image missing: $error");
         return Container(

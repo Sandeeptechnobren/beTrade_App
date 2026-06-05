@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -224,11 +222,12 @@ class _TabContent extends StatelessWidget {
         if (state.isLoading && state.response == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        // Network/parse failure: minimal centered text — no icon, no
-        // button, doesn't introduce a new designed widget.
+
+        final Widget body;
+        // Network/parse failure: minimal centered text — pull down to retry.
         if (state.error != null && state.response == null) {
-          return Center(
-            child: Padding(
+          body = _fillCenter(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 28.w),
               child: Text(
                 state.error!,
@@ -241,23 +240,45 @@ class _TabContent extends StatelessWidget {
               ),
             ),
           );
-        }
-        final r = state.response;
-        if (r == null || r.totalUsers == 0) {
-          return const _EmptyView();
+        } else {
+          final r = state.response;
+          if (r == null || r.totalUsers == 0) {
+            body = _fillCenter(const _EmptyView());
+          } else {
+            body = SingleChildScrollView(
+              controller: scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(bottom: 24.h),
+              child: Column(
+                children: [
+                  if (r.podium.length == 3) _Podium(entries: r.podium),
+                  _LeaderboardList(entries: r.leaderboard, unit: r.unit),
+                ],
+              ),
+            );
+          }
         }
 
-        return SingleChildScrollView(
-          controller: scrollController,
-          padding: EdgeInsets.only(bottom: 24.h),
-          child: Column(
-            children: [
-              if (r.podium.length == 3) _Podium(entries: r.podium),
-              _LeaderboardList(entries: r.leaderboard, unit: r.unit),
-            ],
-          ),
+        return RefreshIndicator(
+          onRefresh: () => provider.refreshFor(category),
+          color: AppColors.primary,
+          child: body,
         );
       },
+    );
+  }
+
+  /// Wraps a short/centered child in an always-scrollable viewport so the
+  /// RefreshIndicator stays pullable in the error + empty states too.
+  Widget _fillCenter(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(child: child),
+        ),
+      ),
     );
   }
 }
@@ -346,26 +367,23 @@ class _Podium extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: _kPodiumPurple,
         borderRadius: BorderRadius.circular(16.r),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/B.png'),
+          fit: BoxFit.cover,
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Stack(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Positioned.fill(child: CustomPaint(painter: _PodiumPatternPainter())),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(child: _PodiumAvatar(r: entries[0], pos: _PodiumPos.second)),
-                  Expanded(child: _PodiumAvatar(r: entries[1], pos: _PodiumPos.first)),
-                  Expanded(child: _PodiumAvatar(r: entries[2], pos: _PodiumPos.third)),
-                ],
-              ),
-            ),
+            Expanded(child: _PodiumAvatar(r: entries[0], pos: _PodiumPos.second)),
+            Expanded(child: _PodiumAvatar(r: entries[1], pos: _PodiumPos.first)),
+            Expanded(child: _PodiumAvatar(r: entries[2], pos: _PodiumPos.third)),
           ],
         ),
       ),
@@ -621,39 +639,4 @@ class _AvatarImage extends StatelessWidget {
       ),
     );
   }
-}
-
-
-class _PodiumPatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-
-    const double spacing = 60;
-    const double radius = 11;
-    bool stagger = false;
-
-    for (double y = 18; y < size.height; y += spacing) {
-      final double startX = stagger ? 18 + spacing / 2 : 18;
-      for (double x = startX; x < size.width; x += spacing) {
-        for (int k = 0; k < 3; k++) {
-          final double angle = math.pi / 3 * k; // 0°, 60°, 120°
-          final double dx = radius * math.cos(angle);
-          final double dy = radius * math.sin(angle);
-          canvas.drawLine(
-            Offset(x - dx, y - dy),
-            Offset(x + dx, y + dy),
-            paint,
-          );
-        }
-      }
-      stagger = !stagger;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

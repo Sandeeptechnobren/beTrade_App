@@ -119,6 +119,10 @@ class _PortfolioPageState extends State<PortfolioPage>
       decoration: BoxDecoration(
         color: _walletBg,
         borderRadius: BorderRadius.circular(20.r),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/B.png'),
+          fit: BoxFit.cover,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
