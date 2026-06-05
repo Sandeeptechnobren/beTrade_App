@@ -6,6 +6,7 @@ import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/config/api_endpoint.dart';
@@ -34,6 +35,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
   bool isFrontUploaded = false;
   bool isBackUploaded = false;
   bool isSubmittingKyc = false;
+  bool _isProcessingNext = false; // step-0 "Next" loader (preferences POST)
   bool _isDisposed = false;
   bool _isNavigating = false;
 
@@ -151,15 +153,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
     );
   }
 
-  void _showSuccess(String message) {
-    if (_isDisposed || !mounted) return;
-    CustomSnackBar.showSuccess(
-      context,
-      message: message,
-      duration: const Duration(seconds: 3),
-    );
-  }
-
   bool isStep2Valid() {
     return frontImage != null && backImage != null;
   }
@@ -179,18 +172,142 @@ class _VerificationFlowState extends State<VerificationFlow> {
       return null;
     }
   }
-  void _safeNavigateToHome() {
+  void _navigateToTab(int index) {
     if (_isDisposed || !mounted || _isNavigating) return;
     _isNavigating = true;
     Future.delayed(const Duration(milliseconds: 100), () {
       if (!_isDisposed && mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
+          MaterialPageRoute(builder: (_) => MainScreen(initialIndex: index)),
               (route) => false,
         );
       }
     });
+  }
+
+  /// Figma "You're verified 🎉" success popup shown after a successful KYC
+  /// submit. "Make a Deposit" → Portfolio tab (3); "Skip for now" → Home (0).
+  Future<void> _showVerifiedDialog() async {
+    if (_isDisposed || !mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        final bool isDark =
+            Theme.of(dialogCtx).brightness == Brightness.dark;
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: AppColors.cardBackgroundDynamic(dialogCtx),
+            insetPadding: EdgeInsets.symmetric(horizontal: 28.w),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32.r),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "You're verified 🎉",
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimaryDynamic(dialogCtx),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    "Your account is ready. Make a deposit to start trading on live markets.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'SFProRounded',
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w400,
+                      color: isDark
+                          ? AppColors.textSecondaryDynamic(dialogCtx)
+                          : const Color(0xFF52525B),
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  // Make a Deposit → Portfolio tab
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60.h,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF8E10FC),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.r),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(dialogCtx).pop();
+                        _navigateToTab(3);
+                      },
+                      child: Text(
+                        "Make a Deposit",
+                        style: TextStyle(
+                          fontFamily: 'SFProRounded',
+                          fontSize: 15.6.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  // Skip for now → Home tab
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60.h,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor:
+                            AppColors.cardBackgroundDynamic(dialogCtx),
+                        side: BorderSide(
+                          color: AppColors.borderDynamic(dialogCtx),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.r),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(dialogCtx).pop();
+                        _navigateToTab(0);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Skip for now",
+                            style: TextStyle(
+                              fontFamily: 'SFProRounded',
+                              fontSize: 15.6.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimaryDynamic(dialogCtx),
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16.sp,
+                            color: AppColors.textPrimaryDynamic(dialogCtx),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> submitKyc() async {
@@ -294,8 +411,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
           // in place before we land on Home; best-effort (never throws).
           await _setSelfieAsAvatarIfNeeded();
           if (_isDisposed || !mounted) return;
-          _showSuccess("KYC submitted successfully!");
-          _safeNavigateToHome();
+          await _showVerifiedDialog();
         } else {
           debugPrint("❌ Non-200 status, treating as failure");
           debugPrint("==========================================\n");
@@ -410,10 +526,13 @@ class _VerificationFlowState extends State<VerificationFlow> {
   }
 
   void nextStep() async {
-    if (_isDisposed) return;
+    if (_isDisposed || _isProcessingNext) return;
 
     if (currentStep == 0) {
+      _safeSetState(() => _isProcessingNext = true);
       await submitStep1();
+      if (_isDisposed || !mounted) return;
+      _safeSetState(() => _isProcessingNext = false);
     }
     if (currentStep < 2 && mounted) {
       _safeSetState(() => currentStep++);
@@ -518,13 +637,14 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
     final hasPermission = await _requestCameraPermission();
     if (!hasPermission) return;
+    if (_isDisposed || !mounted) return;
 
     try {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => CameraScreen(
-            isFront: false,
+            isFront: isFront,
           ),
         ),
       );
@@ -552,6 +672,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
 
     final hasPermission = await _requestCameraPermission();
     if (!hasPermission) return;
+    if (_isDisposed || !mounted) return;
 
     try {
       final result = await Navigator.push(
@@ -611,20 +732,21 @@ class _VerificationFlowState extends State<VerificationFlow> {
             if (currentStep != 2)
               Padding(
                 padding: EdgeInsets.all(16.w),
-                child: SizedBox(
-                  height: 55.h,
-                  width: double.infinity,
-                  child: Button(
-                    title: "Next",
-                    onPressed: () {
-                      if (currentStep == 0 && isStepValid()) {
-                        nextStep();
-                      } else if (currentStep == 1 && isStep2Valid()) {
-                        nextStep();
-                      }
-                    },
-                  ),
-                ),
+                child: currentStep == 1
+                    ? _continueButton()
+                    : SizedBox(
+                        height: 55.h,
+                        width: double.infinity,
+                        child: Button(
+                          title: "Next",
+                          isLoading: _isProcessingNext,
+                          onPressed: () {
+                            if (currentStep == 0 && isStepValid()) {
+                              nextStep();
+                            }
+                          },
+                        ),
+                      ),
               ),
           ],
         ),
@@ -813,7 +935,7 @@ class _VerificationFlowState extends State<VerificationFlow> {
   }
 
   Widget step2() {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,7 +948,38 @@ class _VerificationFlowState extends State<VerificationFlow> {
     );
   }
 
+  /// Figma "Continue" button for the Upload-Ghana-Card step (step 1).
+  /// 50% opacity / disabled until BOTH ID images are captured.
+  Widget _continueButton() {
+    final bool enabled = isStep2Valid();
+    return SizedBox(
+      width: double.infinity,
+      height: 60.h,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: const Color(0xFF8E10FC),
+          disabledBackgroundColor: const Color(0xFF8E10FC).withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32.r),
+          ),
+        ),
+        onPressed: enabled ? nextStep : null,
+        child: Text(
+          "Continue",
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 15.6.sp,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget step3() {
+    final bool enabled = isSelfieUploaded && !isSubmittingKyc;
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: Column(
@@ -834,39 +987,59 @@ class _VerificationFlowState extends State<VerificationFlow> {
         children: [
           Divider(color: AppColors.borderDynamic(context)),
           SizedBox(height: 20.h),
+          // Figma: "Selfie of Yourself" label (16 / w600 / #09090B)
+          Text(
+            "Selfie of Yourself",
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimaryDynamic(context),
+            ),
+          ),
+          SizedBox(height: 12.h),
           buildSelfieBox(),
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            height: 55.h,
+            height: 60.h,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: isSelfieUploaded && !isSubmittingKyc
-                    ? AppColors.primary
-                    : AppColors.disableButtonColor,
+                elevation: 0,
+                backgroundColor: const Color(0xFF8E10FC),
+                disabledBackgroundColor:
+                    const Color(0xFF8E10FC).withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
+                  borderRadius: BorderRadius.circular(32.r),
                 ),
               ),
-              onPressed: (isSelfieUploaded && !isSubmittingKyc)
+              onPressed: enabled
                   ? () async {
-                if (frontImage == null || backImage == null) {
-                  _showError("Upload ID images first");
-                  return;
-                }
-                await submitKyc();
-              }
+                      if (frontImage == null || backImage == null) {
+                        _showError("Upload ID images first");
+                        return;
+                      }
+                      await submitKyc();
+                    }
                   : null,
               child: isSubmittingKyc
                   ? SizedBox(
-                height: 24.h,
-                width: 24.h,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white,
-                ),
-              )
-                  : Text("Verify my account", style: TextStyle(color: Colors.white)),
+                      height: 24.h,
+                      width: 24.h,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      "Verify my account",
+                      style: TextStyle(
+                        fontFamily: 'SFProRounded',
+                        fontSize: 15.6.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -878,25 +1051,41 @@ class _VerificationFlowState extends State<VerificationFlow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style:AppTextStyle.smallNav),
-        SizedBox(height: 8.h),
+        // Figma: 16px / w600 / #09090B
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimaryDynamic(context),
+          ),
+        ),
+        SizedBox(height: 12.h),
         GestureDetector(
           onTap: onTap,
           child: Container(
-            height: 150.h,
+            height: 200.h,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.inputFieldBgDynamic(context),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.borderDynamic(context)),
+              color: AppColors.iconContainerDynamic(context), // Figma #F4F4F5
+              borderRadius: BorderRadius.circular(16.r),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
-              child: _safeImage(image),
+              borderRadius: BorderRadius.circular(16.r),
+              child: image == null
+                  ? Center(
+                      child: Icon(
+                        Iconsax.gallery_add,
+                        size: 56.sp,
+                        color: const Color(0xFFA1A1AA), // Figma #A1A1AA
+                      ),
+                    )
+                  : SizedBox.expand(child: _safeImage(image)),
             ),
           ),
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: 24.h),
       ],
     );
   }
@@ -905,16 +1094,23 @@ class _VerificationFlowState extends State<VerificationFlow> {
     return GestureDetector(
       onTap: openSelfieCamera,
       child: Container(
-        height:300.h,
+        height: 200.h,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.borderDynamic(context)),
+          color: AppColors.iconContainerDynamic(context), // Figma #F4F4F5
+          borderRadius: BorderRadius.circular(16.r),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12.r),
-          child: _safeImage(selfieImage),
+          borderRadius: BorderRadius.circular(16.r),
+          child: selfieImage == null
+              ? Center(
+                  child: Icon(
+                    Iconsax.gallery_add,
+                    size: 56.sp,
+                    color: const Color(0xFFA1A1AA), // Figma #A1A1AA
+                  ),
+                )
+              : SizedBox.expand(child: _safeImage(selfieImage)),
         ),
       ),
     );

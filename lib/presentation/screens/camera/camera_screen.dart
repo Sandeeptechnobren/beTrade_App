@@ -1,8 +1,15 @@
+import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'preview_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   final bool isFront;
@@ -20,6 +27,7 @@ class _CameraScreenState extends State<CameraScreen> {
   String? _error;
   bool _isInitializing = false;
   bool _isNavigating = false;
+  bool _isProcessing = false; // capture + crop guard / loader
 
   @override
   void initState() {
@@ -134,18 +142,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
       _cameras = cameras;
 
-      CameraDescription selectedCamera;
-      if (widget.isFront) {
-        selectedCamera = cameras.firstWhere(
-              (cam) => cam.lensDirection == CameraLensDirection.front,
-          orElse: () => cameras.first,
-        );
-      } else {
-        selectedCamera = cameras.firstWhere(
-              (cam) => cam.lensDirection == CameraLensDirection.back,
-          orElse: () => cameras.first,
-        );
-      }
+      // ID-card capture always uses the rear lens. `widget.isFront` only
+      // drives the on-screen label (front vs back side of the card) — the
+      // selfie step has its own SelfieCameraScreen.
+      final CameraDescription selectedCamera = cameras.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
 
       if (_isInitializing) return;
       _isInitializing = true;
@@ -190,7 +193,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _captureImage() async {
-    if (_isDisposed || !mounted) return;
+    if (_isDisposed || !mounted || _isProcessing) return;
 
     if (_controller == null || !_controller!.value.isInitialized) {
       _safeSetState(() {
@@ -199,17 +202,99 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
+    _safeSetState(() => _isProcessing = true);
+
+    // Read the on-screen geometry while context is valid (before awaits).
+    final Size screen = MediaQuery.of(context).size;
+    final double boxW = 300.w;
+    final double boxH = 180.h;
+
     try {
       final file = await _controller!.takePicture();
-
       if (_isDisposed || !mounted) return;
 
-      if (file.path.isNotEmpty) {
-        _safePop(result: file.path);
+      // Crop the full frame down to just the centered overlay box.
+      final String croppedPath =
+          await _cropToBox(file.path, screen: screen, boxW: boxW, boxH: boxH);
+      if (_isDisposed || !mounted) return;
+
+      // Figma: confirm via a Retake / Use Photo preview before accepting.
+      final used = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PreviewScreen(
+            imagePath: croppedPath,
+            isFront: widget.isFront,
+          ),
+        ),
+      );
+      if (_isDisposed || !mounted) return;
+
+      if (used != null && used.isNotEmpty) {
+        _safePop(result: used);
+      } else {
+        // Retake — stay on the camera and allow another shot.
+        _safeSetState(() => _isProcessing = false);
       }
     } catch (e) {
       debugPrint("❌ Capture error: $e");
       _showSnackBar("Failed to capture image");
+      _safeSetState(() => _isProcessing = false);
+    }
+  }
+
+  /// Crops the captured full-frame photo down to the centered overlay box.
+  /// The live preview fills the screen with [BoxFit.cover] and the box is
+  /// centered, so the same centered fraction of the image is what the user
+  /// framed. Falls back to the original path on any decode/crop failure.
+  Future<String> _cropToBox(
+    String sourcePath, {
+    required Size screen,
+    required double boxW,
+    required double boxH,
+  }) async {
+    try {
+      final bytes = await File(sourcePath).readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return sourcePath;
+
+      // Apply EXIF orientation so pixel coords match the upright preview.
+      final baked = img.bakeOrientation(decoded);
+      final int imgW = baked.width;
+      final int imgH = baked.height;
+
+      // Invert the BoxFit.cover transform: the box maps to a centered
+      // rectangle of the source image, scaled by the cover factor.
+      final double coverScale =
+          math.max(screen.width / imgW, screen.height / imgH);
+      final int cropW = (boxW / coverScale).round().clamp(1, imgW).toInt();
+      final int cropH = (boxH / coverScale).round().clamp(1, imgH).toInt();
+      final int cropX = ((imgW - cropW) / 2).round().clamp(0, imgW - cropW).toInt();
+      final int cropY = ((imgH - cropH) / 2).round().clamp(0, imgH - cropH).toInt();
+
+      final cropped = img.copyCrop(
+        baked,
+        x: cropX,
+        y: cropY,
+        width: cropW,
+        height: cropH,
+      );
+      final jpg = img.encodeJpg(cropped, quality: 90);
+
+      final dir = await getTemporaryDirectory();
+      final outPath =
+          '${dir.path}/id_${widget.isFront ? "front" : "back"}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(outPath).writeAsBytes(jpg);
+
+      // Remove the original full-frame capture (best-effort).
+      try {
+        await File(sourcePath).delete();
+      } catch (_) {}
+
+      return outPath;
+    } catch (e) {
+      debugPrint("❌ Crop error (falling back to full image): $e");
+      return sourcePath;
     }
   }
 
@@ -251,6 +336,28 @@ class _CameraScreenState extends State<CameraScreen> {
             bottom: bottom != null
                 ? BorderSide(color: Colors.white, width: 3.w)
                 : BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Live preview scaled to fill the screen (BoxFit.cover) so the centered
+  /// overlay box frames exactly the region cropped on capture.
+  Widget _coverPreview() {
+    final previewSize = _controller!.value.previewSize;
+    if (previewSize == null) {
+      return RepaintBoundary(child: CameraPreview(_controller!));
+    }
+    return ClipRect(
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            // Sensor is landscape — swap width/height for portrait display.
+            width: previewSize.height,
+            height: previewSize.width,
+            child: RepaintBoundary(child: CameraPreview(_controller!)),
           ),
         ),
       ),
@@ -309,8 +416,8 @@ class _CameraScreenState extends State<CameraScreen> {
       body: Stack(
         children: [
           if (_controller != null && _controller!.value.isInitialized)
-            RepaintBoundary(
-              child: CameraPreview(_controller!),
+            Positioned.fill(
+              child: _coverPreview(),
             ),
 
           ColorFiltered(
@@ -396,14 +503,24 @@ class _CameraScreenState extends State<CameraScreen> {
             right: 0,
             child: Center(
               child: GestureDetector(
-                onTap: _captureImage,
+                onTap: _isProcessing ? null : _captureImage,
                 child: Container(
                   height: 75.h,
                   width: 75.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    color: _isProcessing ? Colors.white24 : Colors.transparent,
                     border: Border.all(color: Colors.white, width: 4.w),
                   ),
+                  child: _isProcessing
+                      ? Padding(
+                          padding: EdgeInsets.all(22.w),
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ),
