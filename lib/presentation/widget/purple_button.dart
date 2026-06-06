@@ -89,8 +89,10 @@ class Button extends StatelessWidget {
                 ? ((onPressed == null || isLoading)
                     ? AppColors.primary.withOpacity(0.45)
                     : AppColors.primary)
-                : Colors.grey.shade200,
-            border: isPrimary ? null : Border.all(color: Colors.grey.shade400),
+                : AppColors.grey200Dynamic(context),
+            border: isPrimary
+                ? null
+                : Border.all(color: AppColors.borderDynamic(context)),
           ),
           child: Center(
             child: isLoading
@@ -107,7 +109,9 @@ class Button extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
-                color: isPrimary ? Colors.white : Colors.black,
+                color: isPrimary
+                    ? Colors.white
+                    : AppColors.textPrimaryDynamic(context),
               ),
             ),
           ),

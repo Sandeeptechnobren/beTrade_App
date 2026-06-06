@@ -12,7 +12,20 @@
           "package_name": "com.build.betrade"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "577626610829-neesuauindmo8lfl1rbe12k0lq7oe4lh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.build.betrade",
+            "certificate_hash": "78f3055606719966b5ef48fb52b85a80c17fedd2"
+          }
+        },
+        {
+          "client_id": "577626610829-o3mkqr4d1ico1hl1r6m16rqf57njdqs5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD6IPTdXK_Rbzv571JuRc_r2nMC1HyicXM"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "577626610829-o3mkqr4d1ico1hl1r6m16rqf57njdqs5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "577626610829-0dpqb1e7t1jjsk4rjgocc35f2leba9em.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.betrade.ios"
+              }
+            }
+          ]
         }
       }
     }

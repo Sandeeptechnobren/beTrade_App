@@ -46,9 +46,21 @@ class DefaultSettingsService {
                 "✅ DefaultSettings GET success: min=${parsed.minDefaultAmount}, max=${parsed.maxDefaultAmount}");
             return parsed;
           }
+          // `status: true` with no `data` key is the backend's "No default
+          // settings found" branch — the request succeeded, the user simply
+          // hasn't set one yet. That is NOT a fetch failure: returning null
+          // here would leave the provider stuck at `_hasLoaded = false` and
+          // HomeScreen._ensureReadyToTrade would render the perpetual
+          // "Loading your settings, please wait…" snack. Return a sentinel
+          // (min = 0) so the provider transitions to hasLoaded=true and the
+          // trade-flow guards route the user to DefaultSettingsPage instead.
           debugPrint(
-              "❌ DefaultSettings GET: 'data' is not a Map or non-empty List: $raw");
-          return null;
+              "ℹ️ DefaultSettings GET: status=true with no `data` → "
+              "user has no default set yet (returning sentinel)");
+          return DefaultSettingsModel(
+            minDefaultAmount: 0,
+            maxDefaultAmount: 1000,
+          );
         }
         final msg = (decoded is Map ? decoded['message'] : null) ??
             "unknown server error";

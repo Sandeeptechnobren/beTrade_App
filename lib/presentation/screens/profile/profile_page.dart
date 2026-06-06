@@ -1,12 +1,16 @@
+import 'dart:ui' as ui;
+
 import 'package:betrade/presentation/screens/profile/achivement_Sheet.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
 import 'package:betrade/presentation/screens/profile/term_of_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../data/provider/profile_provider.dart';
+import '../../../data/model/achievement_model.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/provider/theme_provider.dart';
@@ -17,6 +21,7 @@ import '../../widget/Common_header_withlogo.dart';
 import '../../widget/common_bottom_sheet.dart';
 import 'Payment_method.dart';
 import 'default_settings_page.dart';
+import 'edit_profile_photo_sheet.dart';
 import 'help_support_page.dart';
 import 'notification_page.dart';
 
@@ -28,8 +33,41 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool isDark = false;
   bool isLoading = false;
+
+  // Figma tokens (light); dark equivalents resolved below.
+  static const Color _cardBgLight = Color(0xFFFAFAFA);
+  static const Color _hairlineLight = Color(0xFFF4F4F5);
+  static const Color _innerBgLight = Color(0xFFFFFFFF);
+  static const Color _textPrimaryLight = Color(0xFF09090B);
+  static const Color _textBodyLight = Color(0xFF3F3F46);
+  static const Color _textMutedLight = Color(0xFF52525B);
+  static const Color _avatarRing = Color(0xFFD9ADFF);
+
+  Color _cardBg(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? const Color(0xFF1C1C1E)
+      : _cardBgLight;
+
+  Color _hairline(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? Colors.grey.shade800
+      : _hairlineLight;
+
+  Color _innerBg(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? const Color(0xFF2A2A2A)
+      : _innerBgLight;
+
+  Color _textPrimary(BuildContext c) =>
+      Theme.of(c).brightness == Brightness.dark
+          ? Colors.white
+          : _textPrimaryLight;
+
+  Color _textBody(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? Colors.grey.shade300
+      : _textBodyLight;
+
+  Color _textMuted(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? Colors.grey.shade400
+      : _textMutedLight;
 
   @override
   void initState() {
@@ -48,14 +86,8 @@ class _ProfilePageState extends State<ProfilePage> {
         await AuthService.logout(token);
       }
     } catch (e) {
-      // Server-side logout can fail (token already revoked, network down). We
-      // still need to clean up locally so the user actually gets logged out.
       debugPrint("Logout server call failed (continuing local cleanup): $e");
     } finally {
-      // ALWAYS clear local state, regardless of whether the server call
-      // succeeded. Otherwise the user is stuck signed in locally with a
-      // server-dead token, and the stale Authorization header would leak into
-      // the next user's multipart uploads via DioClient.multipartInstance.
       await LocalStorage.clearToken();
       DioClient.removeToken();
       if (mounted) {
@@ -76,7 +108,6 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           final profile = provider.profile;
-          // print("EMAIL: ${profile?.email}");
           return RefreshIndicator(
             color: AppColors.primary,
             backgroundColor: AppColors.whiteDynamic(context),
@@ -84,216 +115,21 @@ class _ProfilePageState extends State<ProfilePage> {
               await provider.fetchProfile();
             },
             child: SingleChildScrollView(
-              // AlwaysScrollable required for RefreshIndicator to fire
-              // even when content fits on one screen. Replaces the
-              // previous BouncingScrollPhysics (which doesn't support
-              // overscroll-triggered refresh).
               physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
+                parent: ClampingScrollPhysics(),
               ),
-              child: Column(
-              children: [
-                SizedBox(height: 20.h),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16.w),
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                    color: AppColors.inputFieldBgDynamic(context),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Column(
-                    children: [
-                      // Profile avatar — uses the server-rendered 200×200
-                      // thumbnail when present (cheaper to fetch on every
-                      // tab open) and falls back to the full-resolution
-                      // upload otherwise. Wrapped in ClipOval + Image.network
-                      // so we get a proper errorBuilder fallback when the
-                      // image fails to load (previously a bare NetworkImage
-                      // would silently render an empty circle).
-                      _ProfileCircle(
-                        url: profile?.displayAvatar ?? '',
-                        diameter: 84.r,
-                      ),
-                      SizedBox(height: 10.h),
-                      Text(
-                        provider.isLoading
-                            ? "Loading..."
-                            : profile != null
-                                ? "${profile.firstName} ${profile.lastName}"
-                                : "No Name",
-                        style: AppTextStyle.heading,
-                      ),
-                      if (profile?.email != null &&
-                          profile!.email!.isNotEmpty) ...[
-                        SizedBox(height: 4.h),
-                        Text(
-                          profile.email!,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: Colors.grey,
-                            fontFamily: 'SFProRounded',
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 16.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          buildStat("62%", "Win Rate"),
-                          buildStat("€2.3k", "Total Earned"),
-                          buildStat("324", "Total Trades"),
-                        ],
-                      ),
-                    ],
-                  ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 20.h),
+                child: Column(
+                  children: [
+                    _buildProfileCard(context, profile, provider.isLoading),
+                    SizedBox(height: 16.h),
+                    _buildAchievementsCard(context, provider.achievements),
+                    SizedBox(height: 16.h),
+                    _buildSettingsCard(context),
+                  ],
                 ),
-                // 16.h matches the cards' horizontal margin (16.w), so
-                // the gaps between cards now form a consistent square
-                // grid instead of feeling top-heavy (QA #9).
-                SizedBox(height: 16.h),
-                GestureDetector(
-                  onTap: () {
-                    CommonBottomSheet.open(
-                      context: context,
-                      initialChildSize: 0.55,
-                      minChildSize: 0.45,
-                      maxChildSize: 0.6,
-                      builder: (controller) =>
-                          AchievementsSheet(scrollController: controller),
-                    );
-                  },
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 16.w),
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      border:
-                          Border.all(color: Colors.grey.shade300, width: 0.5),
-                      color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text("Achievements", style: AppTextStyle.body),
-                            Icon(Icons.arrow_forward_ios, size: 14.sp),
-                          ],
-                        ),
-                        SizedBox(height: 10.h),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            buildBadge("assets/images/Archivement (1).png"),
-                            buildBadge("assets/images/Archivement (3).png"),
-                            buildBadge("assets/images/Archivement (2).png"),
-                            buildBadge("assets/images/Archivement (2).png"),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16.w),
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                    color: AppColors.inputFieldBgDynamic(context),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Column(
-                    children: [
-                      // Dark Mode Switch (not clickable like others)
-                      buildSwitchTile(),
-                      buildListTile(
-                        LucideIcons.user,
-                        "Personal Info",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            builder: (controller) =>
-                                EditProfile(scrollController: controller),
-                          );
-                        },
-                      ),
-                      buildListTile(
-                        LucideIcons.wallet,
-                        "Payment Methods",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            builder: (controller) => PaymentMethodsPage(
-                              scrollController: controller,
-                            ),
-                          );
-                        },
-                      ),
-                      buildListTile(
-                        LucideIcons.settings,
-                        "Default Settings",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            builder: (controller) => DefaultSettingsPage(
-                              scrollController: controller,
-                            ),
-                          );
-                        },
-                      ),
-                      buildListTile(
-                        LucideIcons.bell,
-                        "Notification Preferences",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            // Figma scrim — #00000052
-                            barrierColor: const Color(0x52000000),
-                            builder: (controller) =>
-                                NotificationPreferencesPage(
-                              scrollController: controller,
-                            ),
-                          );
-                        },
-                      ),
-
-                      buildListTile(
-                        LucideIcons.shieldCheck,
-                        "Privacy Policy",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            builder: (controller) =>
-                                PrivacyPolicyPage(scrollController: controller),
-                          );
-                        },
-                      ),
-
-                      buildListTile(
-                        LucideIcons.fileText,
-                        "Terms of Service",
-                        () {
-                          CommonBottomSheet.open(
-                            context: context,
-                            builder: (controller) => TermsOfServicePage(
-                              scrollController: controller,
-                            ),
-                          );
-                        },
-                      ),
-                      buildListTile(
-                        LucideIcons.logOut,
-                        "Log Out",
-                        showLogoutDialog,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
-              ],
-            ),
+              ),
             ),
           );
         },
@@ -301,65 +137,159 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildStat(String value, String label) {
+  void _openEditPhoto() {
+    CommonBottomSheet.open(
+      context: context,
+      fixed: true,
+      builder: (controller) =>
+          EditProfilePhotoSheet(scrollController: controller),
+    );
+  }
+
+  Widget _buildProfileCard(
+    BuildContext context,
+    dynamic profile,
+    bool loading,
+  ) {
     return Container(
-      width: 90.w,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.whiteDynamic(context),
-        borderRadius: BorderRadius.circular(12.r),
+        color: _cardBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         children: [
-          Text(value, style: AppTextStyle.body),
-          SizedBox(height: 4.h),
-          Text(label, style: AppTextStyle.small),
-        ],
-      ),
-    );
-  }
-
-  Widget buildBadge(String imagePath) {
-    return CircleAvatar(
-      radius: 34.r,
-      backgroundColor: Colors.purple.withOpacity(0.2),
-      backgroundImage: AssetImage(imagePath),
-    );
-  }
-
-  Widget buildSwitchTile() {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                height: 40.h,
-                width: 40.w,
-                decoration: BoxDecoration(
-                  color: AppColors.whiteDynamic(context),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  LucideIcons.moon,
-                  size: 22.sp,
-                  color: AppColors.textSecondaryDynamic(context),
+          GestureDetector(
+            onTap: _openEditPhoto,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 84.w,
+              height: 84.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _avatarRing, width: 4),
+              ),
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 38.r,
+                      backgroundColor: AppColors.iconContainerDynamic(context),
+                      backgroundImage: profile?.avatar.isNotEmpty == true
+                          ? NetworkImage(profile.avatar)
+                          : null,
+                      child: profile?.avatar.isEmpty ?? true
+                          ? Icon(Icons.person,
+                              size: 30.sp,
+                              color: AppColors.textSecondaryDynamic(context))
+                          : null,
+                    ),
+                    Container(
+                      width: 76.w,
+                      height: 76.w,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.30),
+                      ),
+                      child: Icon(
+                        LucideIcons.pencil,
+                        size: 20.sp,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(width: 12.w),
-              Text("Dark Mode", style: AppTextStyle.bodyBigDynamic(context)),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            loading
+                ? "Loading..."
+                : profile != null
+                    ? "${profile.firstName} ${profile.lastName}"
+                    : "No Name",
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary(context),
+              fontFamily: AppTextStyle.fontFamily,
+            ),
+          ),
+          if (profile?.email != null && profile.email!.isNotEmpty) ...[
+            SizedBox(height: 4.h),
+          ],
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStat(
+                    context, "${profile?.winRate ?? 0}%", "Win Rate")),
+              SizedBox(width: 4.w),
+              Expanded(
+                child: _buildStat(
+                    context,
+                    _formatGhs(_statDouble(profile?.totalEarnedGhs)),
+                    "Total Earned")),
+              SizedBox(width: 4.w),
+              Expanded(
+                child: _buildStat(
+                    context, "${profile?.totalTrades ?? 0}", "Total Trades")),
             ],
           ),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(
-              value: themeProvider.isDark,
-              onChanged: (v) {
-                themeProvider.toggleTheme(v);
-              },
+        ],
+      ),
+    );
+  }
+
+  double _statDouble(dynamic v) => v is num ? v.toDouble() : 0.0;
+  String _formatGhs(double v) {
+    final neg = v < 0;
+    final a = v.abs();
+    String body;
+    if (a >= 1000000) {
+      final m = a / 1000000;
+      body = '${m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(1)}M';
+    } else if (a >= 1000) {
+      final k = a / 1000;
+      body = '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}K';
+    } else {
+      body = a == a.roundToDouble() ? a.toStringAsFixed(0) : a.toStringAsFixed(2);
+    }
+    return '${neg ? '-' : ''}₵$body';
+  }
+
+  Widget _buildStat(BuildContext context, String value, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: _innerBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: _textPrimary(context),
+              fontFamily: AppTextStyle.fontFamily,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w400,
+              color: _textBody(context),
+              fontFamily: AppTextStyle.fontFamily,
             ),
           ),
         ],
@@ -367,38 +297,305 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildListTile(IconData icon, String title, VoidCallback onTap) {
+  Widget _buildAchievementsCard(BuildContext context, List<AchievementModel> achievements) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      onTap: () {
+        CommonBottomSheet.open(
+          context: context,
+          fixed: true,
+          builder: (controller) =>
+              AchievementsSheet(scrollController: controller),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: _cardBg(context),
+          border: Border.all(color: _hairline(context), width: 1),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  height: 40.h,
-                  width: 40.w,
-                  decoration: BoxDecoration(
-                    color: AppColors.whiteDynamic(context),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 22.sp,
-                    color: AppColors.textSecondaryDynamic(context),
+                Text(
+                  "Achievements",
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: _textMuted(context),
+                    fontFamily: AppTextStyle.fontFamily,
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Text(title, style: AppTextStyle.bodyBig),
+                Icon(Icons.arrow_forward_ios,
+                    size: 14.sp, color: _textMuted(context)),
               ],
             ),
-            Icon(Icons.arrow_forward_ios, size: 14.sp, color: Colors.grey),
+            SizedBox(height: 16.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (final a in achievements.take(4)) _buildBadge(context, a),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBadge(BuildContext context, AchievementModel a) {
+    const gold = Color(0xFFF59E0B);
+    return Container(
+      width: 64.w,
+      height: 64.w,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: a.earned ? gold.withValues(alpha: 0.12) : _innerBg(context),
+        border: Border.all(
+          color: a.earned ? gold : _hairline(context),
+          width: 1.5,
+        ),
+      ),
+      child: ClipOval(child: _badgeArt(a)),
+    );
+  }
+
+  Widget _badgeArt(AchievementModel a) {
+    final Widget art = SvgPicture.asset(
+      _badgeAsset(a),
+      width: 64.w,
+      height: 64.w,
+      fit: BoxFit.cover,
+    );
+    if (a.earned) return art;
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX:0, sigmaY:0),
+      child: art,
+    );
+  }
+  static String _badgeAsset(AchievementModel a) {
+    final k = '${a.key} ${a.name}'.toLowerCase();
+    if (k.contains('win')) return 'assets/svgs/firstwin.svg';
+    if (k.contains('trade')) return 'assets/svgs/firsttrade.svg';
+    return 'assets/svgs/firstdeposite.svg';
+  }
+
+  Widget _buildSettingsCard(BuildContext context) {
+    final rows = <Widget>[
+      _buildDarkModeRow(context),
+      _buildSettingsRowSvg(
+        context,
+        "assets/svgs/User.svg",
+        "Personal Info",
+        () => CommonBottomSheet.open(
+          context: context,
+          builder: (c) => EditProfile(scrollController: c),
+        ),
+      ),
+      _buildSettingsRowSvg(
+        context,
+        "assets/svgs/Wallet.svg",
+        "Payment Methods",
+        () => CommonBottomSheet.open(
+          context: context,
+          builder: (c) => PaymentMethodsPage(scrollController: c),
+        ),
+      ),
+      _buildSettingsRow(
+        context,
+        LucideIcons.settings,
+        "Default Settings",
+        () => CommonBottomSheet.open(
+          context: context,
+          builder: (c) => DefaultSettingsPage(scrollController: c),
+        ),
+      ),
+      _buildSettingsRowSvg(
+        context,
+        "assets/svgs/Bell.svg",
+        "Notification Preferences",
+        () => CommonBottomSheet.open(
+          context: context,
+          // Figma scrim — #00000052
+          barrierColor: const Color(0x52000000),
+          builder: (c) => NotificationPreferencesPage(scrollController: c),
+        ),
+      ),
+      _buildSettingsRow(
+        context,
+        LucideIcons.shieldCheck,
+        "Privacy Policy",
+        () => CommonBottomSheet.open(
+          context: context,
+          builder: (c) => PrivacyPolicyPage(scrollController: c),
+        ),
+      ),
+      _buildSettingsRowSvg(
+        context,
+        "assets/svgs/Document.svg",
+        "Terms of Service",
+        () => CommonBottomSheet.open(
+          context: context,
+          builder: (c) => TermsOfServicePage(scrollController: c),
+        ),
+      ),
+      _buildSettingsRow(
+        context,
+        LucideIcons.logOut,
+        "Log Out",
+        showLogoutDialog,
+      ),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: _cardBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i != rows.length - 1) SizedBox(height: 20.h),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          _iconBox(context, icon),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: _textBody(context),
+                fontFamily: AppTextStyle.fontFamily,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14.sp,
+            color: _textMuted(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBox(BuildContext context, IconData icon) {
+    return Container(
+      height: 40.h,
+      width: 40.w,
+      decoration: BoxDecoration(
+        color: _innerBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Icon(
+        icon,
+        size: 22.sp,
+        color: _textMuted(context),
+      ),
+    );
+  }
+
+  Widget _iconBoxSvg(BuildContext context, String asset) {
+    return Container(
+      height: 40.h,
+      width: 40.w,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _innerBg(context),
+        border: Border.all(color: _hairline(context), width: 1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: SvgPicture.asset(
+        asset,
+        width: 22.sp,
+        height: 22.sp,
+        colorFilter: ColorFilter.mode(_textMuted(context), BlendMode.srcIn),
+      ),
+    );
+  }
+
+  Widget _buildSettingsRowSvg(
+    BuildContext context,
+    String svgAsset,
+    String title,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          _iconBoxSvg(context, svgAsset),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: _textBody(context),
+                fontFamily: AppTextStyle.fontFamily,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14.sp,
+            color: _textMuted(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDarkModeRow(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    return Row(
+      children: [
+        _iconBoxSvg(context, "assets/svgs/Moon.svg"),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Text(
+            "Dark Mode",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w400,
+              color: _textBody(context),
+              fontFamily: AppTextStyle.fontFamily,
+            ),
+          ),
+        ),
+        _FigmaSwitch(
+          value: themeProvider.isDark,
+          trackOff: AppColors.borderDynamic(context),
+          trackOn: AppColors.primary,
+          onChanged: (v) => themeProvider.toggleTheme(v),
+        ),
+      ],
     );
   }
 
@@ -431,54 +628,48 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-/// Reusable circular avatar with a graceful fallback.
-///
-/// CircleAvatar+NetworkImage silently shows an empty circle when the URL
-/// fails to load. This wrapper uses Image.network's loadingBuilder +
-/// errorBuilder so the user always sees either a progress indicator
-/// (while loading) or a person glyph (on failure / missing URL), never an
-/// invisible avatar.
-class _ProfileCircle extends StatelessWidget {
-  final String url;
-  final double diameter;
-  const _ProfileCircle({required this.url, required this.diameter});
+class _FigmaSwitch extends StatelessWidget {
+  const _FigmaSwitch({
+    required this.value,
+    required this.onChanged,
+    required this.trackOff,
+    required this.trackOn,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color trackOff;
+  final Color trackOn;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: diameter,
-      height: diameter,
-      child: ClipOval(
-        child: url.isEmpty
-            ? _fallback()
-            : Image.network(
-                url,
-                width: diameter,
-                height: diameter,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: Colors.grey.shade200,
-                    alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
-                errorBuilder: (_, __, ___) => _fallback(),
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: 57.w,
+        height: 32.h,
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+          color: value ? trackOn : trackOff,
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Row(
+          mainAxisAlignment:
+              value ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Container(
+              width: 24.w,
+              height: 24.h,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: Colors.grey.shade300,
-      alignment: Alignment.center,
-      child: Icon(Icons.person, size: diameter * 0.55, color: Colors.white),
     );
   }
 }

@@ -12,8 +12,9 @@ import '../../data/services/trade_quote_service.dart';
 /// Lifecycle:
 ///   1. Opens → immediately calls [TradeQuoteService.quote] to show
 ///      live LMSR pricing for the entered (outcome, costGhs).
-///   2. User taps Confirm → calls [TradeBuyService.buy] with a fresh
-///      UUID v4 idempotency key generated client-side.
+///   2. User taps Confirm → calls [TradeBuyService.buy] with a stable
+///      per-sheet idempotency key (reused on every retry, so a re-tap after
+///      a timeout cannot create a duplicate buy).
 ///   3. On success → returns true via Navigator.pop so the parent can
 ///      refresh the trade detail + wallet balance.
 ///   4. On typed backend error → shows the message inline and lets the
@@ -47,6 +48,11 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
 
   bool _isPlacingBuy = false;
   String? _buyError;
+
+  /// One idempotency key per sheet instance = one logical order. Generated
+  /// once and reused on every Confirm tap, so a retry after a network failure
+  /// can never be seen by the backend as a second, duplicate buy.
+  late final String _idempotencyKey = TradeBuyService.generateIdempotencyKey();
 
   @override
   void initState() {
@@ -84,7 +90,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
       marketUuid: widget.marketUuid,
       outcomeSlug: widget.outcomeSlug,
       costGhs: widget.costGhs,
-      idempotencyKey: TradeBuyService.generateIdempotencyKey(),
+      idempotencyKey: _idempotencyKey,
     );
 
     if (!mounted) return;
@@ -146,7 +152,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: AppColors.borderDynamic(context),
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -177,6 +183,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
               ],
@@ -187,7 +194,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
                 widget.marketTitle!,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -289,7 +296,9 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
           children: [
             Text(
               _quoteError ?? 'Could not fetch quote.',
-              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700),
+              style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textSecondaryDynamic(context)),
             ),
             SizedBox(height: 8.h),
             TextButton(onPressed: _fetchQuote, child: const Text('Retry')),
@@ -347,7 +356,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
             label,
             style: TextStyle(
               fontSize: 13.sp,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           Text(
@@ -355,7 +364,7 @@ class _BuyBottomSheetState extends State<BuyBottomSheet> {
             style: TextStyle(
               fontSize: emphasised ? 14.sp : 13.sp,
               fontWeight: emphasised ? FontWeight.w700 : FontWeight.w500,
-              color: color,
+              color: color ?? AppColors.textPrimaryDynamic(context),
             ),
           ),
         ],

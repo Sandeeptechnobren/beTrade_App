@@ -62,7 +62,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.r),
                     ),
-                    color: Colors.white,
+                    color: AppColors.cardBackgroundDynamic(context),
                     elevation: 8,
                     itemBuilder: (context) => _filterMap.keys
                         .map(
@@ -80,7 +80,7 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                       ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(25.r),
-                        border: Border.all(color: AppColors.inputFieldBg),
+                        border: Border.all(color: AppColors.borderDynamic(context)),
                       ),
                       child: Row(
                         children: [
@@ -102,11 +102,15 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (wallet.transactionsError != null) {
+                    // Friendly fallback — `wallet.transactionsError` holds
+                    // a raw backend string (no typed code yet). Don't leak
+                    // it to the user; surface a generic message and let
+                    // them pull-to-refresh.
                     return Center(
                       child: Padding(
                         padding: EdgeInsets.all(20.w),
                         child: Text(
-                          wallet.transactionsError!,
+                          'Could not load wallet history. Please try again.',
                           textAlign: TextAlign.center,
                           style: AppTextStyle.body,
                         ),
@@ -155,7 +159,14 @@ class _WalletHistoryPageState extends State<WalletHistoryPage> {
       margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFE9DDF5) : Colors.transparent,
+        // Selected-row highlight: light lavender in light mode; a dark brand
+        // violet in dark mode so the (white) label stays legible instead of
+        // sitting on a bright lavender fill.
+        color: isSelected
+            ? (Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2E1065) // violet-950 (brand dark)
+                : const Color(0xFFE9DDF5))
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Text(text, style: AppTextStyle.body),

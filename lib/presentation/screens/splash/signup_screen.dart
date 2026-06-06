@@ -1,3 +1,5 @@
+import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/Gender_step.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/OTP_step.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/authlayout.dart';
@@ -5,9 +7,12 @@ import 'package:betrade/presentation/screens/splash/signup_steps_pages/stepPhone
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_name.dart';
 import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../core/animations/success_animation.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/provider/signin_provider.dart';
 import '../../../data/provider/signup_provider.dart';
 import '../../auth/auth_screen.dart';
 import '../../widget/customSnackBar.dart';
@@ -39,6 +44,7 @@ class _SignupScreenState extends State<SignupScreen> {
       });
     }
   }
+
   //
   // void back() {
   //   if (_isDisposed || !mounted) return;
@@ -139,28 +145,24 @@ class _SignupScreenState extends State<SignupScreen> {
 
   bool get isCurrentStepValid {
     switch (step) {
-      case 1: return isPhoneValid;
-      case 2: return isOtpValid;
-      case 3: return isGenderValid;
-      case 4: return isNameValid;
-      case 5: return isProfileValid;
-      default: return false;
+      case 1:
+        return isPhoneValid;
+      case 2:
+        return isOtpValid;
+      case 3:
+        return isGenderValid;
+      case 4:
+        return isNameValid;
+      case 5:
+        return isProfileValid;
+      default:
+        return false;
     }
   }
 
   void _showError(String message) {
     if (_isDisposed || !mounted) return;
     CustomSnackBar.showError(
-      context,
-      message: message,
-      duration: const Duration(seconds: 3),
-    );
-  }
-
-  void _showSuccess(String message) {
-    if (_isDisposed || !mounted) return;
-
-    CustomSnackBar.showSuccess(
       context,
       message: message,
       duration: const Duration(seconds: 3),
@@ -221,17 +223,19 @@ class _SignupScreenState extends State<SignupScreen> {
               // ✅ OTP is correct - Move to Gender page
               next();
             } else {
-              // ❌ OTP is invalid - Stay on OTP page
+              // ❌ OTP is invalid - Stay on OTP page.
+              //
+              // Previously we wiped `isOtpValid = false` AND cleared
+              // `provider.otp` here. That produced the client-reported bug:
+              // the 6 cells in StepOtp still showed the user's input
+              // (their controllers weren't cleared) but the Continue
+              // button became `onPressed: null` — taps felt unresponsive.
+              //
+              // Leave the user's input intact so they can correct a
+              // single digit and retry without re-entering all 6 cells.
+              // Just clear `_isProcessing` to re-enable the button.
               _showError("Invalid OTP. Please try again.");
-
-              // Reset OTP valid state
-              setState(() {
-                isOtpValid = false;
-                _isProcessing = false;
-              });
-
-              // Clear OTP from provider
-              provider.setOtp("");
+              setState(() => _isProcessing = false);
             }
           }
           break;
@@ -295,6 +299,189 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
+  /// Continue-with-Apple entry point on the signup phone step.
+  ///
+  /// A successful Apple sign-in returns a JWT directly from the backend,
+  /// so the remaining signup steps (OTP, gender, name, profile) are
+  /// skipped — the user lands on MainScreen the same way a returning
+  /// user does. Re-entry is gated via [_isProcessing] (shared with the
+  /// Continue button) so a double-tap can't fire both flows.
+  Future<void> _handleAppleSignIn() async {
+    if (_isDisposed || !mounted || _isProcessing) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final result =
+          await context.read<AuthProvider>().signInWithApple();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed Apple's sheet — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      } else {
+        _showError((result['message'] as String?)?.isNotEmpty == true
+            ? result['message']
+            : "Apple sign-in failed. Please try again.");
+      }
+    } catch (e) {
+      debugPrint("Apple sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      _showError("Something went wrong. Please try again.");
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  /// Continue-with-Google on the signup phone step — popup-only milestone.
+  ///
+  /// Opens the Google account chooser and confirms which account was picked.
+  /// No navigation/backend yet (pending the senior's decision). Re-entry is
+  /// gated via [_isProcessing], shared with the Continue/Apple flows.
+  Future<void> _handleGoogleSignIn() async {
+    if (_isDisposed || !mounted || _isProcessing) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final result = await context.read<AuthProvider>().signInWithGoogle();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed the chooser — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        if (_isDisposed || !mounted) return;
+        if (result['needs_phone'] == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AttachPhoneScreen(
+                email: result['email'] as String?,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        _showError((result['message'] as String?)?.isNotEmpty == true
+            ? result['message']
+            : "Google sign-in failed. Please try again.");
+      }
+    } catch (e) {
+      debugPrint("Google sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      _showError("Something went wrong. Please try again.");
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  // Mirrors the Login screen's Google + Apple buttons. Both are now wired:
+  // Google -> [_handleGoogleSignIn] (popup-only for now), Apple ->
+  // [_handleAppleSignIn] (usable on iOS).
+  Widget _buildSocialAuthButtons(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 50.h,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: AppColors.borderDynamic(context),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25.r),
+                ),
+                backgroundColor: AppColors.buttonSecondaryDynamic(context),
+              ),
+              onPressed: _isProcessing ? null : _handleGoogleSignIn,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Continue with",
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                  SizedBox(width: 5.w),
+                  SvgPicture.asset(
+                    "assets/svgs/google.svg",
+                    height: 19.h,
+                    width: 19.w,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Apple button always visible. On Android the package can't open
+        // the native sheet; AuthProvider.signInWithApple catches the
+        // unsupported case and surfaces a friendly message.
+        SizedBox(width: 10.w),
+        Expanded(
+          child: SizedBox(
+            height: 50.h,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: AppColors.borderDynamic(context),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25.r),
+                ),
+                backgroundColor:
+                    AppColors.buttonSecondaryDynamic(context),
+              ),
+              onPressed: _isProcessing ? null : _handleAppleSignIn,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Continue with",
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                  SizedBox(width: 2.w),
+                  SvgPicture.asset(
+                    "assets/svgs/apple.svg",
+                    height: 20.h,
+                    colorFilter: ColorFilter.mode(
+                      isDarkMode ? Colors.white : Colors.black,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
@@ -308,13 +495,16 @@ class _SignupScreenState extends State<SignupScreen> {
     return Consumer<SignupProvider>(
       builder: (context, provider, _) {
         if (_isDisposed) return const SizedBox();
-
         return AuthLayout(
           step: step,
           onBack: back,
           onContinue: () => handleContinue(provider),
           isLoading: isLoading,
           isCurrentStepValid: isCurrentStepValid,
+          // Social-auth buttons sit directly under Continue on the phone
+          // step only — mirrors the LoginScreen layout. Other signup
+          // steps (OTP, gender, name, profile) get no bottomExtra.
+          bottomExtra: step == 1 ? _buildSocialAuthButtons(context) : null,
           child: getStep(provider),
         );
       },

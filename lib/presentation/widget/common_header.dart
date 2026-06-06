@@ -26,7 +26,9 @@ class CommonHeader extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         border: showDivider
-            ? Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1))
+            ? Border(
+                bottom: BorderSide(
+                    color: AppColors.borderDynamic(context), width: 1))
             : null,
       ),
       child: Row(
@@ -40,11 +42,15 @@ class CommonHeader extends StatelessWidget {
                 color: AppColors.iconBgDynamic(context),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_back_ios_new, size: 16.sp),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                size: 16.sp,
+                color: AppColors.textPrimaryDynamic(context),
+              ),
             ),
           ),
           SizedBox(width: 10.w),
-          Text(title, style: AppTextStyle.heading),
+          Text(title, style: AppTextStyle.headingDynamic(context)),
         ],
       ),
     );

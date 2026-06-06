@@ -220,13 +220,15 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
                     fontWeight: FontWeight.w500,
                     color: enabled
                         ? AppColors.textPrimaryDynamic(context)
-                        : Colors.grey,
+                        : AppColors.textSecondaryDynamic(context),
                   ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 11.sp,
+                      color: AppColors.textSecondaryDynamic(context)),
                 ),
               ],
             ),
@@ -253,18 +255,18 @@ class _DefaultSettingsPageState extends State<DefaultSettingsPage> {
                 filled: true,
                 fillColor: enabled
                     ? AppColors.inputFieldBgDynamic(context)
-                    : Colors.grey.shade100,
+                    : AppColors.grey200Dynamic(context),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: AppColors.borderDynamic(context)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: AppColors.borderDynamic(context)),
                 ),
                 disabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(color: AppColors.borderDynamic(context)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),

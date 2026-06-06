@@ -1,9 +1,12 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/presentation/screens/main_screen.dart';
+import 'package:betrade/presentation/screens/signin/attach_phone_screen.dart';
 import 'package:betrade/presentation/screens/signin/otp_screen.dart';
 import 'package:betrade/presentation/widget/purple_button.dart';
 import 'package:betrade/presentation/widget/leading_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/country_model.dart';
@@ -24,6 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
   CountryModel? _selectedCountry;
   bool _isDisposed = false;
   bool _isLoading = false;
+  // Holds the most recent "OTP send failed" message so the UI can show
+  // it as a persistent inline chip below the phone input (not just a
+  // transient snackbar). Cleared when the user edits the phone number
+  // or when a subsequent send succeeds. See `_handleContinue`.
+  String? _lastSendError;
 
   @override
   void initState() {
@@ -44,31 +52,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final provider = Provider.of<CountryProvider>(context, listen: false);
+      await provider.fetchCountries();
 
-      // Fast path: SplashScreen pre-warms countries (cache + network) so by
-      // the time we mount here the provider usually has data. Read it
-      // synchronously so the picker renders a flag immediately on first
-      // paint instead of a spinner.
+      if (_isDisposed || !mounted) return;
+
       if (provider.countries.isNotEmpty) {
-        _selectedCountry =
-            provider.selectedCountry ?? provider.countries.first;
-      } else {
-        // Cold path: cache was missing AND splash's network call hasn't
-        // returned yet. Trigger our own fetch and await — same behaviour as
-        // before this optimisation, but on a tiny minority of launches.
-        await provider.fetchCountries();
-        if (_isDisposed || !mounted) return;
-        if (provider.countries.isNotEmpty) {
-          _selectedCountry =
-              provider.selectedCountry ?? provider.countries.first;
-        }
-      }
-
-      if (mounted && !_isDisposed) {
-        setState(() {});
+        setState(() {
+          _selectedCountry = provider.countries.first;
+        });
       }
     } catch (e) {
-      debugPrint("LoginScreen: country load error: $e");
+      debugPrint(" Country load error: $e");
     }
   }
 
@@ -111,10 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // AuthProvider.verifyOtp returns {success, message, data}.
       // Accept either envelope so this helper is reusable across both flows.
       return {
-        'success':
-            result['status'] == true || result['success'] == true,
-        'message':
-            result['message']?.toString() ?? 'Something went wrong',
+        'success': result['status'] == true || result['success'] == true,
+        'message': result['message']?.toString() ?? 'Something went wrong',
       };
     }
     return {
@@ -173,22 +165,141 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final parsed = _safeParseResult(result);
       if (parsed['success'] == true) {
+        // Clear any stale error from a previous failed attempt before
+        // navigating away.
+        if (_lastSendError != null) {
+          setState(() => _lastSendError = null);
+        }
         _navigateToOtp(fullPhone);
       } else {
+        // Both surface the transient toast AND set the persistent inline
+        // chip. The toast catches the eye; the chip ensures the failure
+        // doesn't disappear after 3 s, which left the user feeling there
+        // was no retry path. Button label flips to "Try again" via build().
         CustomSnackBar.showError(
           context,
           message: parsed['message'],
           duration: const Duration(seconds: 3),
         );
+        setState(() => _lastSendError = parsed['message']);
       }
     } catch (e) {
       // Network failure / DNS / DioException — surface a user-friendly message
       // rather than leaking the raw exception text.
       debugPrint("Login error: $e");
       if (_isDisposed || !mounted) return;
+      const networkMsg = "Network error. Please check your connection.";
       CustomSnackBar.showError(
         context,
-        message: "Network error. Please check your connection.",
+        message: networkMsg,
+        duration: const Duration(seconds: 3),
+      );
+      setState(() => _lastSendError = networkMsg);
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Continue-with-Apple entry point for the Login screen.
+  ///
+  /// Shares the `_isLoading` flag with the OTP flow so the screen can't
+  /// fire both in parallel. On success we route to MainScreen the same
+  /// way OTPScreen does on a verified login.
+  Future<void> _handleAppleSignIn() async {
+    if (_isDisposed || !mounted || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await context.read<AuthProvider>().signInWithApple();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed the Apple sheet — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: (result['message'] as String?)?.isNotEmpty == true
+              ? result['message']
+              : "Sign-in failed. Please try again.",
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      debugPrint("Apple sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      CustomSnackBar.showError(
+        context,
+        message: "Something went wrong. Please try again.",
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Continue-with-Google on the Login screen — popup-only milestone.
+  ///
+  /// Opens the Google account chooser; on a successful pick we just confirm
+  /// which account was selected (no navigation/backend yet — that's pending
+  /// the senior's decision). Shares [_isLoading] with the OTP/Apple flows so
+  /// only one can run at a time. A user-cancelled chooser stays silent.
+  Future<void> _handleGoogleSignIn() async {
+    if (_isDisposed || !mounted || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await context.read<AuthProvider>().signInWithGoogle();
+
+      if (_isDisposed || !mounted) return;
+
+      // User dismissed the chooser — keep the UI silent.
+      if (result['cancelled'] == true) return;
+
+      if (result['success'] == true) {
+        if (_isDisposed || !mounted) return;
+        if (result['needs_phone'] == true) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AttachPhoneScreen(
+                email: result['email'] as String?,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        CustomSnackBar.showError(
+          context,
+          message: (result['message'] as String?)?.isNotEmpty == true
+              ? result['message']
+              : "Sign-in failed. Please try again.",
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      debugPrint("Google sign-in handler error: $e");
+      if (_isDisposed || !mounted) return;
+      CustomSnackBar.showError(
+        context,
+        message: "Something went wrong. Please try again.",
         duration: const Duration(seconds: 3),
       );
     } finally {
@@ -207,103 +318,6 @@ class _LoginScreenState extends State<LoginScreen> {
   //     duration: const Duration(seconds: 3),
   //   );
   // }
-
-  /// Country-flag bubble for the phone-input pill.
-  ///
-  /// States:
-  ///   - country not yet resolved: small spinner so the layout doesn't jump
-  ///   - flag URL present: network image inside a ClipOval, with both a
-  ///     loadingBuilder (small spinner) and an errorBuilder (a Material
-  ///     flag glyph) so the slot is never empty
-  ///   - flag URL missing: fall back to the iso-code as a 2-letter pill
-  Widget _buildFlag() {
-    const double diameter = 24;
-    final country = _selectedCountry;
-    if (country == null) {
-      return SizedBox(
-        width: diameter.w,
-        height: diameter.h,
-        child: const Center(
-          child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
-    }
-    final url = country.flag.trim();
-    if (url.isEmpty) {
-      // Last-resort fallback: 2-letter country mark on a coloured chip.
-      return Container(
-        width: diameter.w,
-        height: diameter.h,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.12),
-          shape: BoxShape.circle,
-        ),
-        child: Text(
-          country.name.isNotEmpty
-              ? country.name.substring(0, country.name.length >= 2 ? 2 : 1).toUpperCase()
-              : "??",
-          style: TextStyle(
-            fontSize: 9.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-          ),
-        ),
-      );
-    }
-    return ClipOval(
-      child: Image.network(
-        url,
-        width: diameter.w,
-        height: diameter.h,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return SizedBox(
-            width: diameter.w,
-            height: diameter.h,
-            child: const Center(
-              child: SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        },
-        errorBuilder: (_, __, ___) => Container(
-          width: diameter.w,
-          height: diameter.h,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Colors.grey,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.flag, size: 14.sp, color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _safeImage(String path,
-      {double? height, double? width, Color? color}) {
-    if (path.isEmpty) return SizedBox(height: height);
-
-    return Image.asset(
-      path,
-      height: height,
-      width: width,
-      color: color,
-      errorBuilder: (context, error, stackTrace) {
-        debugPrint(" Missing asset: $path");
-        return SizedBox(height: height, width: width);
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,96 +349,164 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             SizedBox(height: 20.h),
-            // ── Phone-number row (matches Figma) ─────────────────────
-            // Two visually-separate rounded chips with a small gap:
-            //   - LEFT: country-picker chip — flag + chevron
-            //   - RIGHT: phone-input chip — TextField with placeholder
-            // Both have the same height + light-grey fill + soft rounded
-            // corners. The previous version was a single unified pill —
-            // Figma actually shows two distinct cards.
             Row(
               children: [
-                // Country-picker chip
-                InkWell(
+                GestureDetector(
                   onTap: _openCountryPicker,
-                  borderRadius: BorderRadius.circular(14.r),
                   child: Container(
-                    height: 56.h,
-                    padding: EdgeInsets.symmetric(horizontal: 14.w),
+                    height: 50.h,
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(14.r),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: AppColors.borderDynamic(context),
+                      ),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildFlag(),
-                        SizedBox(width: 8.w),
+                        _selectedCountry == null
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.h,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : ClipOval(
+                                child: Image.network(
+                                  _selectedCountry!.flag,
+                                  width: 23.4.w,
+                                  height: 23.4.h,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    Icons.flag,
+                                    size: 16.sp,
+                                  ),
+                                ),
+                              ),
+                        SizedBox(width: 5.w),
                         Icon(
                           Icons.keyboard_arrow_down,
-                          size: 20.sp,
-                          color: AppColors.primary,
+                          size: 18.sp,
+                          color:
+                              isDarkMode ? Colors.grey.shade400 : Colors.grey,
                         ),
                       ],
                     ),
                   ),
                 ),
                 SizedBox(width: 10.w),
-                // Phone-input chip
                 Expanded(
                   child: Container(
-                    height: 56.h,
-                    alignment: Alignment.center, // centers the TextField vertically
+                    height: 50.h,
                     decoration: BoxDecoration(
-                      color: AppColors.inputFieldBgDynamic(context),
-                      borderRadius: BorderRadius.circular(14.r),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: _lastSendError != null
+                          ? Border.all(
+                              color: AppColors.errorFgDynamic(context),
+                              width: 1,
+                            )
+                          : null,
                     ),
-                    // The canonical Flutter recipe for vertically centering
-                    // a TextField inside a fixed-height Container is the
-                    // combination below — Container.alignment +
-                    // textAlignVertical + isCollapsed:true. Any of the
-                    // three alone leaves residual top/bottom space because
-                    // InputDecorator reserves room for label/helper/counter
-                    // even when none are configured. isCollapsed strips
-                    // that reservation; the alignment + textAlignVertical
-                    // then anchor the glyph baseline to the chip's centre.
                     child: TextField(
                       controller: _phoneController,
                       cursorColor: AppColors.primary,
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
-                      textAlignVertical: TextAlignVertical.center,
                       style: TextStyle(
                         color: AppColors.textPrimaryDynamic(context),
-                        fontSize: 16.sp,
                       ),
+                      // Clear the persistent error chip the moment the
+                      // user starts editing the number. Without this the
+                      // chip would stick around even after the user fixed
+                      // the typo that caused the failure.
+                      onChanged: (_) {
+                        if (_lastSendError != null) {
+                          setState(() => _lastSendError = null);
+                        }
+                      },
                       decoration: InputDecoration(
-                        isCollapsed: true,
+                        filled: true,
+                        fillColor: AppColors.inputFieldBgDynamic(context),
                         counterText: "",
                         hintText: "000 000 0000",
-                        // QA #14 — placeholder used to read `Colors.grey`
-                        // (`#9E9E9E`) which felt too dark vs the input bg.
-                        // Lightened to shade400 (`#BDBDBD`) in light mode,
-                        // shade600 in dark mode for the same relative
-                        // contrast.
                         hintStyle: TextStyle(
-                          fontSize: 16.sp,
-                          color: isDarkMode
-                              ? Colors.grey.shade600
-                              : Colors.grey.shade400,
+                          color:
+                              isDarkMode ? Colors.grey.shade500 : Colors.grey,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 18.w,
+                          horizontal: 15.w,
+                          vertical: 14.h,
                         ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide(
+                            color: AppColors.borderDynamic(context),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide(
+                            color: AppColors.borderDynamic(context),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+            // Persistent inline error chip for failed send attempts.
+            // Shown alongside the transient toast so the user keeps a
+            // visible cue (and a clear retry CTA) after the toast fades.
+            // Clears when the user edits the phone number or a send
+            // succeeds — see `_handleContinue` + the phone TextField's
+            // onChanged.
+            if (_lastSendError != null) ...[
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12.w,
+                  vertical: 10.h,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBgDynamic(context),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: AppColors.errorBorderDynamic(context),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 18.sp,
+                      color: AppColors.errorFgDynamic(context),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        _lastSendError!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: AppColors.errorFgDynamic(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const Spacer(),
             _isLoading
                 ? Center(
@@ -433,7 +515,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   )
                 : Button(
-                    title: "Continue",
+                    // Flip the label to "Try again" after a failed send so
+                    // the persistent chip + the button together make the
+                    // retry intent obvious.
+                    title:
+                        _lastSendError != null ? "Try again" : "Continue",
                     onPressed: _handleContinue,
                   ),
             SizedBox(height: 15.h),
@@ -455,7 +541,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor:
                             AppColors.buttonSecondaryDynamic(context),
                       ),
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -467,12 +553,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           SizedBox(width: 5.w),
-                          // Google logo is multi-coloured — do NOT pass
-                          // `color:` here or the tint flattens it into a
-                          // monochrome blob and the brand becomes
-                          // unrecognisable.
-                          _safeImage(
-                            "assets/images/google.png",
+                          SvgPicture.asset(
+                            "assets/svgs/google.svg",
                             height: 19.h,
                             width: 19.w,
                           ),
@@ -481,9 +563,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+                // Apple button always visible. On Android the package
+                // can't open the native sheet; the provider catches the
+                // unsupported case and surfaces a friendly message.
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: Container(
+                  child: SizedBox(
                     height: 50.h,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -496,7 +581,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor:
                             AppColors.buttonSecondaryDynamic(context),
                       ),
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _handleAppleSignIn,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -508,10 +593,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           SizedBox(width: 2.w),
-                          Icon(
-                            Icons.apple,
-                            size: 24.h,
-                            color: isDarkMode ? Colors.white : Colors.black,
+                          SvgPicture.asset(
+                            "assets/svgs/apple.svg",
+                            height: 20.h,
+                            colorFilter: ColorFilter.mode(
+                              isDarkMode ? Colors.white : Colors.black,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ],
                       ),

@@ -20,6 +20,11 @@ class ProfileModel {
   final String? language;
   final String? email;
 
+  /// Live trading stats from `data.stats` (GET /profile).
+  final int winRate; // 0..100
+  final double totalEarnedGhs; // net realised P&L (can be negative)
+  final int totalTrades;
+
   ProfileModel({
     required this.firstName,
     required this.lastName,
@@ -31,6 +36,9 @@ class ProfileModel {
     this.currency,
     this.language,
     this.email,
+    this.winRate = 0,
+    this.totalEarnedGhs = 0,
+    this.totalTrades = 0,
   });
 
   /// Best URL to show in a small/read-only avatar slot. Uses the
@@ -43,6 +51,10 @@ class ProfileModel {
   }
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final stats = (json['stats'] is Map)
+        ? Map<String, dynamic>.from(json['stats'] as Map)
+        : const <String, dynamic>{};
+
     return ProfileModel(
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
@@ -57,6 +69,17 @@ class ProfileModel {
       currency: json['currency'],
       language: json['language'],
       email: json['email'],
+
+      /// Live stats (default 0 when absent).
+      winRate: (stats['win_rate'] is num)
+          ? (stats['win_rate'] as num).round()
+          : int.tryParse('${stats['win_rate'] ?? 0}') ?? 0,
+      totalEarnedGhs: (stats['total_earned_ghs'] is num)
+          ? (stats['total_earned_ghs'] as num).toDouble()
+          : double.tryParse('${stats['total_earned_ghs'] ?? 0}') ?? 0.0,
+      totalTrades: (stats['total_trades'] is num)
+          ? (stats['total_trades'] as num).round()
+          : int.tryParse('${stats['total_trades'] ?? 0}') ?? 0,
     );
   }
 

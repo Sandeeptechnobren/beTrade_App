@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../core/utils/app_logger.dart';
+
 class NotificationService {
   static final FirebaseMessaging _messaging =
       FirebaseMessaging.instance;
@@ -11,12 +13,49 @@ class NotificationService {
   _localNotifications =
   FlutterLocalNotificationsPlugin();
 
+  /// Navigation targets the app will act on from an FCM payload. A push can
+  /// request a screen via `data['route']`, but only these are honoured — an
+  /// unknown or spoofed route is ignored, so a malicious/ malformed payload
+  /// can't drive the user to an arbitrary destination (CHALLENGES F14).
+  static const Set<String> _allowedRoutes = {
+    'home',
+    'portfolio',
+    'wallet',
+    'trade',
+    'rankings',
+    'profile',
+  };
+
+  /// Returns a whitelisted route from an FCM data payload, or null if the
+  /// payload doesn't request a known route. Never trust the raw value.
+  static String? _safeRoute(Map<String, dynamic> data) {
+    final raw = data['route']?.toString().trim().toLowerCase();
+    if (raw == null || raw.isEmpty) return null;
+    return _allowedRoutes.contains(raw) ? raw : null;
+  }
+
   static Future<void> init() async {
     await _initLocalNotification();
     await _requestPermission();
     await _generateFcmToken();
     _setupForegroundListener();
     await _setupNotificationClickHandling();
+  }
+
+  /// On-demand FCM token retrieval for auth flows.
+  ///
+  /// The init() pipeline above generates the token once at app start, but
+  /// auth requests (OTP login, social login) need to attach it to the
+  /// backend call at the moment of sign-in — so they call this method
+  /// to grab the current token. Returns null if Firebase isn't ready or
+  /// the device hasn't granted notification permission.
+  static Future<String?> getFcmToken() async {
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      debugPrint("🔥 FCM token fetch failed: $e");
+      return null;
+    }
   }
 
   static Future<void> _requestPermission() async {
@@ -165,14 +204,14 @@ class NotificationService {
     iosDetails =
     DarwinNotificationDetails();
 
-    String title =
-        message.notification?.title ??
-            message.data['title'] ??
+    // Coerce defensively — payload data values are dynamic and may not be
+    // strings; never assume the backend shape.
+    final String title =
+        (message.notification?.title ?? message.data['title'])?.toString() ??
             "No Title";
 
-    String body =
-        message.notification?.body ??
-            message.data['body'] ??
+    final String body =
+        (message.notification?.body ?? message.data['body'])?.toString() ??
             "No Body";
 
     await _localNotifications.show(
@@ -194,8 +233,10 @@ class NotificationService {
     /// Background click
     FirebaseMessaging.onMessageOpenedApp
         .listen((RemoteMessage message) {
-      debugPrint(
-          "BACKGROUND NOTIFICATION CLICKED");
+      final route = _safeRoute(message.data);
+      AppLogger.i('FCM', 'Notification opened; safe route: ${route ?? 'none'}');
+      // TODO(nav): when in-app routing is wired, navigate ONLY to [route]
+      // (already whitelisted) — never to a raw, unvalidated payload value.
     });
 
     /// Terminated click
@@ -204,8 +245,9 @@ class NotificationService {
         .getInitialMessage();
 
     if (initialMessage != null) {
-      debugPrint(
-          "TERMINATED STATE NOTIFICATION CLICKED");
+      final route = _safeRoute(initialMessage.data);
+      AppLogger.i(
+          'FCM', 'Launched from notification; safe route: ${route ?? 'none'}');
     }
   }
 }

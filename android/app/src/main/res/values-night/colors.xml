@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode launcher icon background. Pairs with the light value in
+         values/colors.xml so the adaptive app icon shows the purple logo on a
+         dark surface in dark mode (and on white in light mode). -->
+    <color name="ic_launcher_background">#1E1E1E</color>
+</resources>

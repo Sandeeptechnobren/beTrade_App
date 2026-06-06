@@ -1,13 +1,19 @@
-import 'package:betrade/core/theme/app_colors.dart';
-import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/model/profile_notification_preferences_model.dart';
 import '../../../data/services/profile_notification_service.dart';
 import '../../widget/common_header.dart';
 import '../../widget/customSnackBar.dart';
 
+/// Notification Preferences sheet — Figma `Profile - 04`.
+///
+/// Three cards (Discover & Trends / Your Trades / Wallet Activity),
+/// each carrying labelled toggle rows that talk to
+/// `NotificationService.updatePreference`. Toggles are optimistic:
+/// the UI flips immediately, the PUT fires in the background, and we
+/// roll back + snackbar on failure.
 class NotificationPreferencesPage extends StatefulWidget {
   const NotificationPreferencesPage({
     super.key,
@@ -21,6 +27,9 @@ class NotificationPreferencesPage extends StatefulWidget {
 
 class _NotificationPreferencesPageState
     extends State<NotificationPreferencesPage> {
+  // Figma tokens
+  static const Color _switchOn = Color(0xFF6D14B5);
+
   bool _isLoading = true;
   List<NotificationSection> _sections = const [];
 
@@ -41,18 +50,6 @@ class _NotificationPreferencesPageState
     });
   }
 
-  /// Refetch silently — does NOT toggle the spinner. Used after a successful
-  /// PUT to confirm the backend actually persisted the change without
-  /// flashing a loading overlay over the whole list.
-  Future<void> _silentRefetch() async {
-    if (!mounted) return;
-    final fetched = await NotificationService.getPreferences();
-    if (!mounted) return;
-    setState(() {
-      _sections = fetched;
-    });
-  }
-
   Future<void> _toggleItem(
     int sectionIdx,
     int itemIdx,
@@ -60,12 +57,10 @@ class _NotificationPreferencesPageState
   ) async {
     if (!mounted) return;
 
-    final section = _sections[sectionIdx];
-    final item = section.items[itemIdx];
+    final item = _sections[sectionIdx].items[itemIdx];
     final previousValue = item.isActive;
 
-    // 1. Optimistic UI update — flip the switch immediately so the user
-    //    sees instant feedback.
+    // 1. Optimistic UI update — flip the switch immediately.
     _applyToggle(sectionIdx, itemIdx, value);
 
     // 2. PUT /notificationPreferences with {title, status}.
@@ -77,17 +72,8 @@ class _NotificationPreferencesPageState
     if (!mounted) return;
 
     if (!ok) {
-      // Backend rejected or the request failed → revert + warn.
+      // Backend rejected → revert + warn.
       _applyToggle(sectionIdx, itemIdx, previousValue);
-      // ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: const Text("Failed to update notification setting"),
-      //     duration: const Duration(seconds: 2),
-      //     behavior: SnackBarBehavior.floating,
-      //     margin: EdgeInsets.all(12.w),
-      //   ),
-      // );
       CustomSnackBar.showError(
         context,
         message: "Failed to update notification setting",
@@ -96,14 +82,9 @@ class _NotificationPreferencesPageState
       return;
     }
 
-    // PUT succeeded — trust the backend. The optimistic UI update is now
-    // the persisted state. We deliberately do NOT refetch here so the
-    // toggle stays flipped within this screen session.
-    //
-    // NOTE: cross-session persistence (close + reopen the sheet) still
-    // depends on the backend actually saving the change. If GET on the
-    // next open returns the old status, that's a backend persistence bug
-    // (PUT returns success but doesn't store the new state).
+    // PUT succeeded — trust the backend. Deliberately no refetch here;
+    // the optimistic update IS the persisted state. Cross-session
+    // persistence relies on backend actually saving the change.
   }
 
   void _applyToggle(int sectionIdx, int itemIdx, bool value) {
@@ -123,60 +104,28 @@ class _NotificationPreferencesPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Sheet body — top-rounded 19.5 per Figma is handled by CommonBottomSheet's
-      // ClipRRect; this Container just enforces the white inner surface and
-      // the 8px padding from the spec.
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
       body: SafeArea(
         child: Column(
           children: [
             const CommonHeader(title: "Notification Preferences"),
             Expanded(
-              child: Padding(
-                // padding: 8px (Figma)
-                padding: EdgeInsets.all(12.w),
-                child: Column(
-                  children: [
-                    SizedBox(height: 12.h),
-                    Expanded(
-                      child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _fetchPreferences,
-                              child: ListView(
-                                children: _sections
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                                  final sectionIdx = entry.key;
-                                  final section = entry.value;
-                                  return buildSection(
-                                    title: section.section,
-                                    items: section.items
-                                        .asMap()
-                                        .entries
-                                        .map(
-                                          (e) => buildItem(
-                                            e.value.title,
-                                            e.value.description,
-                                            e.value.isActive,
-                                            (val) => _toggleItem(
-                                              sectionIdx,
-                                              e.key,
-                                              val,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      onRefresh: _fetchPreferences,
+                      child: ListView.separated(
+                        padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
+                        itemCount: _sections.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 16.h),
+                        itemBuilder: (_, sectionIdx) {
+                          return _buildSection(
+                            _sections[sectionIdx],
+                            sectionIdx,
+                          );
+                        },
+                      ),
                     ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -184,78 +133,126 @@ class _NotificationPreferencesPageState
     );
   }
 
-  Widget buildSection({required String title, required List<Widget> items}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  /// Figma section card — `#FAFAFA` bg, 1px `#F4F4F5` border, 20 radius,
+  /// 16 padding, gap 16 between section title and items.
+  Widget _buildSection(NotificationSection section, int sectionIdx) {
     return Container(
-      // gap: 9.75px (Figma)
-      margin: EdgeInsets.only(bottom: 9.75.h),
-      padding: EdgeInsets.fromLTRB(12.w, 16.h, 12.w, 16.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        // Figma section card — soft neutral grey on white sheet
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F7),
-        borderRadius: BorderRadius.circular(16.r),
+        color: AppColors.cardBackgroundDynamic(context),
+        border: Border.all(color: AppColors.borderDynamic(context), width: 1),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
-            // Same SFProRounded family as the sheet header; size tuned to fit a section heading.
-            style: AppTextStyle.heading.copyWith(
+            section.section,
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
               fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimaryDynamic(context),
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
-          SizedBox(height: 10.h),
-          Column(children: items),
+          SizedBox(height: 16.h),
+          for (int i = 0; i < section.items.length; i++) ...[
+            _buildItem(section.items[i], sectionIdx, i),
+            if (i < section.items.length - 1) SizedBox(height: 20.h),
+          ],
         ],
       ),
     );
   }
 
-  Widget buildItem(
-    String title,
-    String subtitle,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyle.body.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimaryDynamic(context),
-                  ),
+  /// One toggle row — title 16/400/`#3F3F46` + subtitle 14/400/`#71717A`
+  /// on the left, custom `_FigmaSwitch` on the right (57×32, `#6D14B5`
+  /// track when on).
+  Widget _buildItem(NotificationItem item, int sectionIdx, int itemIdx) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.title,
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textPrimaryDynamic(context),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                item.description,
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
+        SizedBox(width: 12.w),
+        _FigmaSwitch(
+          value: item.isActive,
+          onChanged: (v) => _toggleItem(sectionIdx, itemIdx, v),
+          trackOn: _switchOn,
+          trackOff: AppColors.borderDynamic(context),
+        ),
+      ],
+    );
+  }
+}
 
-          Transform.scale(
-            scale: 0.9,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: Colors.white,
-              activeTrackColor: const Color(0xFF7B2FF7),
-              inactiveTrackColor: Colors.grey.shade300,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+/// Figma switch — 57×32 track, 24×24 white thumb, radius 9999.
+/// Mirrors the Frame 1171276422 spec used across the Figma.
+class _FigmaSwitch extends StatelessWidget {
+  const _FigmaSwitch({
+    required this.value,
+    required this.onChanged,
+    required this.trackOn,
+    required this.trackOff,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color trackOn;
+  final Color trackOff;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: 57.w,
+        height: 32.h,
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+          color: value ? trackOn : trackOff,
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Row(
+          mainAxisAlignment:
+              value ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Container(
+              width: 24.w,
+              height: 24.h,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

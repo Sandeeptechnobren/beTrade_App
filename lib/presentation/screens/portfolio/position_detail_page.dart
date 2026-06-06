@@ -148,7 +148,7 @@ class _PositionDetailPageState extends State<PositionDetailPage> {
         color: AppColors.inputFieldBgDynamic(context),
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
-          color: hasShares ? accent : Colors.grey.shade300,
+          color: hasShares ? accent : AppColors.borderDynamic(context),
           width: hasShares ? 1.5 : 0.5,
         ),
       ),
@@ -181,7 +181,7 @@ class _PositionDetailPageState extends State<PositionDetailPage> {
                 'Now ${side.currentPrice.toStringAsFixed(4)}',
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.grey.shade700,
+                  color: AppColors.textSecondaryDynamic(context),
                 ),
               ),
             ],
@@ -193,7 +193,7 @@ class _PositionDetailPageState extends State<PositionDetailPage> {
               'You do not hold this side.',
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondaryDynamic(context),
               ),
             ),
           ] else ...[
@@ -238,7 +238,7 @@ class _PositionDetailPageState extends State<PositionDetailPage> {
             label,
             style: TextStyle(
               fontSize: 13.sp,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           Flexible(

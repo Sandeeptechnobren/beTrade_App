@@ -1,14 +1,16 @@
-
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_style.dart';
+import '../../../widget/common_header.dart';
 import '../../../widget/customSnackBar.dart';
 import '../../../widget/custom_camera.dart';
 
@@ -29,7 +31,26 @@ class StepProfile extends StatefulWidget {
 class _StepProfileState extends State<StepProfile> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  List<String> _avatarList = List.generate(16, (i) => "assets/images/avt1 ($i).png");
+
+  // 16 frame avatars from assets/svgs/ (Frame 25..28 variants).
+  final List<String> _avatarList = const [
+    'assets/svgs/Frame 25.svg',
+    'assets/svgs/Frame 25 (1).svg',
+    'assets/svgs/Frame 25 (2).svg',
+    'assets/svgs/Frame 25 (3).svg',
+    'assets/svgs/Frame 26.svg',
+    'assets/svgs/Frame 26 (1).svg',
+    'assets/svgs/Frame 26 (2).svg',
+    'assets/svgs/Frame 26 (3).svg',
+    'assets/svgs/Frame 27.svg',
+    'assets/svgs/Frame 27 (1).svg',
+    'assets/svgs/Frame 27 (2).svg',
+    'assets/svgs/Frame 27 (3).svg',
+    'assets/svgs/Frame 28.svg',
+    'assets/svgs/Frame 28 (1).svg',
+    'assets/svgs/Frame 28 (2).svg',
+    'assets/svgs/Frame 28 (3).svg',
+  ];
   String? _selectedAvatar;
   bool _isDisposed = false;
   bool _isProcessing = false;
@@ -46,7 +67,8 @@ class _StepProfileState extends State<StepProfile> {
     }
   }
 
-  Future<File> _copyImageToTempDirectory(File originalImage, {bool isCamera = false}) async {
+  Future<File> _copyImageToTempDirectory(File originalImage,
+      {bool isCamera = false}) async {
     try {
       final Directory tempDir = await getTemporaryDirectory();
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -62,18 +84,20 @@ class _StepProfileState extends State<StepProfile> {
       return originalImage;
     }
   }
+
   Future<File> _compressAndSaveImage(File originalImage) async {
     try {
       final Directory tempDir = await getTemporaryDirectory();
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final String targetPath = '${tempDir.path}/profile_image_$timestamp.jpg';
 
-      final XFile? compressedXFile = await FlutterImageCompress.compressAndGetFile(
+      final XFile? compressedXFile =
+          await FlutterImageCompress.compressAndGetFile(
         originalImage.path,
         targetPath,
-        quality: 70,          // 70% quality kaafi hai
-        minWidth: 800,         // max width 800px
-        minHeight: 800,        // max height 800px
+        quality: 70, // 70% quality kaafi hai
+        minWidth: 800, // max width 800px
+        minHeight: 800, // max height 800px
         format: CompressFormat.jpeg,
       );
 
@@ -83,7 +107,8 @@ class _StepProfileState extends State<StepProfile> {
       }
 
       final File compressedFile = File(compressedXFile.path);
-      print("✅ Compressed: ${await compressedFile.length()} bytes at ${compressedFile.path}");
+      print(
+          "✅ Compressed: ${await compressedFile.length()} bytes at ${compressedFile.path}");
       return compressedFile;
     } catch (e) {
       print("❌ Compress error: $e");
@@ -145,7 +170,8 @@ class _StepProfileState extends State<StepProfile> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Permission Required"),
-        content: const Text("Please enable camera and photo access in Settings to use this feature."),
+        content: const Text(
+            "Please enable camera and photo access in Settings to use this feature."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -168,7 +194,10 @@ class _StepProfileState extends State<StepProfile> {
     _isProcessing = true;
 
     final hasPermission = await _requestCameraPermission();
-    if (!hasPermission) { _isProcessing = false; return; }
+    if (!hasPermission) {
+      _isProcessing = false;
+      return;
+    }
 
     try {
       final File? photo = await Navigator.push(
@@ -200,17 +229,17 @@ class _StepProfileState extends State<StepProfile> {
         Navigator.pop(context);
       }
 
-      // 1. Copy the bundled asset bytes to a temp file.
-      final byteData = await rootBundle.load(assetPath);
+      // 1. Rasterize the bundled SVG avatar to a PNG temp file.
       final tempDir = await getTemporaryDirectory();
       final srcPath =
           '${tempDir.path}/avatar_src_${DateTime.now().millisecondsSinceEpoch}.png';
-      final srcFile = await File(srcPath).writeAsBytes(
-        byteData.buffer
-            .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
-      );
+      final srcFile = await _svgToPngFile(assetPath, srcPath);
 
       if (_isDisposed || !mounted) return;
+      if (srcFile == null) {
+        _showError("Failed to set avatar");
+        return;
+      }
 
       // 2. Run it through the same JPEG compression pipeline as
       //    camera / gallery so completeSignup uploads a consistent format.
@@ -236,7 +265,10 @@ class _StepProfileState extends State<StepProfile> {
     _isProcessing = true;
 
     final hasPermission = await _requestGalleryPermission();
-    if (!hasPermission) { _isProcessing = false; return; }
+    if (!hasPermission) {
+      _isProcessing = false;
+      return;
+    }
 
     try {
       final picked = await _picker.pickImage(source: ImageSource.gallery);
@@ -263,7 +295,6 @@ class _StepProfileState extends State<StepProfile> {
       message: message,
       duration: const Duration(seconds: 3),
     );
-
   }
 
   // Widget _safeAvatarImage(String path, bool isSelected) {
@@ -295,25 +326,24 @@ class _StepProfileState extends State<StepProfile> {
   //   );
   // }
 
-
   Widget _safeAvatarImage(String path, bool isSelected) {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: isSelected
             ? Border.all(
-          color: AppColors.primary,
-          width: 2.w,
-        )
+                color: AppColors.primary,
+                width: 2.w,
+              )
             : null,
       ),
       child: ClipOval(
-        child: Image.asset(
+        child: SvgPicture.asset(
           path,
           width: 62.w,
           height: 62.w,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          placeholderBuilder: (_) {
             return Container(
               width: 62.w,
               height: 62.w,
@@ -326,10 +356,8 @@ class _StepProfileState extends State<StepProfile> {
     );
   }
 
-
   void _openOptionsSheet() {
     if (_isDisposed || !mounted) return;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -340,109 +368,76 @@ class _StepProfileState extends State<StepProfile> {
 
   Widget _buildOptionsSheet(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      // padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.r)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40.w,
-            height: 4.h,
-            margin: EdgeInsets.only(bottom: 12.h),
-            decoration: BoxDecoration(
-              color: AppColors.borderDynamic(context),
-              borderRadius: BorderRadius.circular(10.r),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: 20.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CommonHeader(
+                    title: "Select an option", showDivider: true),
+              ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.iconBgDynamic(context),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18.sp,
-                        color: AppColors.textPrimaryDynamic(context),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Text(
-                    "Select an Option",
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimaryDynamic(context),
-                    ),
-                  ),
-                ],
-              ),
-              Divider(
-                thickness: 1,
-                color: AppColors.borderDynamic(context),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          _optionTile(Icons.camera_alt, "Take a Selfie", () {
-            Navigator.pop(context);
-            _pickFromCamera();
-          }),
-          SizedBox(height: 10.h),
-          _optionTile(Icons.image, "Choose from Gallery", () {
-            Navigator.pop(context);
-            _pickFromGallery();
-          }),
-          SizedBox(height: 10.h),
-          _optionTile(Icons.emoji_emotions_outlined, "Select an Avatar", () {
-            Navigator.pop(context);
-            _openAvatarSheet();
-          }),
-        ],
+            SizedBox(height: 10.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
+              child: _optionTile("assets/images/c.png", "Take a Selfie", () {
+                Navigator.pop(context);
+                _pickFromCamera();
+              }),
+            ),
+            SizedBox(height: 10.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
+              child:
+                  _optionTile("assets/images/g.png", "Choose from Gallery", () {
+                Navigator.pop(context);
+                _pickFromGallery();
+              }),
+            ),
+            SizedBox(height: 10.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
+              child: _optionTile("assets/images/smile.png", "Select an Avatar",
+                  () {
+                Navigator.pop(context);
+                _openAvatarSheet();
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _optionTile(IconData icon, String text, VoidCallback onTap) {
+  Widget _optionTile(String asset, String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
         decoration: BoxDecoration(
-          color: AppColors.inputFieldBgDynamic(context),
-          borderRadius: BorderRadius.circular(14.r),
+          // Figma input row — #F4F4F5, radius 15.6
+          color: AppColors.iconContainerDynamic(context),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: AppColors.buttonSecondaryDynamic(context),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 20.sp,
-                color: AppColors.textPrimaryDynamic(context),
-              ),
-            ),
+            Image.asset(asset, width: 28.w, height: 28.w, fit: BoxFit.contain),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: 14.sp,
+                  fontFamily: AppTextStyle.fontFamily,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimaryDynamic(context),
                 ),
@@ -451,7 +446,7 @@ class _StepProfileState extends State<StepProfile> {
             Icon(
               Icons.arrow_forward_ios,
               size: 16.sp,
-              color: AppColors.textSecondaryDynamic(context),
+              color: AppColors.textPrimaryDynamic(context),
             ),
           ],
         ),
@@ -472,70 +467,36 @@ class _StepProfileState extends State<StepProfile> {
 
   Widget _buildAvatarSheet(BuildContext context) {
     return Container(
-      height: 500.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      height: 470.h,
+      // padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: AppColors.cardBackgroundDynamic(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.r)),
       ),
       child: Column(
         children: [
-          Container(
-            width: 40.w,
-            height: 4.h,
-            margin: EdgeInsets.only(bottom: 12.h),
-            decoration: BoxDecoration(
-              color: AppColors.borderDynamic(context),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-          ),
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.iconBgDynamic(context),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new,
-                    size: 18.sp,
-                    color: AppColors.textPrimaryDynamic(context),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                "Select an Avatar",
-                style: AppTextStyle.heading.copyWith(
-                  color: AppColors.textPrimaryDynamic(context),
-                ),
-              ),
-            ],
-          ),
-          Divider(
-            thickness: 1,
-            color: AppColors.borderDynamic(context),
-          ),
+          const CommonHeader(title: "Select an Avatar", showDivider: true),
           SizedBox(height: 10.h),
           Expanded(
-            child: GridView.builder(
-              itemCount: _avatarList.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 12.w,
-                mainAxisSpacing: 12.h,
-              ),
-              itemBuilder: (context, index) {
-                final avatarPath = _avatarList[index];
-                final isSelected = _selectedAvatar == avatarPath;
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              child: GridView.builder(
+                itemCount: _avatarList.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 12.w,
+                  mainAxisSpacing: 12.h,
+                ),
+                itemBuilder: (context, index) {
+                  final avatarPath = _avatarList[index];
+                  final isSelected = _selectedAvatar == avatarPath;
 
-                return GestureDetector(
-                  onTap: () => _pickAvatar(avatarPath),
-                  child: _safeAvatarImage(avatarPath, isSelected),
-                );
-              },
+                  return GestureDetector(
+                    onTap: () => _pickAvatar(avatarPath),
+                    child: _safeAvatarImage(avatarPath, isSelected),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -572,22 +533,57 @@ class _StepProfileState extends State<StepProfile> {
               ),
               child: _selectedImage == null
                   ? Icon(
-                Icons.add_a_photo,
-                size: 40.sp,
-                color: AppColors.textSecondaryDynamic(context),
-              )
+                      Icons.add_a_photo,
+                      size: 40.sp,
+                      color: AppColors.textSecondaryDynamic(context),
+                    )
                   : ClipRRect(
-                borderRadius: BorderRadius.circular(15.r),
-                child: Image.file(
-                  _selectedImage!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.error),
-                ),
-              ),
+                      borderRadius: BorderRadius.circular(15.r),
+                      child: Image.file(
+                        _selectedImage!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.error),
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// Rasterizes a bundled SVG asset to a PNG temp file (preserving aspect ratio)
+/// so it can be compressed/uploaded as a raster image. Returns null on failure.
+Future<File?> _svgToPngFile(String assetPath, String outPath,
+    {int maxSize = 512}) async {
+  try {
+    final String rawSvg = await rootBundle.loadString(assetPath);
+    final info = await vg.loadPicture(SvgStringLoader(rawSvg), null);
+    final double w = info.size.width;
+    final double h = info.size.height;
+    final double maxSide = w > h ? w : h;
+    final double scale = maxSide > 0 ? maxSize / maxSide : 1.0;
+    int outW = (w * scale).round();
+    int outH = (h * scale).round();
+    if (outW < 1) outW = 1;
+    if (outH < 1) outH = 1;
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final ui.Canvas canvas = ui.Canvas(recorder);
+    canvas.scale(scale, scale);
+    canvas.drawPicture(info.picture);
+    final ui.Picture raster = recorder.endRecording();
+    final ui.Image image = await raster.toImage(outW, outH);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    info.picture.dispose();
+    raster.dispose();
+    image.dispose();
+    if (bytes == null) return null;
+    final file = File(outPath);
+    await file.writeAsBytes(bytes.buffer.asUint8List());
+    return file;
+  } catch (e) {
+    debugPrint("❌ SVG→PNG raster error: $e");
+    return null;
   }
 }

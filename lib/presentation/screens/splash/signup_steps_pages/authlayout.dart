@@ -9,6 +9,10 @@ class AuthLayout extends StatelessWidget {
   final VoidCallback? onBack;
   final bool isLoading;
   final bool isCurrentStepValid;
+  // Optional row rendered directly under the Continue button (e.g. the
+  // Google/Apple social-auth buttons on step 1). Null on steps that
+  // don't need it.
+  final Widget? bottomExtra;
 
   const AuthLayout({
     super.key,
@@ -18,6 +22,7 @@ class AuthLayout extends StatelessWidget {
     this.onBack,
     this.isLoading = false,
     required this.isCurrentStepValid,
+    this.bottomExtra,
   });
 
   double _getProgressValue() {
@@ -61,35 +66,51 @@ class AuthLayout extends StatelessWidget {
         bottom: bottomPadding,
       ),
       child: SafeArea(
-        child: SizedBox(
-          height: 55.h,
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: (isLoading || !isCurrentStepValid) ? null : _handleContinue,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 55.h,
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed:
+                    (isLoading || !isCurrentStepValid) ? null : _handleContinue,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  // While loading keep the button solid purple so the white
+                  // spinner is clearly visible ("button click hua" feedback);
+                  // when the step is just invalid, dim it so it reads disabled.
+                  disabledBackgroundColor: isLoading
+                      ? AppColors.primary
+                      : AppColors.primary.withValues(alpha: 0.45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.r),
+                  ),
+                ),
+                child: isLoading
+                    ? SizedBox(
+                        height: 24.h,
+                        width: 24.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        step == 5 ? "Submit" : "Continue",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
-            child: isLoading
-                ? SizedBox(
-              height: 24.h,
-              width: 24.h,
-              child: const CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.white,
-              ),
-            )
-                : Text(
-              step == 5 ? "Submit" : "Continue",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+            if (bottomExtra != null) ...[
+              SizedBox(height: 12.h),
+              bottomExtra!,
+            ],
+          ],
         ),
       ),
     );

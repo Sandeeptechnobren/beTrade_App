@@ -2,6 +2,80 @@
 
 ## In Progress
 
+### 2026-06-03 — Complete Google Sign-In (Android + iOS)
+
+Pulled `c1dbf82` (Abhishek's popup-only Google integration: opens chooser, gets idToken, stops — no backend exchange). Standardizing on **betrade-new** Firebase project (Abhishek extended it with OAuth clients; FCM unaffected). Discarding the `vibetrade-6b4af` file.
+
+Backend `/login-with-google`, `/profile/attach-phone`, `/profile/verify-attach-phone`, and the `google_id` column are all live + migrated on the server. Only the `GOOGLE_OAUTH_*` env vars are missing (0 set).
+
+Built via 3 parallel agents against a shared contract (data layer / new screen / screen-wiring — disjoint file sets), then verified the seams with `flutter analyze` (0 errors).
+
+| # | File / target | Change | Status |
+|---|---------------|--------|--------|
+| 1 | `lib/core/config/api_endpoint.dart` | add `loginWithGoogle`, `attachPhone`, `verifyAttachPhone` endpoints | ✅ Done |
+| 2 | `lib/data/services/auth_service.dart` | add `loginWithGoogle(idToken)` (POST {id_token}, store token+doc_status), `attachPhone(phone)`, `verifyAttachPhone(phone,otp)` | ✅ Done |
+| 3 | `lib/data/provider/signin_provider.dart` | rewrite `signInWithGoogle()` → call backend, best-effort FCM save, return {success,cancelled,message,needs_phone,email,doc_status}; add attachPhone/verifyAttachPhone | ✅ Done |
+| 4 | `lib/presentation/screens/signin/attach_phone_screen.dart` (NEW) | phone → OTP → verify → MainScreen (applies the OTP-bug-fix patterns) | ✅ Done |
+| 5 | `lib/presentation/screens/signin/login_screen.dart` | `_handleGoogleSignIn` → needs_phone ? AttachPhone : MainScreen | ✅ Done |
+| 6 | `lib/presentation/screens/splash/signup_screen.dart` | same navigation (+ removed now-dead `_showSuccess`) | ✅ Done |
+| 7 | `lib/presentation/auth/auth_bottom_sheet.dart` | same navigation | ✅ Done |
+| 8 | `ios/Runner/Info.plist` | CFBundleURLTypes = REVERSED_CLIENT_ID | ⏭️ Deferred (iOS round — Android first per user) |
+| 9 | server `.env` | set `GOOGLE_OAUTH_WEB_CLIENT_ID` (…o3mkqr4d1…) + `ANDROID_CLIENT_ID` (…f3ua65m1…); config:cache; apache restart | ✅ Done + verified (endpoint returns 401 "Invalid Google sign-in token" for dummy token = config gate passes) |
+
+**⚠ BLOCKING — user action (Google Cloud Console):** add debug SHA-1 `e4c3a212aca301ad78b695072f91ddae71bdd76a` to the **betrade-new** Android OAuth client (package `com.build.betrade`). Takes effect for the already-installed app (no rebuild needed). Without it, the native chooser throws `ApiException: 10` (DEVELOPER_ERROR).
+
+iOS env (`GOOGLE_OAUTH_IOS_CLIENT_ID` = …27nsvg4v…) + Info.plist URL scheme to be done together in the iOS round.
+
+
+
+### 2026-06-02 — Client-reported OTP bugs (sign-in flow)
+
+Two bugs raised by client during testing:
+1. **"After entering pin the button is not responsive"** — login OTP screen `isOtpComplete` state can desync from the visible cells; button at `otp_screen.dart:412` is gated on `isOtpComplete` and goes `onPressed: null`. Signup OTP has a related issue: failed verify nukes `isOtpValid` but leaves the 6 cells filled, so user sees full input + disabled button.
+2. **"When OTP fails to send it doesn't issue a resend"** — login screen failed `sendLoginOtp` shows only a transient snackbar; the OTP screen (where Resend lives) is never reached. AND when OTP screen IS reached, its `_resendOtp` ignores `status:false` from the API and runs the success path anyway, locking the user for another 30 s on a silently-failed resend.
+
+| # | File | Change | Status |
+|---|------|--------|--------|
+| 1 | `signin/otp_screen.dart` | Button always tappable when `!_isVerifying`; `_verifyOtp` handles "incomplete OTP" message internally | ✅ Done |
+| 2 | `signin/otp_screen.dart` | `_resendOtp` inspects `{status,message}`; only restart cooldown on success; keep Resend tappable on failure | ✅ Done |
+| 3 | `signin/otp_screen.dart` | `_showMessage` actually respects `isError` (was always calling `showError`) | ✅ Done |
+| 4 | `signin/login_screen.dart` | Persistent inline error chip below phone row when send fails; clear on type; button label switches to "Try again" | ✅ Done |
+| 5 | `splash/signup_screen.dart` | On failed verify, stop calling `provider.setOtp("")` + `isOtpValid=false` — leave the user's 6 digits visible so they can correct one cell | ✅ Done |
+
+Backend "fire-and-forget" `dispatchAfterResponse` for WhApi is by design (Phase 2 server hardening would be a separate task). Client-side mitigation = the resend + retry UX above.
+
+Verified: `flutter analyze` on the 3 edited files = 0 errors, no new warnings. Awaiting APK build + user verification on device.
+
+---
+
+### 2026-06-01 — Flutter-side challenge fixes (branch `feature/challenge`)
+
+Scope: fix only the **Flutter-side** items from the challenges PDF (F1–F18). Backend (B*) / Server (S*) reported to those teams. No commit/push — left for user verification.
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| F1 | Plaintext token | ✅ Done | `flutter_secure_storage` + sync cache + legacy migration |
+| F2 | Floating-point money | ✅ Done (client) | `core/utils/money.dart`; minor-units = backend B4 |
+| F3 | Idempotency per tap | ✅ Done | one key/order reused on retry; buy/sell/deposit/withdraw |
+| F4 | Simulated chart | ⏭️ Skipped | user asked to leave the chart as-is |
+| F5 | Money input validation | ✅ Done | min/max/decimals/balance + inline errors |
+| F6 | Broken tests | ✅ Done | scaffold removed; 12 unit tests (Money, Idempotency) green |
+| F7 | Cleartext traffic | ✅ Done | Android `false`; iOS ATS already secure; pinning = follow-up |
+| F8 | Two HTTP clients | ✅ Done | live code Dio-only; removed unused `http` dep |
+| F9 | No retry/offline | ✅ Done | `RetryInterceptor` + `connectivity_plus` offline message |
+| F10 | No crash reporting | ✅ Done | `firebase_crashlytics` wired; Gradle symbol plugin = follow-up |
+| F11 | Abrupt session expiry | ⏳ Backend-dep | poll+dialog OK on client; true refresh needs backend B6 |
+| F12 | Provider sprawl | ⏳ Deferred | existing pattern reasonable; deep refactor = risk > value |
+| F13 | Pagination | ✅ Already present | HomeScreen scroll → `loadMore()` already wired |
+| F14 | FCM payload trust | ✅ Done | safe coercion + route whitelist |
+| F16 | print logging | ✅ Done (core) | `app_logger.dart` + redaction; killed `print(token)` leak; full migration = mechanical follow-up |
+| F17 | Filename typo / dead code | ✅ Rename already done | `api_endpoint.dart` already single-dot; commented dead-code = cosmetic follow-up |
+| F18 | Rankings stub | ✅ Done | mock behind documented `_useMockRankings` flag |
+
+Verified: `flutter analyze` = 0 errors; `flutter test` = all pass. New deps: `flutter_secure_storage`, `connectivity_plus`, `firebase_crashlytics`, `mocktail` (dev); removed `http`.
+
+---
+
 ### 2026-05-23 — Login + OTP critical bug fixes (COMPLETED — see Completed section)
 
 Status: implemented & committed. Verification pending APK smoke test on device.

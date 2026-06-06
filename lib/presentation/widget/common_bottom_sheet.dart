@@ -9,6 +9,11 @@ class CommonBottomSheet {
     double minChildSize = 0.7,
     double maxChildSize = 0.95,
     Color? barrierColor,
+    // When true the sheet hugs its content (no DraggableScrollableSheet):
+    // it can't be dragged taller and won't scroll. The builder must return a
+    // `mainAxisSize: MainAxisSize.min` Column so it sizes to content — used
+    // for fixed-height Figma sheets (Edit Profile Photo / Select an Avatar).
+    bool fixed = false,
   }) {
     showModalBottomSheet(
       context: context,
@@ -26,16 +31,18 @@ class CommonBottomSheet {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20.r),
             child: Container(
-              color: Colors.white,
-              child: DraggableScrollableSheet(
-                initialChildSize: initialChildSize,
-                minChildSize: minChildSize,
-                maxChildSize: maxChildSize,
-                expand: false,
-                builder: (context, controller) {
-                  return builder(controller);
-                },
-              ),
+              color: Theme.of(context).colorScheme.surface,
+              child: fixed
+                  ? builder(ScrollController())
+                  : DraggableScrollableSheet(
+                      initialChildSize: initialChildSize,
+                      minChildSize: minChildSize,
+                      maxChildSize: maxChildSize,
+                      expand: false,
+                      builder: (context, controller) {
+                        return builder(controller);
+                      },
+                    ),
             ),
           ),
         );

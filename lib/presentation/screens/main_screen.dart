@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:betrade/presentation/screens/explore/explore_page.dart';
 import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
-import 'package:betrade/presentation/screens/profile/info_chart_screen.dart';
 import 'package:betrade/presentation/screens/profile/profile_page.dart';
+import 'package:betrade/presentation/screens/rankings/rankings_page.dart';
 import 'package:betrade/presentation/screens/verification/verify_account.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -20,11 +19,13 @@ import '../bottom_navigation/bottom_nav.dart';
 class MainScreen extends StatefulWidget {
   final bool showWelcomePopup;
   final int docUploadStatus;
+  final int initialIndex;
 
   const MainScreen({
     super.key,
     this.showWelcomePopup = false,
     this.docUploadStatus = 0,
+    this.initialIndex = 0,
   });
 
   @override
@@ -44,6 +45,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
 
+    currentIndex = widget.initialIndex;
     final stored = LocalStorage.getDocUploadStatus();
     _docUploadStatus = stored ?? widget.docUploadStatus;
     _startTokenChecker();
@@ -181,16 +183,16 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _showWelcomePopup() async {
-    final result = await showDialog<String>(
+    await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
           backgroundColor: AppColors.cardBackgroundDynamic(context),
-          insetPadding: EdgeInsets.all(10.w),
-          elevation: 4,
+          insetPadding: EdgeInsets.symmetric(horizontal: 28.w),
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(32.r),
           ),
           child: Padding(
             padding: EdgeInsets.all(20.w),
@@ -199,80 +201,107 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 Text(
                   "Welcome aboard, ${firstName.isNotEmpty ? firstName : "Trader"} 🎉",
-                  style: AppTextStyle.subHeading.copyWith(
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'SFProRounded',
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimaryDynamic(context),
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 8.h),
                 Text(
                   "Your account is ready. Let's quickly verify your details so you can start trading and withdraw your winnings.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 13.sp,
-                    color: AppColors.textSecondaryDynamic(context),
                     fontFamily: 'SFProRounded',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.textSecondaryDynamic(context)
+                        : const Color(0xFF52525B),
                   ),
                 ),
                 SizedBox(height: 20.h),
-                InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) {
-                        return Padding(
-                          padding: EdgeInsets.all(10.w),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20.r),
-                            child: Container(
-                              color: AppColors.cardBackgroundDynamic(context),
-                              child: FractionallySizedBox(
-                                heightFactor: 0.9,
-                                child: VerificationFlow(),
+                // Verify my account → open KYC flow
+                SizedBox(
+                  width: double.infinity,
+                  height: 60.h,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: const Color(0xFF8E10FC),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32.r),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) {
+                          return Padding(
+                            padding: EdgeInsets.all(10.w),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20.r),
+                              child: Container(
+                                color: AppColors.cardBackgroundDynamic(context),
+                                child: FractionallySizedBox(
+                                  heightFactor: 0.9,
+                                  child: VerificationFlow(),
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(30.r),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30.r),
-                      color: AppColors.primary,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        "Verify my account",
-                        style: TextStyle(color: Colors.white),
+                          );
+                        },
+                      );
+                    },
+                    child: Text(
+                      "Verify my account",
+                      style: TextStyle(
+                        fontFamily: 'SFProRounded',
+                        fontSize: 15.6.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: 10.h),
-                InkWell(
-                  onTap: () => Navigator.pop(context, 'skip'),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30.r),
-                      border: Border.all(
-                        width: 2.w,
-                        color: AppColors.borderDynamic(context),
+                SizedBox(height: 12.h),
+                // Skip for now
+                SizedBox(
+                  width: double.infinity,
+                  height: 60.h,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: AppColors.cardBackgroundDynamic(context),
+                      side: BorderSide(color: AppColors.borderDynamic(context)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32.r),
                       ),
                     ),
-                    child: Text(
-                      "Skip for now",
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDynamic(context),
-                      ),
+                    onPressed: () => Navigator.pop(context, 'skip'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Skip for now",
+                          style: TextStyle(
+                            fontFamily: 'SFProRounded',
+                            fontSize: 15.6.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimaryDynamic(context),
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16.sp,
+                          color: AppColors.textPrimaryDynamic(context),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -320,7 +349,7 @@ class _MainScreenState extends State<MainScreen> {
             onBannerTap: _showWelcomePopup,
           ),
           ExplorePage(),
-          InfoChartScreen(),
+          const RankingsPage(),
           PortfolioPage(),
           ProfilePage(),
         ],

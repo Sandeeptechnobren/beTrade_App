@@ -12,6 +12,9 @@ class PositionModel {
   final double unrealisedPnlGhs;
   final double realizedPnlGhs;
   final double maxPayoutGhs;
+  // P0-C — closed positions surface these. Open positions return null.
+  final double? payoutGhs;       // amount paid out from settlement (winners only)
+  final DateTime? settledAt;     // null for open positions
   final DateTime? updatedAt;
 
   // outcome.* — null only on a malformed row.
@@ -41,6 +44,8 @@ class PositionModel {
     required this.outcomeSlug,
     required this.outcomeLabel,
     this.outcomeIsWinner,
+    this.payoutGhs,
+    this.settledAt,
     this.updatedAt,
     this.marketUuid,
     this.marketDescription,
@@ -64,6 +69,8 @@ class PositionModel {
       unrealisedPnlGhs: _double(json['unrealised_pnl_ghs']),
       realizedPnlGhs: _double(json['realized_pnl_ghs']),
       maxPayoutGhs: _double(json['max_payout_ghs']),
+      payoutGhs: json['payout_ghs'] == null ? null : _double(json['payout_ghs']),
+      settledAt: _parseDate(json['settled_at']),
       updatedAt: _parseDate(json['updated_at']),
       outcomeSlug: outcome is Map ? outcome['slug']?.toString() ?? '' : '',
       outcomeLabel: outcome is Map ? outcome['label']?.toString() ?? '' : '',

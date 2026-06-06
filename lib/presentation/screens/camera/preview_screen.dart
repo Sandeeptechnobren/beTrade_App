@@ -172,7 +172,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       borderRadius: BorderRadius.circular(16),
       child: Image.file(
         File(widget.imagePath),
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           debugPrint("❌ Image decode error: $error");
           return Container(

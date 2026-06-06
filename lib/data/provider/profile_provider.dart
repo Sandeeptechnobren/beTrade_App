@@ -50,10 +50,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/services/profile_service.dart';
+import '../../data/services/achievement_service.dart';
+import '../model/achievement_model.dart';
 import '../model/profile_model.dart';
 
 class ProfileProvider extends ChangeNotifier {
   ProfileModel? profile;
+  List<AchievementModel> achievements = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -79,6 +82,10 @@ class ProfileProvider extends ChangeNotifier {
       errorMessage = "Failed to load profile data";
       debugPrint("❌ Failed to load profile - result is null");
     }
+
+    // Fetch the achievement board alongside the profile (best-effort —
+    // a failure just leaves the badges empty, never blocks the profile).
+    achievements = await AchievementService.getAchievements();
 
     isLoading = false;
     notifyListeners();

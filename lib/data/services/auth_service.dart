@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import '../../core/config/api_endpoint.dart';
@@ -7,10 +8,40 @@ import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
 import '../provider/default_amount_provider.dart';
 import 'local_storage.dart';
+import 'notification_services.dart';
 import 'package:provider/provider.dart';
 
 class AuthService {
 
+  /// Dev helper: surfaces the OTP from a send-OTP API response so testers
+  /// don't have to ask the backend. Many dev/staging backends echo the OTP
+  /// in the response — if found it's printed prominently; otherwise the full
+  /// response is logged (the OTP was likely sent via SMS only). Scans the
+  /// common key names + a couple of nested spots.
+  static void _logOtp(String where, dynamic data) {
+    // Debug builds only — never surface the OTP in a release build.
+    if (!kDebugMode) return;
+    try {
+      Object? pick(dynamic m) => (m is Map)
+          ? (m['otp'] ??
+              m['code'] ??
+              m['otp_code'] ??
+              m['OTP'] ??
+              m['verification_code'])
+          : null;
+      final otp = pick(data) ??
+          (data is Map ? pick(data['data']) : null) ??
+          (data is Map ? pick(data['user']) : null);
+      if (otp != null) {
+        debugPrint("🔑🔑🔑 [$where] OTP = $otp 🔑🔑🔑");
+      } else {
+        debugPrint("🔑 [$where] No OTP field in response (likely SMS-only). "
+            "Full response: $data");
+      }
+    } catch (e) {
+      debugPrint("🔑 [$where] OTP log error: $e");
+    }
+  }
 
   Future<Map<String, dynamic>> sendOtp(String phone) async {
     try {
@@ -23,6 +54,7 @@ class AuthService {
 
       print("STATUS: ${response.statusCode}");
       print("RESPONSE: ${response.data}");
+      _logOtp("Signup", response.data);
 
       // SUCCESS
       if (response.statusCode == 200) {
@@ -243,6 +275,7 @@ class AuthService {
           "phone": phone,
         },
       );
+      _logOtp("Login", response.data);
 
       // ✅ SUCCESS CASE
       if (response.statusCode == 200 && response.data["status"] == true) {
@@ -359,6 +392,7 @@ class AuthService {
         ApiEndpoints.login,
         data: {"phone": phone},
       );
+      _logOtp("Login", response.data);
 
       final data = response.data;
       if (data is Map) {
@@ -478,6 +512,271 @@ class AuthService {
         print("FCM SAVE ERROR: $e");
       }
       return false;
+    }
+  }
+
+  /// POSTs a verified social-auth credential (currently Apple) to the
+  /// backend. Mirrors [verifyLoginOtp] exactly:
+  ///   - persists the returned JWT to disk BEFORE setting the in-memory
+  ///     Dio header (so a crash between the two leaves us logged-out,
+  ///     not header-only),
+  ///   - parses `doc_upload_status` into an int and saves it to
+  ///     [LocalStorage] so the KYC banner survives an app relaunch,
+  ///   - returns the same `{success, message, data, doc_upload_status}`
+  ///     shape so callers can reuse the OTP success path.
+  ///
+  /// FCM token is included in the request body (per the agreed contract)
+  /// so the backend can register push at the same moment it mints the
+  /// JWT — that's why we skip the separate /fcm/save-token call that
+  /// verifyLoginOtp makes.
+  ///
+  /// `provider` is the literal string the backend expects, e.g. "apple".
+  /// `email`/`firstName`/`lastName` are nullable because Apple only
+  /// returns them on the FIRST sign-in for an app — subsequent sign-ins
+  /// pass null. The backend identifies returning users via the
+  /// identity-token's `sub` claim, so these fields are creation-only
+  /// hints, not authentication material.
+  Future<Map<String, dynamic>> socialLogin({
+    required String provider,
+    required String identityToken,
+    required String authorizationCode,
+    String? email,
+    String? firstName,
+    String? lastName,
+  }) async {
+    try {
+      final fcmToken = await NotificationService.getFcmToken();
+
+      final response = await DioClient.instance.post(
+        ApiEndpoints.socialLogin,
+        data: {
+          "provider": provider,
+          "identity_token": identityToken,
+          "authorization_code": authorizationCode,
+          "fcm_token": fcmToken ?? "",
+          "device_type": Platform.isIOS ? "ios" : "android",
+          if (email != null) "email": email,
+          if (firstName != null) "first_name": firstName,
+          if (lastName != null) "last_name": lastName,
+        },
+      );
+
+      print("SOCIAL LOGIN STATUS: ${response.statusCode}");
+      print("SOCIAL LOGIN RESPONSE: ${response.data}");
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+
+        if (isSuccess) {
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            await LocalStorage.setToken(token);
+            DioClient.setToken(token);
+          }
+        }
+
+        // Same defensive parse as verifyLoginOtp — backend has been seen
+        // to return doc_upload_status as int, string, or bool.
+        final user = data['user'];
+        final rawStatus = user is Map ? user['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
+
+        if (isSuccess) {
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+        }
+
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+          "data": user,
+          "doc_upload_status": docUploadStatus,
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("SOCIAL LOGIN ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("SOCIAL LOGIN ERROR: $e");
+      return {"success": false, "message": "Server error"};
+    }
+  }
+
+  /// Continue-with-Google — exchanges a Google `id_token` for the app JWT.
+  /// Mirrors [socialLogin]'s token-store + `doc_upload_status` parse exactly:
+  ///   - persists the returned JWT to disk BEFORE setting the in-memory Dio
+  ///     header (crash between the two leaves us logged-out, not header-only),
+  ///   - parses `doc_upload_status` (int/String/bool) and saves it to
+  ///     [LocalStorage] so the KYC banner survives an app relaunch.
+  ///
+  /// `needs_phone` tells the caller whether the Google account had no phone
+  /// on file — the UI then routes to the attach-phone step.
+  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.loginWithGoogle,
+        data: {
+          "id_token": idToken,
+        },
+      );
+
+      print("GOOGLE LOGIN STATUS: ${response.statusCode}");
+      print("GOOGLE LOGIN RESPONSE: ${response.data}");
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+
+        if (isSuccess) {
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            await LocalStorage.setToken(token);
+            DioClient.setToken(token);
+          }
+        }
+
+        // Same defensive parse as socialLogin — backend has been seen to
+        // return doc_upload_status as int, string, or bool.
+        final user = data['user'];
+        final rawStatus = user is Map ? user['doc_upload_status'] : null;
+        int docUploadStatus = 0;
+        if (rawStatus is int) {
+          docUploadStatus = rawStatus;
+        } else if (rawStatus is String) {
+          docUploadStatus = int.tryParse(rawStatus) ?? 0;
+        } else if (rawStatus is bool) {
+          docUploadStatus = rawStatus ? 1 : 0;
+        }
+
+        if (isSuccess) {
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+        }
+
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+          "needs_phone": data['needs_phone'] == true,
+          "doc_upload_status": docUploadStatus,
+        };
+      }
+      return {
+        "success": false,
+        "message": "Unexpected server response",
+        "needs_phone": false,
+        "doc_upload_status": 0,
+      };
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("GOOGLE LOGIN ERROR: $msg");
+        return {
+          "success": false,
+          "message": msg,
+          "needs_phone": false,
+          "doc_upload_status": 0,
+        };
+      }
+      print("GOOGLE LOGIN ERROR: $e");
+      return {
+        "success": false,
+        "message": "Server error",
+        "needs_phone": false,
+        "doc_upload_status": 0,
+      };
+    }
+  }
+
+  /// Sends an OTP to [phone] so a Google-authenticated user can attach a
+  /// phone number to their account. Bearer token is already set on
+  /// [DioClient] by [loginWithGoogle]. Returns `{success, message}`.
+  Future<Map<String, dynamic>> attachPhone(String phone) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.attachPhone,
+        data: {
+          "phone": phone,
+        },
+      );
+
+      print("ATTACH PHONE STATUS: ${response.statusCode}");
+      print("ATTACH PHONE RESPONSE: ${response.data}");
+      _logOtp("Google attach-phone", response.data);
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("ATTACH PHONE ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("ATTACH PHONE ERROR: $e");
+      return {"success": false, "message": "Server error"};
+    }
+  }
+
+  /// Verifies the OTP sent by [attachPhone] and finalises the phone attach.
+  /// Bearer token already set on [DioClient]. Returns `{success, message}`.
+  Future<Map<String, dynamic>> verifyAttachPhone(
+      String phone, String otp) async {
+    try {
+      final response = await DioClient.instance.post(
+        ApiEndpoints.verifyAttachPhone,
+        data: {
+          "phone": phone,
+          "otp": otp,
+        },
+      );
+
+      print("VERIFY ATTACH PHONE STATUS: ${response.statusCode}");
+      print("VERIFY ATTACH PHONE RESPONSE: ${response.data}");
+
+      final data = response.data;
+      if (data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+        return {
+          "success": isSuccess,
+          "message": data['message'] ?? "Something went wrong",
+        };
+      }
+      return {"success": false, "message": "Unexpected server response"};
+    } catch (e) {
+      if (e is DioException) {
+        final resp = e.response?.data;
+        final msg = (resp is Map ? resp['message'] : null) ??
+            e.message ??
+            "Server error";
+        print("VERIFY ATTACH PHONE ERROR: $msg");
+        return {"success": false, "message": msg};
+      }
+      print("VERIFY ATTACH PHONE ERROR: $e");
+      return {"success": false, "message": "Server error"};
     }
   }
 

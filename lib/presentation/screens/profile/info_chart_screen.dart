@@ -166,7 +166,9 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
           title,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.black : Colors.grey,
+            color: isSelected
+                ? AppColors.textPrimaryDynamic(context)
+                : AppColors.textSecondaryDynamic(context),
           ),
         ),
       ),
@@ -250,7 +252,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
             padding: EdgeInsets.all(14.w),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppColors.borderDynamic(context)),
             ),
             child: Column(
               children: [
@@ -310,7 +312,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
           padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppColors.borderDynamic(context)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +351,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
   }
 
   Widget divider() {
-    return Divider(height: 1.h, color: Colors.grey.shade200);
+    return Divider(height: 1.h, color: AppColors.borderDynamic(context));
   }
 
   Widget card(String text) {
@@ -357,7 +359,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(width: 1.w, color: Colors.grey),
+        border: Border.all(width: 1.w, color: AppColors.borderDynamic(context)),
       ),
       child: Text(text, style: AppTextStyle.bodyBig),
     );

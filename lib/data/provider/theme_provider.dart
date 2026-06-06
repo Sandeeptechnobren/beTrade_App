@@ -26,6 +26,8 @@ import 'package:flutter/material.dart';
 import '../services/local_storage.dart';
 
 class ThemeProvider extends ChangeNotifier {
+  // Dark mode is live. The active theme follows the persisted preference:
+  // Profile toggle → SharedPreferences → restored on the next launch.
   ThemeMode _themeMode = ThemeMode.light;
 
   ThemeMode get themeMode => _themeMode;

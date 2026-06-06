@@ -8,8 +8,8 @@ import '../../../core/theme/app_text_style.dart';
 import '../../../data/model/trade_detail_model.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_detail_provider.dart';
-import '../../../data/services/trade_chart_service.dart';
 import '../../widget/common_bottom_sheet.dart';
+import '../../widget/common_header.dart';
 import '../../widget/customSnackBar.dart';
 import '../profile/default_settings_page.dart';
 import 'trade_page.dart';
@@ -49,45 +49,6 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   bool _isInfoTab = true;
   String _selectedRange = '1D';
 
-  // Chart state — populated lazily when the user opens the Chart tab
-  // or switches range. Null until the first successful fetch; falls
-  // back to the sample shape in `_chart()` when empty so the chart
-  // area isn't a void.
-  ChartResponse? _chartData;
-  bool _chartLoading = false;
-  int _chartFetchId = 0; // ignore stale results when user changes range
-
-  @override
-  void initState() {
-    super.initState();
-    // Pre-warm the 1D chart so switching to the Chart tab feels instant.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadChart(_selectedRange);
-    });
-  }
-
-  Future<void> _loadChart(String range) async {
-    if (!mounted) return;
-    final requestId = ++_chartFetchId;
-    setState(() {
-      _chartLoading = true;
-      _selectedRange = range;
-    });
-
-    final result = await TradeChartService.fetch(
-      tradeUuid: widget.tradeUuid,
-      range: range,
-    );
-
-    // Drop stale response if the user changed range mid-fetch.
-    if (!mounted || requestId != _chartFetchId) return;
-
-    setState(() {
-      _chartData = result;
-      _chartLoading = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TradeDetailProvider>();
@@ -95,7 +56,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.cardBackgroundDynamic(context),
-      bottomNavigationBar: detail == null ? null : _buildBuyButtons(),
+      // bottomNavigationBar: detail == null ? null : _buildBuyButtons(),
       body: SafeArea(
         child: Column(
           children: [
@@ -234,22 +195,30 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(8.w, 4.h, 16.w, 8.h),
       child: Row(
+        // children: [
+        //   IconButton(
+        //     icon: Icon(
+        //       Icons.arrow_back_ios_new,
+        //       size: 18.sp,
+        //       color: AppColors.textPrimaryDynamic(context),
+        //     ),
+        //     onPressed: () => Navigator.of(context).pop(),
+        //   ),
+        //   Text(
+        //     "Details",
+        //     style: AppTextStyle.heading.copyWith(
+        //       color: AppColors.textPrimaryDynamic(context),
+        //     ),
+        //   ),
+
+        // ],
         children: [
-          IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new,
-              size: 18.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          Text(
-            "Details",
-            style: AppTextStyle.heading.copyWith(
-              color: AppColors.textPrimaryDynamic(context),
+          Expanded(
+            child: CommonHeader(
+              title: "Details",
+              showDivider: false,
             ),
           ),
-          const Spacer(),
           _buildTabSwitcher(),
         ],
       ),
@@ -257,11 +226,14 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   }
 
   Widget _buildTabSwitcher() {
+    // Mirrors the New-Trade Yes/No segmented pill: lighter track
+    // (iconContainerDynamic) with a darker selected segment
+    // (cardBackgroundDynamic) so the active tab reads clearly in dark mode.
     return Container(
-      padding: EdgeInsets.all(3.w),
+      padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(9999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -276,30 +248,22 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   Widget _tabButton(String label, bool selected) {
     return GestureDetector(
       onTap: () => setState(() => _isInfoTab = (label == 'Info')),
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.cardBackgroundDynamic(context)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(18.r),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
+          borderRadius: BorderRadius.circular(99999),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: AppColors.textPrimaryDynamic(context),
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimaryDynamic(context),
           ),
         ),
       ),
@@ -316,61 +280,82 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _titleCard(detail),
-          SizedBox(height: 24.h),
-          Text(
-            "Market Activity",
-            style: AppTextStyle.heading.copyWith(
-              fontSize: 16.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
+          _sectionHeading("Market Activity"),
+          SizedBox(height: 8.h),
           _activityCard(detail),
-          SizedBox(height: 24.h),
-          Text(
-            "Resolution Source",
-            style: AppTextStyle.heading.copyWith(
-              fontSize: 16.sp,
-              color: AppColors.textPrimaryDynamic(context),
-            ),
-          ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
+          _sectionHeading("Resolution Source"),
+          SizedBox(height: 8.h),
           _resolutionCard(detail),
+          SizedBox(height: 20.h),
+          _sectionHeading("Resolution Source"),
+          SizedBox(height: 8.h),
+          _resolutionRulesCard(),
           SizedBox(height: 24.h),
         ],
       ),
     );
   }
 
+  Widget _sectionHeading(String text) => Text(
+        text,
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDynamic(context),
+        ),
+      );
+
   Widget _titleCard(TradeDetailModel detail) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
+        color: const Color(0xFF160128),
         borderRadius: BorderRadius.circular(16.r),
-        image: const DecorationImage(
-          image: AssetImage("assets/images/splash.png"),
-          fit: BoxFit.cover,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Market • ${detail.categoryName}",
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            children: [
+              Text(
+                "Market",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: const Color(0xFFFAFAFA),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Container(
+                width: 4.w,
+                height: 4.w,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAFAFA),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Text(
+                detail.categoryName,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: const Color(0xFFB35DFF),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 8.h),
           Text(
             detail.title.isNotEmpty ? detail.title : detail.description,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              height: 1.2,
             ),
           ),
         ],
@@ -395,10 +380,10 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     final isOpen = status.toLowerCase() == 'open';
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(14.r),
+        color: AppColors.cardBackgroundDynamic(context),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
         children: [
@@ -407,7 +392,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           _activityRow(
             "Market Status",
             _capitalize(status),
-            valueColor: isOpen ? Colors.green.shade700 : Colors.grey.shade700,
+            valueColor:
+                isOpen ? const Color(0xFF166534) : AppColors.textSecondaryDynamic(context),
           ),
           _divider(),
           _activityRow("Total Volume", volume),
@@ -429,8 +415,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 13.sp,
-              color: Colors.grey.shade600,
+              fontSize: 14.sp,
+              color: AppColors.textSecondaryDynamic(context),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -439,7 +425,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
                 color: valueColor ?? AppColors.textPrimaryDynamic(context),
               ),
@@ -452,7 +438,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
   Widget _divider() => Container(
         height: 1,
-        color: Colors.grey.shade200,
+        color: AppColors.borderDynamic(context),
       );
 
   Widget _resolutionCard(TradeDetailModel detail) {
@@ -470,17 +456,47 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: AppColors.inputFieldBgDynamic(context),
-        borderRadius: BorderRadius.circular(14.r),
+        color: AppColors.cardBackgroundDynamic(context),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 13.sp,
+          fontSize: 14.sp,
           color: AppColors.textPrimaryDynamic(context),
-          height: 1.55,
+          fontWeight: FontWeight.w400,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+
+  /// Second "Resolution Source" block — describes the resolution
+  /// rules/timeline. The model doesn't expose this yet, so it ships
+  /// with hardcoded copy from the Figma spec.
+  Widget _resolutionRulesCard() {
+    const text =
+        "The market will resolve when a verified funding event, acquisition, or predefined milestone occurs.\n"
+        "• Resolution will occur within 72 hours after confirmation from an approved resolution source.\n"
+        "• If conflicting information exists, the platform administrators may review additional sources before finalizing the result.\n"
+        "• Once a market is resolved: Trading will be permanently closed, final prices will be locked, payouts or ownership allocations will be executed according to the outcome.";
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackgroundDynamic(context),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: AppColors.textPrimaryDynamic(context),
+          fontWeight: FontWeight.w400,
+          height: 1.4,
         ),
       ),
     );
@@ -489,16 +505,9 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
   // ───────────────── Chart tab ─────────────────
 
   Widget _buildChartTab(TradeDetailModel detail) {
-    // Chance % — prefer the freshly-fetched chart's `latest` (most
-    // accurate, range-specific), fall back to detail.currentPricePerShare.
-    final latestPrice =
-        _chartData?.latest ?? detail.currentPricePerShare;
-    final chance = (latestPrice * 100).clamp(0, 100);
+    // Chance % derived from current price (LMSR price = implied probability)
+    final chance = (detail.currentPricePerShare * 100).clamp(0, 100);
     final chancePct = chance.toStringAsFixed(0);
-
-    // Real delta from the fetched chart window. Backend buckets the
-    // window per range, so this is "1D %change" for the 1D tab, etc.
-    final delta = _chartData?.deltaPct;
 
     return Padding(
       padding: EdgeInsets.all(16.w),
@@ -510,19 +519,59 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
             children: [
               Text(
                 "$chancePct% Chance",
-                style: AppTextStyle.heading.copyWith(
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.w800,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimaryDynamic(context),
                 ),
               ),
-              _deltaBadge(delta),
+              // Hardcoded 24h delta badge — needs backend chart endpoint
+              // (`/trade/{uuid}/chart`) wired to compute the real delta.
+              // See tasks/todo.md.
+              // Down-delta (loss) badge: light red-50 surface in light mode;
+              // dark red surface in dark mode so the light pink doesn't glow.
+              Builder(
+                builder: (context) {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final badgeBg = isDark
+                      ? const Color(0xFF450A0A) // red-950
+                      : const Color(0xFFFEF2F2); // red-50
+                  final badgeFg = isDark
+                      ? const Color(0xFFFCA5A5) // red-300
+                      : const Color(0xFF991B1B); // red-800
+                  return Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(1000.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "20%",
+                          style: TextStyle(
+                            color: badgeFg,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: badgeFg,
+                          size: 18.sp,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ),
           SizedBox(height: 16.h),
-          Row(
-            children: ['1D', '1W', '1M', '1Y', 'MAX'].map(_rangeChip).toList(),
-          ),
+          _rangePills(),
           SizedBox(height: 24.h),
           Expanded(child: _chart()),
         ],
@@ -530,147 +579,69 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
     );
   }
 
-  /// Range-window delta badge — green when price is up, red when
-  /// down, grey when we don't have enough data to compute. Matches
-  /// the Figma "20% ⌄" pill style.
-  Widget _deltaBadge(double? deltaPct) {
-    if (deltaPct == null) {
-      // Not enough history yet — show a neutral placeholder rather
-      // than a misleading 0% delta or a stale hardcoded value.
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Text(
-          "—",
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w600,
-            fontSize: 12.sp,
-          ),
-        ),
-      );
-    }
-    final isDown = deltaPct < 0;
-    final color = isDown ? Colors.red.shade700 : Colors.green.shade700;
-    final bg = isDown ? Colors.red.shade50 : Colors.green.shade50;
+  Widget _rangePills() {
+    const ranges = ['1D', '1W', '1M', '1Y', 'MAX'];
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+      padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(9999.r),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            "${deltaPct.abs().toStringAsFixed(0)}%",
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
-            ),
-          ),
-          Icon(
-            isDown ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-            color: color,
-            size: 18.sp,
-          ),
-        ],
+        children: ranges.map((r) => Expanded(child: _rangeChip(r))).toList(),
       ),
     );
   }
 
   Widget _rangeChip(String range) {
     final selected = _selectedRange == range;
-    return Padding(
-      padding: EdgeInsets.only(right: 8.w),
-      child: GestureDetector(
-        onTap: () => _loadChart(range),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.cardBackgroundDynamic(context)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: selected
-                  ? Colors.grey.shade300
-                  : Colors.transparent,
-            ),
-          ),
-          child: Text(
-            range,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: AppColors.textPrimaryDynamic(context),
-              fontSize: 13.sp,
-            ),
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRange = range),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cardBackgroundDynamic(context) : Colors.transparent,
+          borderRadius: BorderRadius.circular(99999.r),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          range,
+          style: TextStyle(
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: AppColors.textPrimaryDynamic(context),
+            fontSize: 14.sp,
           ),
         ),
       ),
     );
   }
 
-  /// Renders the LMSR price-over-time chart for the current range.
-  ///
-  /// Data comes from `TradeChartService.fetch(...)` (the backend's
-  /// `/api/trade/{uuid}/chart` endpoint, bucketed per range). When
-  /// the network call is in flight we show a spinner; on failure /
-  /// empty data we render the sample shape so the chart pane still
-  /// has something visible.
+  /// Placeholder chart with hardcoded sample data shaped like the
+  /// design mock. Real data should come from `/trade/{uuid}/chart` —
+  /// tracked in tasks/todo.md.
   Widget _chart() {
-    if (_chartLoading && _chartData == null) {
-      return Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
-    }
-
-    final livePoints = _chartData?.points ?? const [];
-    final spots = <FlSpot>[];
-
-    if (livePoints.length >= 2) {
-      // Map each timestamped point to (index, price-as-percent). We
-      // index by sequence rather than epoch time because fl_chart
-      // labels look cleaner with evenly-spaced X values, and the
-      // backend already bucketed the data per range so spacing is
-      // uniform.
-      for (int i = 0; i < livePoints.length; i++) {
-        final p = livePoints[i];
-        spots.add(FlSpot(i.toDouble(), (p.price * 100).clamp(0, 100)));
-      }
-    } else {
-      // Fallback — sample shape so the chart pane isn't blank when
-      // there's no snapshot history yet (e.g. brand-new market with
-      // < 2 buckets of price_snapshots).
-      spots.addAll(const [
-        FlSpot(0, 60),
-        FlSpot(1, 64),
-        FlSpot(2, 50),
-        FlSpot(3, 55),
-        FlSpot(4, 38),
-        FlSpot(5, 50),
-        FlSpot(6, 60),
-        FlSpot(7, 52),
-        FlSpot(8, 67),
-        FlSpot(9, 50),
-        FlSpot(10, 55),
-        FlSpot(11, 60),
-        FlSpot(12, 58),
-        FlSpot(13, 40),
-      ]);
-    }
-
-    final maxX = (spots.length - 1).toDouble();
+    final spots = <FlSpot>[
+      const FlSpot(0, 60),
+      const FlSpot(1, 64),
+      const FlSpot(2, 50),
+      const FlSpot(3, 55),
+      const FlSpot(4, 38),
+      const FlSpot(5, 50),
+      const FlSpot(6, 60),
+      const FlSpot(7, 52),
+      const FlSpot(8, 67),
+      const FlSpot(9, 50),
+      const FlSpot(10, 55),
+      const FlSpot(11, 60),
+      const FlSpot(12, 58),
+      const FlSpot(13, 40),
+    ];
 
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX: maxX,
+        maxX: 13,
         minY: 0,
         maxY: 100,
         gridData: FlGridData(
@@ -679,12 +650,12 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           horizontalInterval: 10,
           verticalInterval: 1,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.grey.shade200,
+            color: AppColors.borderDynamic(context),
             strokeWidth: 1,
             dashArray: const [4, 4],
           ),
           getDrawingVerticalLine: (_) => FlLine(
-            color: Colors.grey.shade200,
+            color: AppColors.borderDynamic(context),
             strokeWidth: 1,
             dashArray: const [4, 4],
           ),
@@ -706,7 +677,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                     "${value.toInt()}%",
                     style: TextStyle(
                       fontSize: 10.sp,
-                      color: Colors.grey.shade600,
+                      color: AppColors.textSecondaryDynamic(context),
                     ),
                   ),
                 );
@@ -719,7 +690,7 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
           LineChartBarData(
             spots: spots,
             isCurved: false,
-            color: AppColors.primary,
+            color: const Color(0xFFAA45FF),
             barWidth: 2,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
@@ -729,8 +700,8 @@ class _TradeDetailsPageState extends State<TradeDetailsPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.20),
-                  AppColors.primary.withValues(alpha: 0.02),
+                  const Color(0xFFAA45FF).withValues(alpha: 0.20),
+                  const Color(0xFFAA45FF).withValues(alpha: 0.02),
                 ],
               ),
             ),

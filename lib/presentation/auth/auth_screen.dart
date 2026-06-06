@@ -12,7 +12,6 @@ class AuthScreen extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.black,
         image: DecorationImage(
           image: AssetImage("assets/images/splash.png"),
           fit: BoxFit.cover,
@@ -26,12 +25,13 @@ class AuthScreen extends StatelessWidget {
   Widget _buildLogo() {
     return Image.asset(
       "assets/images/IconLogo.png",
-      height: 80.h,
+      height: 160.h,
+      width: 120.w,
       errorBuilder: (context, error, stackTrace) {
         debugPrint("Logo image missing: $error");
         return Container(
-          height: 80.h,
-          width: 80.w,
+          height: 175.h,
+          width: 142.w,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             shape: BoxShape.circle,
@@ -45,47 +45,47 @@ class AuthScreen extends StatelessWidget {
       },
     );
   }
-
-  Widget _buildThemeToggle(ThemeProvider themeProvider, bool isDark) {
-    return GestureDetector(
-      onTap: () {
-        try {
-          themeProvider.toggleTheme(!isDark);
-        } catch (e) {
-          debugPrint(" Theme toggle error: $e");
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.all(10.w),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.95),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.2)
-                : Colors.black.withOpacity(0.05),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(
-          isDark ? Icons.light_mode : Icons.dark_mode,
-          size: 22.sp,
-          color: isDark
-              ? AppColors.disableButtonColor
-              : Colors.black54,
-        ),
-      ),
-    );
-  }
+  //
+  // Widget _buildThemeToggle(ThemeProvider themeProvider, bool isDark) {
+  //   return GestureDetector(
+  //     onTap: () {
+  //       try {
+  //         themeProvider.toggleTheme(!isDark);
+  //       } catch (e) {
+  //         debugPrint(" Theme toggle error: $e");
+  //       }
+  //     },
+  //     child: Container(
+  //       padding: EdgeInsets.all(10.w),
+  //       decoration: BoxDecoration(
+  //         color: isDark
+  //             ? Colors.white.withOpacity(0.1)
+  //             : Colors.white.withOpacity(0.95),
+  //         shape: BoxShape.circle,
+  //         border: Border.all(
+  //           color: isDark
+  //               ? Colors.white.withOpacity(0.2)
+  //               : Colors.black.withOpacity(0.05),
+  //           width: 1,
+  //         ),
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: Colors.black.withOpacity(0.08),
+  //             blurRadius: 6,
+  //             offset: const Offset(0, 2),
+  //           ),
+  //         ],
+  //       ),
+  //       child: Icon(
+  //         isDark ? Icons.light_mode : Icons.dark_mode,
+  //         size: 22.sp,
+  //         color: isDark
+  //             ? AppColors.disableButtonColor
+  //             : Colors.black54,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -101,30 +101,18 @@ class AuthScreen extends StatelessWidget {
                     ? Colors.black.withOpacity(0.7)
                     : Colors.black.withOpacity(0.3)),
               ),
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 20.h,
-                right: 16.w,
-                child: Consumer<ThemeProvider>(
-                  builder: (context, themeProvider, child) {
-                    return _buildThemeToggle(themeProvider, themeProvider.isDark);
-                  },
-                ),
-              ),
+              // Positioned(
+              //   top: MediaQuery.of(context).padding.top + 20.h,
+              //   right: 16.w,
+              //   child: Consumer<ThemeProvider>(
+              //     builder: (context, themeProvider, child) {
+              //       return _buildThemeToggle(themeProvider, themeProvider.isDark);
+              //     },
+              //   ),
+              // ),
               Align(
                 alignment: Alignment.center,
                 child: Container(
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
                   child: _buildLogo(),
                 ),
               ),

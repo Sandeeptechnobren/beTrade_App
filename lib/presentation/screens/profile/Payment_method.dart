@@ -47,7 +47,7 @@ class PaymentMethodsPage extends StatelessWidget {
                             ),
                             child: Icon(
                               Icons.close,
-                              color: Colors.grey,
+                              color: AppColors.textSecondaryDynamic(context),
                               size: 30.sp,
                             ),
                           ),
@@ -64,7 +64,7 @@ class PaymentMethodsPage extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.grey,
+                                color: AppColors.textSecondaryDynamic(context),
                               ),
                             ),
                           ),
@@ -72,7 +72,7 @@ class PaymentMethodsPage extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w,0.h),
                       child: Button(title: "Add New", onPressed:(){
 
                           CommonBottomSheet.open(

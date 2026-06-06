@@ -1,4 +1,3 @@
-import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/core/theme/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -80,19 +79,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(15),
+                  padding:
+                      EdgeInsets.symmetric(horizontal:16.w, vertical: 12.h),
                   child: Row(
                     children: List.generate(
                       data.length,
                       (index) => Expanded(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 2),
-                          height: 4,
+                          height: 6,
                           decoration: BoxDecoration(
+                            // Figma: active = #C178FF, inactive = white.
                             color: currentIndex == index
-                                ? AppColors.primary
-                                : Colors.grey,
-                            borderRadius: BorderRadius.circular(10),
+                                ? const Color(0xFFC178FF)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(120),
                           ),
                         ),
                       ),
@@ -129,14 +130,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             onPressed: nextPage,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 55),
+              minimumSize: const Size(double.infinity, 60),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(32),
               ),
             ),
             child: Text(
               data[currentIndex]["button"]!,
-              style: AppTextStyle.button,
+              // Figma: SF Pro Rounded, weight 700, #09090B.
+              style: AppTextStyle.button.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF09090B),
+              ),
             ),
           ),
         ),

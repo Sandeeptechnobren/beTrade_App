@@ -19,13 +19,10 @@ class AllPaymentMethodsPage extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
         child: Button(
           title: "Add New",
+          // Pops the entire payment-method sheet stack back to the
+          // ProfilePage that originally opened it.
           onPressed: () {
-            //
-            // CommonBottomSheet.open(
-            //   context: context,
-            //   builder: (controller) =>
-            //       AllPaymentMethodsPage(scrollController: controller),
-            // );
+            Navigator.of(context).popUntil((route) => route.isFirst);
           },
         ),
       ),
@@ -76,7 +73,10 @@ class AllPaymentMethodsPage extends StatelessWidget {
               SizedBox(height: 2.h),
               Text(
                 number,
-                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: AppColors.textSecondaryDynamic(context),
+                ),
               ),
             ],
           ),
@@ -222,8 +222,12 @@ class AllPaymentMethodsPage extends StatelessWidget {
 
                 SizedBox(height: 20.h),
                 GestureDetector(
+                  // Closes the dialog AND every payment-method sheet
+                  // above ProfilePage in one shot, so the user lands
+                  // back on Profile.
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.of(context)
+                        .popUntil((route) => route.isFirst);
                   },
                   child: Container(
                     width: double.infinity,

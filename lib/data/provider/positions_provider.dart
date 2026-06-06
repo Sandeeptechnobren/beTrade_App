@@ -14,6 +14,11 @@ class PositionsProvider extends ChangeNotifier {
   bool isLoadingOpen = false;
   String? openError;
 
+  // P0-C — closed (settled) positions list
+  List<PositionModel> settledPositions = [];
+  bool isLoadingSettled = false;
+  String? settledError;
+
   // Per-market detail (keyed by market UUID so revisits are cheap).
   final Map<String, MarketPositionsModel> _detailCache = {};
   bool isLoadingDetail = false;
@@ -31,16 +36,34 @@ class PositionsProvider extends ChangeNotifier {
     if (!_isDisposed) notifyListeners();
   }
 
-  /// GET /api/positions
+  /// GET /api/positions?status=open
   Future<void> fetchOpenPositions() async {
     isLoadingOpen = true;
     openError = null;
     _safeNotify();
 
-    final list = await PositionsService.getAll();
+    final list = await PositionsService.getAll(status: 'open');
 
     openPositions = list;
     isLoadingOpen = false;
+    _safeNotify();
+  }
+
+  /// GET /api/positions?status=settled (P0-C, 2026-05-28)
+  ///
+  /// Powers the Portfolio "Closed Positions" tab. Backend orders
+  /// these by `settled_at DESC` and surfaces `payout_ghs` (null on
+  /// losers) plus `realized_pnl_ghs` so the UI can render P&L
+  /// alongside the original position.
+  Future<void> fetchSettledPositions() async {
+    isLoadingSettled = true;
+    settledError = null;
+    _safeNotify();
+
+    final list = await PositionsService.getAll(status: 'settled');
+
+    settledPositions = list;
+    isLoadingSettled = false;
     _safeNotify();
   }
 
