@@ -22,7 +22,6 @@ import 'data/provider/country_provider.dart';
 import 'data/provider/profile_provider.dart';
 import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
-import 'data/provider/theme_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 import 'core/utils/app_notify.dart';
@@ -184,9 +183,6 @@ class MyApp extends StatelessWidget {
           create: (_) => ExploreProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-        ),
-        ChangeNotifierProvider(
           create: (_) => DefaultAmountProvider(),
         ),
         ChangeNotifierProvider(
@@ -204,21 +200,17 @@ class MyApp extends StatelessWidget {
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (context, child) {
-          return Consumer<ThemeProvider>(
-            builder: (context,
-                themeProvider,
-                child,) {
-              return MaterialApp(
-                navigatorKey: navigatorKey,
-                scaffoldMessengerKey: AppNotify.messengerKey,
-                title: "BeTrade",
-                debugShowCheckedModeBanner: false,
-                themeMode: themeProvider.themeMode,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                home: const SplashScreen(),
-              );
-            },
+          return MaterialApp(
+            navigatorKey: navigatorKey,
+            scaffoldMessengerKey: AppNotify.messengerKey,
+            title: "BeTrade",
+            debugShowCheckedModeBanner: false,
+            // Follow the phone's light/dark setting on Android + iOS; the app
+            // re-themes itself automatically when the system theme changes.
+            themeMode: ThemeMode.system,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            home: const SplashScreen(),
           );
         },
       ),

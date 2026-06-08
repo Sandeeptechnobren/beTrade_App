@@ -4,7 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 /// Centralized light + dark theme for the whole app.
 ///
 /// Wired into [MaterialApp] in `main.dart` as `theme: AppTheme.light` and
-/// `darkTheme: AppTheme.dark`, switched by `ThemeProvider.themeMode`.
+/// `darkTheme: AppTheme.dark`, selected by `themeMode: ThemeMode.system`
+/// (the app follows the device's light/dark setting).
 ///
 /// Because this builds a *complete* [ThemeData], most Material widgets
 /// (Scaffold, AppBar, Card, Dialog, BottomSheet, TextField, Switch,

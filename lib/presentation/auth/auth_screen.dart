@@ -1,8 +1,5 @@
-import 'package:betrade/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../../data/provider/theme_provider.dart';
 import 'auth_bottom_sheet.dart';
 
 class AuthScreen extends StatelessWidget {
@@ -45,51 +42,10 @@ class AuthScreen extends StatelessWidget {
       },
     );
   }
-  //
-  // Widget _buildThemeToggle(ThemeProvider themeProvider, bool isDark) {
-  //   return GestureDetector(
-  //     onTap: () {
-  //       try {
-  //         themeProvider.toggleTheme(!isDark);
-  //       } catch (e) {
-  //         debugPrint(" Theme toggle error: $e");
-  //       }
-  //     },
-  //     child: Container(
-  //       padding: EdgeInsets.all(10.w),
-  //       decoration: BoxDecoration(
-  //         color: isDark
-  //             ? Colors.white.withOpacity(0.1)
-  //             : Colors.white.withOpacity(0.95),
-  //         shape: BoxShape.circle,
-  //         border: Border.all(
-  //           color: isDark
-  //               ? Colors.white.withOpacity(0.2)
-  //               : Colors.black.withOpacity(0.05),
-  //           width: 1,
-  //         ),
-  //         boxShadow: [
-  //           BoxShadow(
-  //             color: Colors.black.withOpacity(0.08),
-  //             blurRadius: 6,
-  //             offset: const Offset(0, 2),
-  //           ),
-  //         ],
-  //       ),
-  //       child: Icon(
-  //         isDark ? Icons.light_mode : Icons.dark_mode,
-  //         size: 22.sp,
-  //         color: isDark
-  //             ? AppColors.disableButtonColor
-  //             : Colors.black54,
-  //       ),
-  //     ),
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -97,9 +53,9 @@ class AuthScreen extends StatelessWidget {
             children: [
               _buildBackground(),
               Container(
-                color: (themeProvider.isDark
+                color: isDark
                     ? Colors.black.withOpacity(0.7)
-                    : Colors.black.withOpacity(0.3)),
+                    : Colors.black.withOpacity(0.3),
               ),
               Align(
                 alignment: Alignment.center,

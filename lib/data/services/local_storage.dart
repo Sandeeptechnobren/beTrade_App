@@ -7,10 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   (Keychain on iOS, Keystore-backed encrypted prefs on Android) via
 ///   [FlutterSecureStorage]. It is mirrored into an in-memory cache so the
 ///   rest of the app can keep reading it **synchronously** via [getToken].
-/// - Non-sensitive flags (theme, onboarding, KYC banner status) stay in plain
+/// - Non-sensitive flags (onboarding, KYC banner status) stay in plain
 ///   [SharedPreferences].
 class LocalStorage {
-  static const String themeKey = "theme_mode";
   static const String _tokenKey = "token";
 
   static late SharedPreferences _prefs;
@@ -62,15 +61,6 @@ class LocalStorage {
     _token = null;
     await _secure.delete(key: _tokenKey);
     await _prefs.remove("doc_upload_status");
-  }
-
-  // ---- Theme (non-sensitive) ----
-  static Future<void> saveThemeMode(String mode) async {
-    await _prefs.setString(themeKey, mode);
-  }
-
-  static String? getThemeMode() {
-    return _prefs.getString(themeKey);
   }
 
   // ---- Onboarding (non-sensitive) ----
