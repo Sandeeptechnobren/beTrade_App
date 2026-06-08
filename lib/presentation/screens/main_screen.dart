@@ -11,6 +11,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/provider/profile_provider.dart';
+import '../../data/provider/rankings_provider.dart';
 import '../../data/services/local_storage.dart';
 import '../../data/services/auth_service.dart';
 import '../auth/auth_screen.dart';
@@ -349,6 +350,13 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             currentIndex = index;
           });
+          // Auto-refresh on tab (re)open so avatars/counts stay fresh without
+          // a manual pull (IndexedStack keeps every tab alive).
+          if (index == 2) {
+            context.read<RankingsProvider>().refreshCurrent();
+          } else if (index == 4) {
+            context.read<ProfileProvider>().fetchProfile();
+          }
         },
       ),
     );

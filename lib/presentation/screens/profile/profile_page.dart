@@ -13,6 +13,7 @@ import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/achievement_model.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/avatar_cache.dart';
 import '../../../data/provider/theme_provider.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
@@ -178,7 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 38.r,
                       backgroundColor: AppColors.iconContainerDynamic(context),
                       backgroundImage: profile?.avatar.isNotEmpty == true
-                          ? NetworkImage(profile.avatar)
+                          ? NetworkImage(AvatarCache.bust(profile.avatar)!)
                           : null,
                       child: profile?.avatar.isEmpty ?? true
                           ? Icon(Icons.person,

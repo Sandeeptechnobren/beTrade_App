@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
+import '../../../core/utils/avatar_cache.dart';
 import '../../../data/model/ranking_entry.dart';
 import '../../../data/provider/rankings_provider.dart';
 import '../../widget/Common_header_withlogo.dart';
@@ -622,7 +623,7 @@ class _AvatarImage extends StatelessWidget {
       );
     }
     return Image.network(
-      url!,
+      AvatarCache.bust(url)!,
       width: size,
       height: size,
       fit: BoxFit.cover,

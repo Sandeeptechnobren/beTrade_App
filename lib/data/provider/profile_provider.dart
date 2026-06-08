@@ -53,6 +53,7 @@ import '../../data/services/profile_service.dart';
 import '../../data/services/achievement_service.dart';
 import '../model/achievement_model.dart';
 import '../model/profile_model.dart';
+import '../../core/utils/avatar_cache.dart';
 
 class ProfileProvider extends ChangeNotifier {
   ProfileModel? profile;
@@ -120,6 +121,13 @@ class ProfileProvider extends ChangeNotifier {
 
     if (success) {
       debugPrint("✅ Update successful, fetching fresh profile...");
+      // Avatar URLs are stable (the server overwrites the file in place), so
+      // Flutter's ImageCache + mounted Image widgets keep serving the OLD
+      // picture. Bump the cache-bust token (changes the avatar URL so it
+      // re-downloads everywhere) and clear the decoded image cache too.
+      AvatarCache.bump();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
       await fetchProfile();
     } else {
       debugPrint("❌ Update failed");

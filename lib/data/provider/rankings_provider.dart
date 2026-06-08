@@ -79,6 +79,10 @@ class RankingsProvider extends ChangeNotifier {
   /// Pull-to-refresh — always re-fetches page 1.
   Future<void> refreshFor(String category) => _fetchFirstPage(category);
 
+  /// Re-fetch the currently-active category — used to auto-refresh when the
+  /// Rankings tab is (re)opened so avatars/counts stay fresh without a pull.
+  Future<void> refreshCurrent() => _fetchFirstPage(_category);
+
   /// Infinite-scroll: append the next page of leaderboard rows. No-op
   /// when the current category has no more pages or a fetch is already
   /// in flight.

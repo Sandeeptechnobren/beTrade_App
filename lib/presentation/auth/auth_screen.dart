@@ -101,15 +101,6 @@ class AuthScreen extends StatelessWidget {
                     ? Colors.black.withOpacity(0.7)
                     : Colors.black.withOpacity(0.3)),
               ),
-              // Positioned(
-              //   top: MediaQuery.of(context).padding.top + 20.h,
-              //   right: 16.w,
-              //   child: Consumer<ThemeProvider>(
-              //     builder: (context, themeProvider, child) {
-              //       return _buildThemeToggle(themeProvider, themeProvider.isDark);
-              //     },
-              //   ),
-              // ),
               Align(
                 alignment: Alignment.center,
                 child: Container(

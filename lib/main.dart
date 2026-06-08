@@ -35,9 +35,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 
 @pragma('vm:entry-point')
-Future<void> _firebaseBackgroundHandler(
-    RemoteMessage message,
-    ) async {
+Future<void> _firebaseBackgroundHandler(RemoteMessage message,) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -71,10 +69,6 @@ Future<void> main() async {
         "FIREBASE INITIALIZED SUCCESSFULLY ✅",
       );
 
-      // Crash reporting (CHALLENGES F10). Collection is OFF in debug so local
-      // runs don't pollute the dashboard. Flutter framework errors and
-      // uncaught async errors (via the zone below) are routed to Crashlytics;
-      // AppLogger.e forwards handled service errors too.
       await FirebaseCrashlytics.instance
           .setCrashlyticsCollectionEnabled(!kDebugMode);
       FlutterError.onError = (details) {
@@ -211,16 +205,11 @@ class MyApp extends StatelessWidget {
         splitScreenMode: true,
         builder: (context, child) {
           return Consumer<ThemeProvider>(
-            builder: (
-                context,
+            builder: (context,
                 themeProvider,
-                child,
-                ) {
+                child,) {
               return MaterialApp(
                 navigatorKey: navigatorKey,
-                // Global key so AppNotify.{success,error,warning,info,
-                // loading,fromCode} work from anywhere (providers,
-                // services, post-pop callbacks) without a BuildContext.
                 scaffoldMessengerKey: AppNotify.messengerKey,
                 title: "BeTrade",
                 debugShowCheckedModeBanner: false,
