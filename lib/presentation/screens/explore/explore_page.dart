@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/presentation/widget/Common_header_withlogo.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -567,10 +568,20 @@ class _ExplorePageState extends State<ExplorePage> {
             color: AppColors.cardBackgroundDynamic(context), width: 2),
       ),
       child: ClipOval(
-        child: Image.network(
-          url,
+        child: CachedNetworkImage(
+          imageUrl: url,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(Icons.person,
+          placeholder: (context, url) => Container(
+            color: AppColors.grey200Dynamic(context),
+            child: Center(
+              child: SizedBox(
+                width: 12.w,
+                height: 12.w,
+                child: const CircularProgressIndicator(strokeWidth: 1),
+              ),
+            ),
+          ),
+          errorWidget: (_, __, ___) => Icon(Icons.person,
               size: 12.sp, color: AppColors.textSecondaryDynamic(context)),
         ),
       ),
@@ -720,27 +731,24 @@ class _ExplorePageState extends State<ExplorePage> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(8.r),
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         height: h,
         width: w,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            height: h,
-            width: w,
-            color: AppColors.grey200Dynamic(context),
-            child: Center(
-              child: SizedBox(
-                width: 18.w,
-                height: 18.w,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
+        placeholder: (context, url) => Container(
+          height: h,
+          width: w,
+          color: AppColors.grey200Dynamic(context),
+          child: Center(
+            child: SizedBox(
+              width: 18.w,
+              height: 18.w,
+              child: const CircularProgressIndicator(strokeWidth: 2),
             ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => Container(
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
           height: h,
           width: w,
           decoration: BoxDecoration(

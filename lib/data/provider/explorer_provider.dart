@@ -1,12 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../model/category_model.dart';
 import '../model/trade_model.dart';
 import '../services/category_service.dart';
 import '../services/trade_service.dart';
+import '../services/local_storage.dart';
 
 /// Drives the Explore tab. One canonical source — GET /trade/list via
-/// [TradeService.fetchExplore] — powers the base list, text search,
-/// category filter, and infinite-scroll pagination.
 class ExploreProvider extends ChangeNotifier {
   /// Markets currently displayed (already server-filtered + paginated).
   List<TradeModel> trades = [];
@@ -37,6 +37,33 @@ class ExploreProvider extends ChangeNotifier {
   bool get hasMore => _page < _lastPage;
   bool get isEmpty => trades.isEmpty;
 
+  ExploreProvider() {
+    _loadCachedData();
+  }
+
+  void _loadCachedData() {
+    final cachedTrades = LocalStorage.getCachedData("explore_trades");
+    if (cachedTrades != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cachedTrades);
+        trades = decoded.map((e) => TradeModel.fromJson(e)).toList();
+      } catch (e) {
+        debugPrint("Error decoding cached explore trades: $e");
+      }
+    }
+
+    final cachedCats = LocalStorage.getCachedData("categories");
+    if (cachedCats != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cachedCats);
+        categories = decoded.map((e) => CategoryModel.fromJson(e)).toList();
+      } catch (e) {
+        debugPrint("Error decoding cached categories: $e");
+      }
+    }
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
@@ -57,8 +84,12 @@ class ExploreProvider extends ChangeNotifier {
 
   Future<void> _loadCategories() async {
     try {
-      categories = await CategoryService.getCategories();
-      _safeNotify();
+      final result = await CategoryService.getCategories();
+      if (result.isNotEmpty) {
+        categories = result;
+        LocalStorage.cacheData("categories", jsonEncode(categories.map((e) => e.toJson()).toList()));
+        _safeNotify();
+      }
     } catch (_) {
       // Chips are optional — never block the list on them.
     }
@@ -88,10 +119,10 @@ class ExploreProvider extends ChangeNotifier {
   Future<void> _load({required bool reset}) async {
     final targetPage = reset ? 1 : _page + 1;
     try {
-      if (reset) {
+      if (reset && trades.isEmpty) {
         isLoading = true;
         error = "";
-      } else {
+      } else if (!reset) {
         isLoadingMore = true;
       }
       _safeNotify();
@@ -102,14 +133,24 @@ class ExploreProvider extends ChangeNotifier {
         categoryUuid: selectedCategoryUuid,
       );
 
-      trades = reset ? res.items : [...trades, ...res.items];
+      if (reset) {
+        trades = res.items;
+        // Only cache the first page of default browsing (no search/filter)
+        if (query.isEmpty && selectedCategoryUuid == null) {
+          LocalStorage.cacheData("explore_trades", jsonEncode(trades.map((e) => e.toJson()).toList()));
+        }
+      } else {
+        trades = [...trades, ...res.items];
+      }
+      
       _page = res.currentPage;
       _lastPage = res.lastPage;
       error = "";
     } catch (_) {
       // Never surface a raw exception to the UI.
-      if (reset) trades = [];
-      error = "Couldn't load markets. Pull down to retry.";
+      if (reset && trades.isEmpty) {
+        error = "Couldn't load markets. Pull down to retry.";
+      }
     } finally {
       isLoading = false;
       isLoadingMore = false;

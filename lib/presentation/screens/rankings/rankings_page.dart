@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -629,12 +630,24 @@ class _AvatarImage extends StatelessWidget {
         ),
       );
     }
-    return Image.network(
-      AvatarCache.bust(url)!,
+    return CachedNetworkImage(
+      imageUrl: AvatarCache.bust(url)!,
       width: size,
       height: size,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      placeholder: (context, url) => Container(
+        width: size,
+        height: size,
+        color: AppColors.borderDynamic(context),
+        child: Center(
+          child: SizedBox(
+            width: size * 0.4,
+            height: size * 0.4,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      errorWidget: (_, __, ___) => Container(
         width: size,
         height: size,
         color: AppColors.borderDynamic(context),

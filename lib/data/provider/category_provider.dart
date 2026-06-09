@@ -27,21 +27,40 @@
 //   }
 // }
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../model/category_model.dart';
 import '../services/category_service.dart';
+import '../services/local_storage.dart';
 
 class CategoryProvider extends ChangeNotifier {
   List<CategoryModel> _categories = [];
   bool _isLoading = false;
   String _error = "";
-  bool _isDisposed = false;  // ✅ Added
-  bool _isFetching = false;   // ✅ Prevent concurrent calls
+  bool _isDisposed = false;  
+  bool _isFetching = false;   
 
   // Getters
   List<CategoryModel> get categories => List.unmodifiable(_categories);
   bool get isLoading => _isLoading;
   String get error => _error;
+
+  CategoryProvider() {
+    _loadCachedCategories();
+  }
+
+  void _loadCachedCategories() {
+    final cached = LocalStorage.getCachedData("categories");
+    if (cached != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cached);
+        _categories = decoded.map((e) => CategoryModel.fromJson(e)).toList();
+        _safeNotifyListeners();
+      } catch (e) {
+        debugPrint("Error decoding cached categories: $e");
+      }
+    }
+  }
 
   // Safe index access
   CategoryModel? getCategoryAtIndex(int index) {
@@ -52,24 +71,25 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   Future<void> fetchCategories() async {
-    // ✅ Check both conditions
     if (_isDisposed || _isFetching) return;
 
     _isFetching = true;
-    _isLoading = true;
+    if (_categories.isEmpty) {
+      _isLoading = true;
+    }
     _error = "";
     _safeNotifyListeners();
 
     try {
       final result = await CategoryService.getCategories();
 
-      // ✅ CRITICAL: Check disposed AFTER async operation
       if (_isDisposed) return;
 
-      // ✅ Null safety
-      _categories = result;
+      if (result.isNotEmpty) {
+        _categories = result;
+        LocalStorage.cacheData("categories", jsonEncode(_categories.map((e) => e.toJson()).toList()));
+      }
 
-      // ✅ Error message update
       if (_categories.isEmpty && !_isDisposed) {
         _error = "No data found";
       } else {
@@ -77,15 +97,14 @@ class CategoryProvider extends ChangeNotifier {
       }
 
     } catch (e, stackTrace) {
-      // ✅ Check disposed before updating state
       if (_isDisposed) return;
 
       debugPrint("❌ CategoryProvider Error: $e");
-      debugPrint("📚 StackTrace: $stackTrace");
-      _error = "Something went wrong. Please try again.";
-      _categories = [];
+      // Don't clear categories on error if we have cached ones
+      if (_categories.isEmpty) {
+        _error = "Something went wrong. Please try again.";
+      }
     } finally {
-      // ✅ Check disposed before final state update
       if (!_isDisposed) {
         _isLoading = false;
         _isFetching = false;

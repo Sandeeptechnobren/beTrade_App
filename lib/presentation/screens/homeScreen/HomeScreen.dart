@@ -1,4 +1,5 @@
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:betrade/presentation/screens/homeScreen/trade_filter_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -10,9 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
+import '../../../data/provider/connectivity_provider.dart';
 import '../../../data/provider/default_amount_provider.dart';
 import '../../../data/provider/trade_provider.dart';
-import '../../../data/services/home_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
 import '../../widget/customSnackBar.dart';
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
+
     _scrollController.addListener(() {
       if (!_isDisposed && mounted && _scrollController.hasClients) {
         if (_scrollController.position.pixels >=
@@ -61,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen>
         }
       }
     });
+
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!_isDisposed && mounted) {
         _initializeData();
@@ -311,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 Expanded(
-                  child: provider.categories.isEmpty
+                  child: provider.categories.isEmpty && provider.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _buildPollList(
                           categoryName:
@@ -395,18 +398,31 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildPollList({String? categoryName}) {
     final tradeProvider = context.watch<TradeProvider>();
+    final isOffline = context.watch<ConnectivityProvider>().isOffline;
 
-    if (tradeProvider.isLoading) {
+    if (tradeProvider.isLoading && tradeProvider.trades.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (tradeProvider.error.isNotEmpty) {
-      return Center(child: Text(tradeProvider.error));
-    }
-    if (tradeProvider.trades.isEmpty) {
-      return const Center(child: Text("No Data"));
+
+    if (tradeProvider.trades.isEmpty && !tradeProvider.isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, size: 64.sp, color: Colors.grey),
+            SizedBox(height: 16.h),
+            const Text("No Data Available Offline"),
+            TextButton(
+              onPressed: () => context.read<TradeProvider>().fetchTrades(),
+              child: const Text("Retry"),
+            )
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
+      key: ValueKey("list_$isOffline"), // Force rebuild on connection change
       color: AppColors.primary,
       backgroundColor: AppColors.whiteDynamic(context),
       onRefresh: () async {
@@ -499,7 +515,7 @@ class _PollCardState extends State<PollCard>
   void _showSnack(String message) {
     CustomSnackBar.showError(
       context,
-      message: "Please set a valid default amount first",
+      message: message,
       duration: const Duration(seconds: 3),
     );
   }
@@ -579,11 +595,31 @@ class _PollCardState extends State<PollCard>
               fit: StackFit.expand,
               children: [
                 if (trade.image != null && trade.image!.isNotEmpty)
-                  Image.network(
-                    trade.image!,
+                  CachedNetworkImage(
+                    imageUrl: trade.image!,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey.shade900,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey.shade900,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image_not_supported_outlined,
+                              color: Colors.white24, size: 40.sp),
+                          SizedBox(height: 8.h),
+                          Text(
+                            "Offline",
+                            style: TextStyle(
+                                color: Colors.white24, fontSize: 12.sp),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 Container(
                   decoration: BoxDecoration(

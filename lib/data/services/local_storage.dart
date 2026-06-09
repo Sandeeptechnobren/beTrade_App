@@ -85,4 +85,22 @@ class LocalStorage {
   static Future clearDocUploadStatus() async {
     await _prefs.remove("doc_upload_status");
   }
+
+  // ---- Cache (Generic JSON storage) ----
+  static Future<void> cacheData(String key, String jsonData) async {
+    await _prefs.setString("cache_$key", jsonData);
+  }
+
+  static String? getCachedData(String key) {
+    return _prefs.getString("cache_$key");
+  }
+
+  static Future<void> clearCache() async {
+    final keys = _prefs.getKeys();
+    for (String key in keys) {
+      if (key.startsWith("cache_")) {
+        await _prefs.remove(key);
+      }
+    }
+  }
 }

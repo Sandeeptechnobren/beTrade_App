@@ -93,9 +93,11 @@
 //     }
 //   }
 // }
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../model/trade_model.dart';
 import '../services/trade_service.dart';
+import '../services/local_storage.dart';
 
 class TradeProvider extends ChangeNotifier {
   List<TradeModel> trades = [];
@@ -113,29 +115,28 @@ class TradeProvider extends ChangeNotifier {
   final int limit = 20;
   bool hasMore = true;
 
+  TradeProvider() {
+    _loadCachedTrades();
+  }
+
+  void _loadCachedTrades() {
+    final cached = LocalStorage.getCachedData("trades");
+    if (cached != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cached);
+        _allTrades = decoded.map((e) => TradeModel.fromJson(e)).toList();
+        _applyPagination();
+        notifyListeners();
+      } catch (e) {
+        debugPrint("Error decoding cached trades: $e");
+      }
+    }
+  }
+
   //  INITIAL LOAD
-  // Future<void> fetchTrades() async {
-  //   try {
-  //
-  //     isLoading = true;
-  //     error = '';
-  //     currentPage = 1;
-  //     hasMore = true;
-  //     notifyListeners();
-  //
-  //     _allTrades = await TradeService.getTrades();
-  //
-  //     _applyPagination(reset: true);
-  //   } catch (e) {
-  //     error = e.toString();
-  //   } finally {
-  //     isLoading = false;
-  //     notifyListeners();
-  //   }
-  // }
   Future<void> fetchTrades({bool isRefresh = false}) async {
     try {
-      if (!isRefresh) {
+      if (!isRefresh && _allTrades.isEmpty) {
         isLoading = true; // first load pe loader
       }
 
@@ -144,7 +145,13 @@ class TradeProvider extends ChangeNotifier {
       hasMore = true;
       notifyListeners();
 
-      _allTrades = await TradeService.getTrades(page: 1);
+      final fetchedTrades = await TradeService.getTrades(page: 1);
+      
+      if (fetchedTrades.isNotEmpty) {
+        _allTrades = fetchedTrades;
+        // Save to cache
+        LocalStorage.cacheData("trades", jsonEncode(_allTrades.map((e) => e.toJson()).toList()));
+      }
 
       // If page 1 came back empty, there's nothing more to fetch.
       if (_allTrades.isEmpty) hasMore = false;

@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:betrade/presentation/screens/profile/achivement_Sheet.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
 import 'package:betrade/presentation/screens/profile/term_of_service.dart';
@@ -178,7 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 38.r,
                       backgroundColor: AppColors.iconContainerDynamic(context),
                       backgroundImage: profile?.avatar.isNotEmpty == true
-                          ? NetworkImage(AvatarCache.bust(profile.avatar)!)
+                          ? CachedNetworkImageProvider(AvatarCache.bust(profile.avatar)!)
                           : null,
                       child: profile?.avatar.isEmpty ?? true
                           ? Icon(Icons.person,

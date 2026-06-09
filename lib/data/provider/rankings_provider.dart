@@ -1,15 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../model/rankings_response.dart';
 import '../services/rankings_service.dart';
+import '../services/local_storage.dart';
 
-/// Snapshot of one category's state — exposed by [RankingsProvider.stateFor]
-/// so the screen can render each tab independently.
 @immutable
 class RankingsTabState {
   final RankingsResponse? response;
-  final bool isLoading;       // first-page fetch in flight
-  final bool isLoadingMore;   // pagination fetch in flight
+  final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
 
   const RankingsTabState({
@@ -19,10 +19,6 @@ class RankingsTabState {
     this.error,
   });
 }
-
-/// Per-category state cache so switching tabs is instant after first
-/// load. Each category caches its current page + accumulated leaderboard
-/// list (for infinite scroll); podium is replaced on each refresh.
 class RankingsProvider extends ChangeNotifier {
   static const List<String> categories = [
     'overall',
@@ -34,9 +30,6 @@ class RankingsProvider extends ChangeNotifier {
 
   String _category = 'overall';
   String get category => _category;
-
-  // Per-category state maps. A null entry in `_byCat` means "not loaded
-  // yet" (different from "loaded, empty leaderboard").
   final Map<String, RankingsResponse?> _byCat = {
     for (final c in categories) c: null,
   };
@@ -44,8 +37,23 @@ class RankingsProvider extends ChangeNotifier {
   final Map<String, bool> _loadingMore = {for (final c in categories) c: false};
   final Map<String, String?> _error = {for (final c in categories) c: null};
 
-  /// Snapshot for the given category — safe to call for any of the
-  /// four supported strings.
+  RankingsProvider() {
+    _loadCachedRankings();
+  }
+
+  void _loadCachedRankings() {
+    for (final cat in categories) {
+      final cached = LocalStorage.getCachedData("rankings_$cat");
+      if (cached != null) {
+        try {
+          _byCat[cat] = RankingsResponse.fromJson(jsonDecode(cached));
+        } catch (e) {
+          debugPrint("Error decoding cached rankings for $cat: $e");
+        }
+      }
+    }
+    notifyListeners();
+  }
   RankingsTabState stateFor(String category) => RankingsTabState(
         response: _byCat[category],
         isLoading: _loading[category] ?? false,
@@ -53,11 +61,7 @@ class RankingsProvider extends ChangeNotifier {
         error: _error[category],
       );
 
-  /// Shortcut for the currently-active category.
   RankingsTabState get currentState => stateFor(_category);
-
-  /// Switch to a different tab. Triggers a first-page fetch lazily on
-  /// the new category (no-op if already loaded or in flight).
   void setCategory(String category) {
     if (!categories.contains(category) || category == _category) return;
     _category = category;
@@ -68,24 +72,14 @@ class RankingsProvider extends ChangeNotifier {
     }
   }
 
-  /// First-time load for the active category. Idempotent: safe to call
-  /// from `initState`.
   Future<void> ensureLoaded() async {
     if (_byCat[_category] == null && !(_loading[_category] ?? false)) {
       await _fetchFirstPage(_category);
     }
   }
 
-  /// Pull-to-refresh — always re-fetches page 1.
   Future<void> refreshFor(String category) => _fetchFirstPage(category);
-
-  /// Re-fetch the currently-active category — used to auto-refresh when the
-  /// Rankings tab is (re)opened so avatars/counts stay fresh without a pull.
   Future<void> refreshCurrent() => _fetchFirstPage(_category);
-
-  /// Infinite-scroll: append the next page of leaderboard rows. No-op
-  /// when the current category has no more pages or a fetch is already
-  /// in flight.
   Future<void> loadMoreFor(String category) async {
     final cur = _byCat[category];
     if (cur == null || !cur.hasMore) return;
@@ -128,9 +122,12 @@ class RankingsProvider extends ChangeNotifier {
         perPage: pageSize,
       );
       if (response == null) {
-        _error[cat] = "Couldn't load rankings. Pull down to retry.";
+        if (_byCat[cat] == null) {
+          _error[cat] = "Couldn't load rankings. Pull down to retry.";
+        }
       } else {
         _byCat[cat] = response;
+        LocalStorage.cacheData("rankings_$cat", jsonEncode(response.toJson()));
       }
     } finally {
       _loading[cat] = false;
