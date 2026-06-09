@@ -22,6 +22,8 @@ import 'data/provider/country_provider.dart';
 import 'data/provider/profile_provider.dart';
 import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
+import 'data/provider/connectivity_provider.dart';
+import 'presentation/widget/offline_banner.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 import 'core/utils/app_notify.dart';
@@ -63,11 +65,9 @@ Future<void> main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-
       debugPrint(
-        "FIREBASE INITIALIZED SUCCESSFULLY ✅",
+        "FIREBASE INITIALIZED SUCCESSFULLY ",
       );
-
       await FirebaseCrashlytics.instance
           .setCrashlyticsCollectionEnabled(!kDebugMode);
       FlutterError.onError = (details) {
@@ -78,13 +78,11 @@ Future<void> main() async {
         FirebaseCrashlytics.instance
             .recordError(error, stack, reason: reason, fatal: fatal);
       });
-
       FirebaseMessaging.onBackgroundMessage(
         _firebaseBackgroundHandler,
       );
-
       debugPrint(
-        "BACKGROUND HANDLER REGISTERED ✅",
+        "BACKGROUND HANDLER REGISTERED ",
       );
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
@@ -94,12 +92,12 @@ Future<void> main() async {
       );
 
       debugPrint(
-        "FOREGROUND PRESENTATION OPTIONS SET ✅",
+        "FOREGROUND PRESENTATION OPTIONS SET ",
       );
       try {
         await LocalStorage.init();
         debugPrint(
-          "LOCAL STORAGE INITIALIZED ✅",
+          "LOCAL STORAGE INITIALIZED ",
         );
       } catch (e) {
         debugPrint(
@@ -111,7 +109,7 @@ Future<void> main() async {
           fileName: ".env",
         );
         debugPrint(
-          ".env LOADED SUCCESSFULLY ✅",
+          ".env LOADED SUCCESSFULLY ",
         );
       } catch (e) {
         debugPrint(
@@ -123,7 +121,7 @@ Future<void> main() async {
         DeviceOrientation.portraitDown,
       ]);
       debugPrint(
-        "PORTRAIT MODE LOCKED ✅",
+        "PORTRAIT MODE LOCKED ",
       );
       runApp(
         const MyApp(),
@@ -193,6 +191,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => RankingsProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityProvider(),
+        ),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
@@ -208,6 +209,9 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             home: const SplashScreen(),
+            builder: (context, child) {
+              return OfflineBanner(child: child!);
+            },
           );
         },
       ),
