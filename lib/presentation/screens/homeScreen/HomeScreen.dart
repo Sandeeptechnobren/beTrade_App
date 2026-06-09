@@ -40,8 +40,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool showHint = false;
   bool _isDisposed = false;
   final ScrollController _scrollController = ScrollController();
-
-  // Loops the swipe/tap hint hand until the user performs the gesture.
   late final AnimationController _hintCtrl;
 
   @override
@@ -58,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen>
           try {
             context.read<TradeProvider>().loadMore();
           } catch (e) {
-            debugPrint("❌ Load more error: $e");
+            debugPrint("Load more error: $e");
           }
         }
       }
@@ -72,28 +70,20 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _initializeData() async {
     if (_isDisposed || !mounted) return;
-
     try {
       context.read<CategoryProvider>().fetchCategories();
       context.read<TradeProvider>().fetchTrades();
-      // Sync the user's default amount from `/userDefaultSettings/list` so
-      // the swipe action sends the correct cost_ghs even if the user
-      // hasn't opened Default Settings yet this session.
       context.read<DefaultAmountProvider>().loadFromBackend();
-
       final prefs = await SharedPreferences.getInstance();
-
       if (_isDisposed || !mounted) return;
-
       bool isFirstTime = prefs.getBool("isFirstTime") ?? true;
-
       if (isFirstTime && mounted && !_isDisposed) {
         setState(() {
           showHint = true;
         });
       }
     } catch (e) {
-      debugPrint("❌ Init error: $e");
+      debugPrint("Init error: $e");
     }
   }
 
@@ -113,7 +103,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _openFilterBottomSheet(BuildContext context) {
     if (_isDisposed || !mounted) return;
-
     CommonBottomSheet.open(
       context: context,
       builder: (controller) => FilterBottomSheet(scrollController: controller),
@@ -134,11 +123,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// Animated hint hand — nudges left/right for the swipe steps and does a
-  /// tap-pulse for the tap step. Loops via [_hintCtrl] until the user acts.
   Widget _buildHintHand() {
-    // Figma swipe-hand SVGs for the swipe steps; tap step keeps the Material
-    // tap icon (no tap SVG supplied).
     final Widget hand = hintStep == 2
         ? Icon(Icons.touch_app, color: Colors.white, size: 58.sp)
         : SvgPicture.asset(
@@ -153,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context, child) {
         final double t = Curves.easeInOut.transform(_hintCtrl.value);
         if (hintStep == 2) {
-          // Tap step: a ripple ring expands behind a pulsing hand.
           return Stack(
             alignment: Alignment.center,
             children: [
@@ -172,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           );
         }
-        // Swipe nudge: left for step 0 (NO), right for step 1 (YES).
         final double dir = hintStep == 0 ? -1.0 : 1.0;
         return Transform.translate(
           offset: Offset(dir * 46 * t, 0),
@@ -183,9 +166,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// The purple swipe arrow for the swipe steps (left for NO, right for YES),
-  /// or a short bar for the tap step — matches the Figma hint. The arrow
-  /// nudges in the swipe direction along with the hand.
   Widget _hintIndicator() {
     const Color purple = Color(0xFFC178FF);
     if (hintStep == 2) {
@@ -198,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       );
     }
-    final bool toRight = hintStep == 1; // step 0 = left (NO), 1 = right (YES)
+    final bool toRight = hintStep == 1;
     final Widget line = Container(
       width: 84.w,
       height: 4.h,
@@ -253,7 +233,11 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Row(
                         children: [
-                          Image.asset("assets/logo/IconLogo.png", height:32.h,width: 27.w,),
+                          Image.asset(
+                            "assets/logo/IconLogo.png",
+                            height: 32.h,
+                            width: 27.w,
+                          ),
                           // Image.asset("assets/logo/IconLogo.png", height: 35.h),
                           SizedBox(width: 5.w),
                         ],
@@ -286,26 +270,6 @@ class _HomeScreenState extends State<HomeScreen>
                           fit: BoxFit.contain,
                         ),
                       ),
-                      // Container(
-                      //   width: 40.w,
-                      //   height: 40.h,
-                      //   decoration: BoxDecoration(
-                      //     color: AppColors.inputFieldBgDynamic(context),
-                      //     shape: BoxShape.circle,
-                      //   ),
-                      //   child:
-                      //   // Center(
-                      //   //   child: Icon(Icons.notifications_none, size: 20.sp),
-                      //   // ),
-                      //   Center(
-                      //     child: Image.asset(
-                      //       "assets/images/Bell.png",
-                      //       width: 20.w,
-                      //       height: 20.h,
-                      //       fit: BoxFit.contain,
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -350,10 +314,9 @@ class _HomeScreenState extends State<HomeScreen>
                   child: provider.categories.isEmpty
                       ? const Center(child: CircularProgressIndicator())
                       : _buildPollList(
-                    categoryName: context
-                        .watch<TradeProvider>()
-                        .selectedCategory,
-                  ),
+                          categoryName:
+                              context.watch<TradeProvider>().selectedCategory,
+                        ),
                 ),
               ],
             ),
@@ -364,19 +327,19 @@ class _HomeScreenState extends State<HomeScreen>
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
                   if (hintStep == 2) {
-                    HapticFeedback.mediumImpact(); // confirm the tap
+                    HapticFeedback.mediumImpact();
                     await _closeHint();
                   }
                 },
                 onHorizontalDragUpdate: (details) {
                   if (!showHint || _isDisposed) return;
                   if (details.delta.dx < -8 && hintStep == 0) {
-                    HapticFeedback.mediumImpact(); // confirm the left swipe
+                    HapticFeedback.mediumImpact();
                     _safeSetState(() {
                       hintStep = 1;
                     });
                   } else if (details.delta.dx > 8 && hintStep == 1) {
-                    HapticFeedback.mediumImpact(); // confirm the right swipe
+                    HapticFeedback.mediumImpact();
                     _safeSetState(() {
                       hintStep = 2;
                     });
@@ -399,8 +362,8 @@ class _HomeScreenState extends State<HomeScreen>
                             hintStep == 0
                                 ? "SWIPE LEFT FOR NO"
                                 : hintStep == 1
-                                ? "SWIPE RIGHT FOR YES"
-                                : "TAP TO VIEW THE DETAILS",
+                                    ? "SWIPE RIGHT FOR YES"
+                                    : "TAP TO VIEW THE DETAILS",
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -414,8 +377,8 @@ class _HomeScreenState extends State<HomeScreen>
                             hintStep == 0
                                 ? "You're not convinced."
                                 : hintStep == 1
-                                ? "You think it will happen."
-                                : "Get the full picture.",
+                                    ? "You think it will happen."
+                                    : "Get the full picture.",
                             style: const TextStyle(color: Colors.white70),
                           ),
                         ],
@@ -454,8 +417,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.all(10.w),
-        itemCount:
-        tradeProvider.trades.length +
+        itemCount: tradeProvider.trades.length +
             (tradeProvider.isPaginationLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index < tradeProvider.trades.length) {
@@ -484,10 +446,7 @@ class PollCard extends StatefulWidget {
 
 class _PollCardState extends State<PollCard>
     with SingleTickerProviderStateMixin {
-  // Live horizontal drag offset (px): >0 = swiping right (YES), <0 = left (NO).
   double _dragDx = 0;
-
-  // Drives the smooth spring-back to centre after each release.
   late final AnimationController _swipeCtrl;
   Animation<double>? _springAnim;
 
@@ -510,7 +469,6 @@ class _PollCardState extends State<PollCard>
     super.dispose();
   }
 
-  /// Glide the card smoothly back to centre (runs on every release).
   void _springBack() {
     _springAnim = Tween<double>(begin: _dragDx, end: 0).animate(
       CurvedAnimation(parent: _swipeCtrl, curve: Curves.easeOutCubic),
@@ -518,16 +476,6 @@ class _PollCardState extends State<PollCard>
     _swipeCtrl.forward(from: 0);
   }
 
-  /// Swipe and tap both open the same `TradePage` bottom sheet (one
-  /// consistent UX) but they differ in how the cost is set:
-  ///
-  ///   * Swipe → pre-fills `amount` from `DefaultAmountProvider` and
-  ///     hides the input field + quick chips (`useDefaultAmount: true`).
-  ///     The user just confirms with Buy.
-  ///   * Tap → leaves `amount = 0`; user types it in the input field.
-  ///
-  /// Swipe direction is forwarded as `initialOutcome` so the YES/NO
-  /// toggle is pre-selected.
   void _handleSwipe(String outcome) {
     if (!_ensureReadyToTrade()) return;
     _openTradeSheet(initialOutcome: outcome, useDefaultAmount: true);
@@ -554,21 +502,10 @@ class _PollCardState extends State<PollCard>
       message: "Please set a valid default amount first",
       duration: const Duration(seconds: 3),
     );
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text(message),
-    //     backgroundColor: Colors.red,
-    //   ),
-    // );
   }
 
   bool _ensureReadyToTrade() {
     final provider = context.read<DefaultAmountProvider>();
-
-    // Still fetching from backend (or never started). Don't treat a
-    // null amount as "user has no default" — that case is handled below
-    // after the load has actually completed. Show a brief purple loader
-    // so the swipe doesn't feel ignored.
     if (!provider.hasLoaded || provider.defaultAmount == null) {
       CustomSnackBar.showLoader(
         context,
@@ -578,9 +515,6 @@ class _PollCardState extends State<PollCard>
       return false;
     }
 
-    // Loaded, but the user genuinely has no default amount set. Send
-    // them to the settings sheet so they can pick one before this
-    // swipe-buy makes sense.
     if (provider.defaultAmount! <= 0) {
       CustomSnackBar.showError(
         context,
@@ -597,16 +531,13 @@ class _PollCardState extends State<PollCard>
 
     return true;
   }
+
   @override
   Widget build(BuildContext context) {
     final trade = widget.trade;
 
     return GestureDetector(
       onTap: () {
-        // Tap path doesn't use the default amount — the user types the
-        // cost themselves on TradePage. So no _ensureReadyToTrade gate
-        // here. Only the swipe path (which pre-fills from the default)
-        // gates on the provider state.
         debugPrint("CLICK UUID: ${trade.uuid}");
         CommonBottomSheet.open(
           context: context,
@@ -616,8 +547,6 @@ class _PollCardState extends State<PollCard>
           ),
         );
       },
-
-      // 👇 SWIPE LOGIC + live direction feedback (YES = right / NO = left)
       onHorizontalDragStart: (_) => _swipeCtrl.stop(),
       onHorizontalDragUpdate: (details) {
         if (!mounted) return;
@@ -627,22 +556,15 @@ class _PollCardState extends State<PollCard>
         final double velocity = details.primaryVelocity ?? 0;
         final double dx = _dragDx;
         final double w = MediaQuery.of(context).size.width;
-
-        // Commit on a quick flick OR a far-enough drag.
         final bool committed = velocity.abs() >= 300 || dx.abs() > w * 0.28;
-
-        // Always glide the card back to centre (smooth, not a jump).
         _springBack();
 
         if (!committed) return;
-        // Direction from the drag, falling back to the flick velocity.
         final bool goYes = (dx != 0 ? dx : velocity) > 0;
-        _handleSwipe(goYes ? "yes" : "no"); // 👉 yes = right, 👈 no = left
+        _handleSwipe(goYes ? "yes" : "no");
       },
-
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
-        // Follow the finger + a subtle tilt — production swipe feel.
         transform: Matrix4.translationValues(_dragDx, 0, 0)
           ..rotateZ(_dragDx / MediaQuery.of(context).size.width * 0.22),
         transformAlignment: Alignment.center,
@@ -663,8 +585,6 @@ class _PollCardState extends State<PollCard>
                     width: double.infinity,
                     height: double.infinity,
                   ),
-
-                /// Gradient
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -674,19 +594,18 @@ class _PollCardState extends State<PollCard>
                         Colors.transparent,
                         Theme.of(context).brightness == Brightness.dark
                             ? Colors.black.withOpacity(0.85)
-                            : Colors.black.withOpacity(0.6), // light me halka
+                            : Colors.black.withOpacity(0.6),
                       ],
                     ),
                   ),
                 ),
-
-                /// Bottom Content
                 Positioned(
                   top: 14.h,
                   left: 14.w,
                   child: Container(
                     height: 36.h,
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: AppColors.whiteDynamic(context),
                       borderRadius: BorderRadius.circular(16.r),
@@ -701,7 +620,7 @@ class _PollCardState extends State<PollCard>
                 ),
                 Positioned(
                   top: 14.h,
-                  right:14.w,
+                  right: 14.w,
                   child: CommonShareButton(onTap: () {}),
                 ),
                 Positioned(
@@ -728,26 +647,22 @@ class _PollCardState extends State<PollCard>
                         ],
                       ),
                       SizedBox(height: 6.h),
-
                       Text(
                         trade.description ?? "",
                         style: AppTextStyle.headingWhite,
                       ),
-
                       SizedBox(height: 10.h),
-
                       Row(
                         children: [
                           Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
                           SizedBox(width: 10.w),
-                          Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+                          Expanded(
+                              child: _modernVoteBar("YES", 33, Colors.green)),
                         ],
                       ),
                     ],
                   ),
                 ),
-
-                // 👉 Swipe-right (YES) stamp — fades in as you drag right.
                 Positioned(
                   top: 80.h,
                   left: 24.w,
@@ -759,7 +674,6 @@ class _PollCardState extends State<PollCard>
                     ),
                   ),
                 ),
-                // 👈 Swipe-left (NO) stamp — fades in as you drag left.
                 Positioned(
                   top: 80.h,
                   right: 24.w,
@@ -779,8 +693,6 @@ class _PollCardState extends State<PollCard>
     );
   }
 
-  /// Tinder-style stamp shown over the card while swiping
-  /// (YES = right / green, NO = left / red). Opacity is driven by [_dragDx].
   Widget _swipeStamp(String text, Color color) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),

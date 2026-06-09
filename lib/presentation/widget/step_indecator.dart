@@ -21,8 +21,8 @@ class StepIndicator extends StatelessWidget {
             shape: BoxShape.circle,
             gradient: isActive
                 ? LinearGradient(
-              colors: [Colors.purple, Colors.deepPurple],
-            )
+                    colors: [Colors.purple, Colors.deepPurple],
+                  )
                 : null,
             // Inactive (pending) step bubble: light keeps grey.shade300;
             // dark uses a dark surface so it doesn't glare on #121212.

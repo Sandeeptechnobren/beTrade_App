@@ -4,6 +4,7 @@ import 'auth_bottom_sheet.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
+
   Widget _buildBackground() {
     return Container(
       width: double.infinity,
@@ -19,6 +20,7 @@ class AuthScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildLogo() {
     return Image.asset(
       "assets/images/IconLogo.png",

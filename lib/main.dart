@@ -29,17 +29,17 @@ import 'data/services/local_storage.dart';
 import 'data/services/notification_services.dart';
 import 'firebase_options.dart';
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-
 @pragma('vm:entry-point')
-Future<void> _firebaseBackgroundHandler(RemoteMessage message,) async {
+Future<void> _firebaseBackgroundHandler(
+  RemoteMessage message,
+) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint(
-    "🔥 BACKGROUND MESSAGE RECEIVED",
+    "BACKGROUND MESSAGE RECEIVED",
   );
   debugPrint(
     "MESSAGE ID: ${message.messageId}",
@@ -59,7 +59,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await runZonedGuarded(
-        () async {
+    () async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
@@ -129,16 +129,15 @@ Future<void> main() async {
         const MyApp(),
       );
 
-
       Future.microtask(() {
         NotificationService.init();
       });
 
       debugPrint(
-        "NOTIFICATION SERVICE STARTED ✅",
+        "NOTIFICATION SERVICE STARTED ",
       );
     },
-        (error, stack) {
+    (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       if (kDebugMode) {
         debugPrint("GLOBAL ASYNC ERROR: $error");
@@ -205,8 +204,6 @@ class MyApp extends StatelessWidget {
             scaffoldMessengerKey: AppNotify.messengerKey,
             title: "BeTrade",
             debugShowCheckedModeBanner: false,
-            // Follow the phone's light/dark setting on Android + iOS; the app
-            // re-themes itself automatically when the system theme changes.
             themeMode: ThemeMode.system,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
