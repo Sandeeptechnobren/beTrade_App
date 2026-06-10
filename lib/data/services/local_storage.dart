@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   [SharedPreferences].
 class LocalStorage {
   static const String _tokenKey = "token";
+  static const String _lastSyncKey = "last_sync_ts";
 
   static late SharedPreferences _prefs;
 
@@ -89,10 +90,20 @@ class LocalStorage {
   // ---- Cache (Generic JSON storage) ----
   static Future<void> cacheData(String key, String jsonData) async {
     await _prefs.setString("cache_$key", jsonData);
+    // A successful cache write == a successful fetch == a sync. Record the most
+    // recent one so the offline UI can tell the user how stale the data is.
+    await _prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   static String? getCachedData(String key) {
     return _prefs.getString("cache_$key");
+  }
+
+  /// When any cached data was last refreshed from the server, or null if the
+  /// app has never synced (e.g. first launch while offline).
+  static DateTime? getLastSync() {
+    final ms = _prefs.getInt(_lastSyncKey);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
   }
 
   static Future<void> clearCache() async {
@@ -102,5 +113,6 @@ class LocalStorage {
         await _prefs.remove(key);
       }
     }
+    await _prefs.remove(_lastSyncKey);
   }
 }

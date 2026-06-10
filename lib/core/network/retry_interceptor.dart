@@ -25,7 +25,7 @@ class RetryInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (!_isTransient(err)) return handler.next(err);
-    final online = await ConnectivityService.isOnline();
+    final online = await ConnectivityService.instance.checkNow();
     if (!online) {
       AppLogger.w('Network', 'Request while offline: ${err.requestOptions.path}');
       return handler.next(
