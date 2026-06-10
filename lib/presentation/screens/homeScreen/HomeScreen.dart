@@ -405,19 +405,33 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     if (tradeProvider.trades.isEmpty && !tradeProvider.isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.cloud_off, size: 64.sp, color: Colors.grey),
-            SizedBox(height: 16.h),
-            const Text("No Data Available Offline"),
-            TextButton(
-              onPressed: () => context.read<TradeProvider>().fetchTrades(),
-              child: const Text("Retry"),
-            )
-          ],
-        ),
+      // 1) Truly offline with no cached data.
+      if (isOffline) {
+        return _emptyState(
+          icon: Icons.cloud_off,
+          title: "You're offline",
+          subtitle: "Connect to the internet to load markets.",
+          onRetry: () => context.read<TradeProvider>().fetchTrades(),
+        );
+      }
+      // 2) Online, but the fetch failed.
+      if (tradeProvider.error.isNotEmpty) {
+        return _emptyState(
+          icon: Icons.error_outline_rounded,
+          title: "Couldn't load markets",
+          subtitle: "Something went wrong. Please try again.",
+          onRetry: () => context.read<TradeProvider>().fetchTrades(),
+        );
+      }
+      // 3) Online, no error — this category genuinely has no markets.
+      final cat = tradeProvider.selectedCategory;
+      final inCategory = cat.isNotEmpty && cat != "All";
+      return _emptyState(
+        icon: Icons.inbox_outlined,
+        title: inCategory ? "No markets in $cat yet" : "No markets right now",
+        subtitle: inCategory
+            ? "Try a different category or check back soon."
+            : "Check back soon.",
       );
     }
 
@@ -446,6 +460,64 @@ class _HomeScreenState extends State<HomeScreen>
             );
           }
         },
+      ),
+    );
+  }
+
+  /// Shared empty / offline / error placeholder for the poll list. [onRetry] is
+  /// optional — genuinely-empty categories pass null (no Retry button), while
+  /// offline/error states pass a retry callback.
+  Widget _emptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    VoidCallback? onRetry,
+  }) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64.sp, color: Colors.grey),
+            SizedBox(height: 16.h),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'SFProRounded',
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimaryDynamic(context),
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'SFProRounded',
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textSecondaryDynamic(context),
+              ),
+            ),
+            if (onRetry != null) ...[
+              SizedBox(height: 16.h),
+              TextButton(
+                onPressed: onRetry,
+                child: Text(
+                  "Retry",
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontFamily: 'SFProRounded',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
