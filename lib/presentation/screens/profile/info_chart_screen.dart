@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:betrade/core/theme/app_text_style.dart';
+import 'package:betrade/core/utils/share_helper.dart';
 import 'package:betrade/presentation/widget/common_share_button.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +79,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CommonHeader(title: "", showDivider: false),
-                  CommonShareButton(onTap: () {}),
+                  CommonShareButton(onTap: () => ShareHelper.shareMarket()),
                 ],
               ),
             ),

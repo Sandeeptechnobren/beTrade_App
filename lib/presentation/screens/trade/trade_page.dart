@@ -351,53 +351,18 @@ class _TradePageState extends State<TradePage> {
                       ),
                     ),
                     SizedBox(height: 12.h),
-                    if (widget.useDefaultAmount) ...[
-                      // Read-only amount display — swipe-path uses the
-                      // user's default amount; manual input + quick
-                      // chips are intentionally hidden.
-                      Container(
-                        width: double.infinity,
-                        height: 62.h,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24.w,
-                          vertical: 20.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.iconContainerDynamic(context),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              '${amount.toStringAsFixed(0)} GHS',
-                              style: TextStyle(
-                                fontFamily: AppTextStyle.fontFamily,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimaryDynamic(context),
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              'Default amount',
-                              style: TextStyle(
-                                fontFamily: AppTextStyle.fontFamily,
-                                fontSize: 12.sp,
-                                color: AppColors.textSecondaryDynamic(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      _figmaAmountInput(),
-                      SizedBox(height: 12.h),
-                      Row(
-                        children: const [10, 20, 50, 100]
-                            .map((e) => _figmaAmountChip(e))
-                            .toList(growable: false),
-                      ),
-                    ],
+                    // Amount is pre-filled from the user's default
+                    // (in initState when useDefaultAmount) but stays
+                    // EDITABLE for both Yes and No. QA flagged the "No"
+                    // stake as locked to GHS 10 — the swipe / Buy path
+                    // used to render this read-only.
+                    _figmaAmountInput(),
+                    SizedBox(height: 12.h),
+                    Row(
+                      children: const [10, 20, 50, 100]
+                          .map((e) => _figmaAmountChip(e))
+                          .toList(growable: false),
+                    ),
                     SizedBox(height: 24.h),
                     // The quote summary + info banner only make sense once
                     // the user has typed an amount. Rendering them at

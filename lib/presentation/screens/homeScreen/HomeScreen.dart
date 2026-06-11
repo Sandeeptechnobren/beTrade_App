@@ -8,6 +8,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/share_helper.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
 import '../../../data/provider/default_amount_provider.dart';
@@ -702,7 +703,9 @@ class _PollCardState extends State<PollCard>
                 Positioned(
                   top: 14.h,
                   right:14.w,
-                  child: CommonShareButton(onTap: () {}),
+                  child: CommonShareButton(
+                    onTap: () => ShareHelper.shareMarket(title: trade.description),
+                  ),
                 ),
                 Positioned(
                   bottom: 12.h,
@@ -719,7 +722,7 @@ class _PollCardState extends State<PollCard>
                           ),
                           SizedBox(width: 4.w),
                           Text(
-                            "3975 trades",
+                            "${trade.totalTradesDisplay} trades",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 12.sp,
@@ -738,9 +741,9 @@ class _PollCardState extends State<PollCard>
 
                       Row(
                         children: [
-                          Expanded(child: _modernVoteBar("NO", 67, Colors.red)),
+                          Expanded(child: _modernVoteBar("NO", trade.no?.percent ?? 0, Colors.red)),
                           SizedBox(width: 10.w),
-                          Expanded(child: _modernVoteBar("YES", 33, Colors.green)),
+                          Expanded(child: _modernVoteBar("YES", trade.yes?.percent ?? 0, Colors.green)),
                         ],
                       ),
                     ],

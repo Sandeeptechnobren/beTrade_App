@@ -37,6 +37,7 @@ dependencies:
   connectivity_plus: ^7.1.1
   firebase_crashlytics: ^4.3.10
   google_sign_in: ^7.2.0
+  share_plus: ^11.0.0
 
 
 

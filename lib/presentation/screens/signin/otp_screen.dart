@@ -31,6 +31,7 @@ class _OTPScreenState extends State<OTPScreen> {
   bool _isDisposed = false;
   bool _isVerifying = false;
   bool _isResending = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -103,6 +104,25 @@ class _OTPScreenState extends State<OTPScreen> {
     }
   }
 
+  /// Show a clear, persistent inline error under the OTP boxes, with
+  /// guidance on what to do next (retry / Resend). Maps the backend
+  /// message to a friendly sentence; cleared automatically the moment the
+  /// user edits any cell (see _onOtpChanged). Replaces the old transient
+  /// toast that QA reported as "no feedback".
+  void _setError(String? backendMessage) {
+    if (_isDisposed || !mounted) return;
+    final m = (backendMessage ?? '').toLowerCase();
+    String msg;
+    if (m.contains('expire')) {
+      msg = "That code has expired. Tap Resend to get a new one.";
+    } else if (m.contains('too many') || m.contains('attempt')) {
+      msg = "Too many attempts. Please wait, then tap Resend for a new code.";
+    } else {
+      msg = "That code is incorrect. Check it and try again, or tap Resend for a new one.";
+    }
+    setState(() => _errorMessage = msg);
+  }
+
   void _navigateToHome(int docUploadStatus) {
     if (_isDisposed || !mounted) return;
 
@@ -127,7 +147,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
     final otp = _getOtp();
     if (otp.length != otpLength) {
-      _showMessage("Please enter complete OTP");
+      setState(() => _errorMessage = "Please enter all 6 digits of the code.");
       return;
     }
 
@@ -161,13 +181,14 @@ class _OTPScreenState extends State<OTPScreen> {
         await LocalStorage.setDocUploadStatus(docUploadStatus);
         _navigateToHome(docUploadStatus);
       } else {
-        // Show the error but KEEP the user's input — a one-digit typo is easy
-        // to fix without re-entering all 6 cells.
-        _showMessage(parsed['message']);
+        // Clear, persistent inline error + guidance. KEEP the user's input —
+        // a one-digit typo is easy to fix without re-entering all 6 cells.
+        _setError(parsed['message']);
       }
     } catch (e) {
       if (_isDisposed || !mounted) return;
-      _showMessage("Verification failed. Please try again.");
+      setState(() => _errorMessage =
+          "Couldn't verify the code. Check your connection and try again.");
       debugPrint("❌ Verify OTP error: $e");
     } finally {
       if (!_isDisposed && mounted) {
@@ -202,6 +223,7 @@ class _OTPScreenState extends State<OTPScreen> {
       if (parsed['success'] == true) {
         _clearOtpFields();
         _startTimer();
+        setState(() => _errorMessage = '');
         _showMessage("OTP resent successfully", isError: false);
       } else {
         _showMessage(parsed['message']);
@@ -240,6 +262,11 @@ class _OTPScreenState extends State<OTPScreen> {
   }
   void _onOtpChanged(String value, int index) {
     if (_isDisposed || !mounted) return;
+
+    // Clear any visible error the moment the user starts correcting the code.
+    if (_errorMessage.isNotEmpty) {
+      setState(() => _errorMessage = '');
+    }
 
     // PASTE: multi-digit input lands in one cell when the user pastes an OTP
     // from SMS. Distribute the digits across all cells starting from index 0.
@@ -350,7 +377,9 @@ class _OTPScreenState extends State<OTPScreen> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
             borderSide: BorderSide(
-              color: isDarkMode ? Colors.grey.shade700 : Colors.transparent,
+              color: _errorMessage.isNotEmpty
+                  ? Colors.red
+                  : (isDarkMode ? Colors.grey.shade700 : Colors.transparent),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -406,6 +435,26 @@ class _OTPScreenState extends State<OTPScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(otpLength, (index) => _otpBox(index)),
             ),
+            if (_errorMessage.isNotEmpty) ...[
+              SizedBox(height: 12.h),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline, size: 16.sp, color: Colors.red),
+                  SizedBox(width: 6.w),
+                  Expanded(
+                    child: Text(
+                      _errorMessage,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             SizedBox(height:10.h),
             Row(
               children: [

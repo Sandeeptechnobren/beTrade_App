@@ -34,6 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool isGenderValid = false;
   bool isNameValid = false;
   bool isProfileValid = false;
+  String _otpError = '';
 
   void next() {
     if (_isDisposed || !mounted) return;
@@ -92,8 +93,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
       case 2:
         return StepOtp(
+          errorText: _otpError,
           onChanged: (val) {
-            if (!_isDisposed && mounted) provider.setOtp(val);
+            if (!_isDisposed && mounted) {
+              provider.setOtp(val);
+              // Clear the verify error the moment the user edits the code.
+              if (_otpError.isNotEmpty) setState(() => _otpError = '');
+            }
           },
           onValidationChanged: (isValid) {
             if (!_isDisposed && mounted) {
@@ -233,9 +239,14 @@ class _SignupScreenState extends State<SignupScreen> {
               //
               // Leave the user's input intact so they can correct a
               // single digit and retry without re-entering all 6 cells.
-              // Just clear `_isProcessing` to re-enable the button.
-              _showError("Invalid OTP. Please try again.");
-              setState(() => _isProcessing = false);
+              // Show a clear, persistent inline error + guidance under the
+              // cells (StepOtp renders `errorText`) instead of a transient
+              // toast — QA #1 reported wrong-OTP gave "no feedback".
+              setState(() {
+                _otpError =
+                    "That code is incorrect. Check it and try again, or tap Resend for a new one.";
+                _isProcessing = false;
+              });
             }
           }
           break;

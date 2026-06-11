@@ -11,11 +11,13 @@ import '../../../widget/customSnackBar.dart';
 class StepOtp extends StatefulWidget {
   final Function(String) onChanged;
   final Function(bool) onValidationChanged;
+  final String? errorText;
 
   const StepOtp({
     super.key,
     required this.onChanged,
     required this.onValidationChanged,
+    this.errorText,
   });
 
   @override
@@ -30,6 +32,14 @@ class _StepOtpState extends State<StepOtp> {
   bool _isDisposed = false;
   bool _isProcessing = false;
   String _errorMessage = '';
+
+  // Prefer the parent-supplied error (the "Invalid OTP" result from the
+  // verify call in signup_screen) over the internal one used by the resend
+  // path. Drives both the red cell borders and the inline message below.
+  String get _effectiveError =>
+      (widget.errorText != null && widget.errorText!.isNotEmpty)
+          ? widget.errorText!
+          : _errorMessage;
 
   @override
   void initState() {
@@ -269,7 +279,7 @@ class _StepOtpState extends State<StepOtp> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
             borderSide: BorderSide(
-              color: _errorMessage.isNotEmpty
+              color: _effectiveError.isNotEmpty
                   ? Colors.red
                   : (isDarkMode
                   ? Colors.grey.shade700
@@ -370,15 +380,24 @@ class _StepOtpState extends State<StepOtp> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(6, (index) => _otpBox(index)),
         ),
-        if (_errorMessage.isNotEmpty) ...[
+        if (_effectiveError.isNotEmpty) ...[
           SizedBox(height: 12.h),
-          Text(
-            _errorMessage,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.red,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.error_outline, size: 16.sp, color: Colors.red),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  _effectiveError,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
         SizedBox(height:10.h),
