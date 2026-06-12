@@ -56,7 +56,6 @@ class _ExplorePageState extends State<ExplorePage> {
     super.dispose();
   }
 
-  // ── Infinite scroll ──────────────────────────────────────────────
   void _onScroll() {
     if (_isDisposed || !_scrollController.hasClients) return;
     final pos = _scrollController.position;
@@ -65,7 +64,6 @@ class _ExplorePageState extends State<ExplorePage> {
     }
   }
 
-  // ── Search focus + history ───────────────────────────────────────
   void _onFocusChange() {
     if (_isDisposed || !mounted) return;
     setState(() {
@@ -105,7 +103,7 @@ class _ExplorePageState extends State<ExplorePage> {
 
   void _performSearch(String value) {
     if (_isDisposed) return;
-    setState(() {}); // refresh suffix icon
+    setState(() {});
     _debounce?.cancel();
 
     if (value.trim().isEmpty) {
@@ -115,6 +113,7 @@ class _ExplorePageState extends State<ExplorePage> {
       });
       return;
     }
+
     if (value.trim().length < 2) return;
 
     _debounce = Timer(const Duration(milliseconds: 300), () async {
