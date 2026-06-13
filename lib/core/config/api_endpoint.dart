@@ -28,13 +28,25 @@ class ApiEndpoints {
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
 
   /// Canonical Explore listing — base list + search + category filter +
-  /// pagination, all on one endpoint. All params URL-encoded.
-  static String tradeExplore({int page = 1, String? search, String? categoryUuid}) {
+  /// pagination + sort, all on one endpoint. All params URL-encoded.
+  ///
+  /// `sort` is optional. Pass `'trending'` to order by trade volume
+  /// (popularity-ranked); omit / pass `'newest'` for the default
+  /// newest-first ordering. Backend ignores unknown values gracefully.
+  static String tradeExplore({
+    int page = 1,
+    String? search,
+    String? categoryUuid,
+    String? sort,
+  }) {
     final qp = <String, String>{'page': page.toString()};
     final s = search?.trim() ?? '';
     if (s.isNotEmpty) qp['search'] = s;
     if (categoryUuid != null && categoryUuid.isNotEmpty && categoryUuid != 'all') {
       qp['category_uuid'] = categoryUuid;
+    }
+    if (sort != null && sort.isNotEmpty) {
+      qp['sort'] = sort;
     }
     final qs = qp.entries
         .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')

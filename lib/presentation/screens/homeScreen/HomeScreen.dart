@@ -12,7 +12,9 @@ import '../../../core/utils/share_helper.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/category_provider.dart';
 import '../../../data/provider/default_amount_provider.dart';
+import '../../../data/provider/positions_provider.dart';
 import '../../../data/provider/trade_provider.dart';
+import '../../../data/provider/wallet_provider.dart';
 import '../../../data/services/home_service.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../../widget/common_share_button.dart';
@@ -23,11 +25,16 @@ import '../trade/trade_page.dart';
 class HomeScreen extends StatefulWidget {
   final bool showKycBanner;
   final VoidCallback? onBannerTap;
+  // QA #7 — wired up by MainScreen to jump to the Explore tab and
+  // focus its search field. Null-safe so existing call sites that
+  // don't pass it still work.
+  final VoidCallback? onSearchTap;
 
   const HomeScreen({
     super.key,
     this.showKycBanner = false,
     this.onBannerTap,
+    this.onSearchTap,
   });
 
   @override
@@ -81,6 +88,16 @@ class _HomeScreenState extends State<HomeScreen>
       // the swipe action sends the correct cost_ghs even if the user
       // hasn't opened Default Settings yet this session.
       context.read<DefaultAmountProvider>().loadFromBackend();
+      // QA #5 — Home now shows Available Cash in the header. Open
+      // positions feed the "Portfolio Balance" breakdown sheet (cash +
+      // current market value of holdings). Fire-and-forget; both
+      // providers handle their own loading state.
+      context.read<WalletProvider>().fetchBalance();
+      context.read<PositionsProvider>().fetchOpenPositions();
+      // QA #5 — Home now shows Available Cash + a Portfolio Balance
+      // breakdown sheet, so pre-fetch wallet + open positions.
+      context.read<WalletProvider>().fetchBalance();
+      context.read<PositionsProvider>().fetchOpenPositions();
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -118,6 +135,220 @@ class _HomeScreenState extends State<HomeScreen>
     CommonBottomSheet.open(
       context: context,
       builder: (controller) => FilterBottomSheet(scrollController: controller),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // QA #5 — Available Cash pill in the header + breakdown sheet.
+  // ─────────────────────────────────────────────────────────────
+
+  /// Compact wallet pill rendered in the header (replaces the old
+  /// "selectedCategory ⌄" dropdown — categories now surface as the
+  /// chip rail directly below). Shows the user's Available Cash so
+  /// they know what they can stake before swiping. Tap → opens a
+  /// breakdown sheet (Available Cash + Open Positions value +
+  /// Total Portfolio).
+  Widget _balancePill() {
+    return Consumer<WalletProvider>(
+      builder: (context, wallet, _) {
+        final hasLoaded = wallet.lastUpdated != null;
+        final text = hasLoaded
+            ? '₵${wallet.balance.toStringAsFixed(2)}'
+            : '₵—';
+        return GestureDetector(
+          onTap: () => _openBalanceBreakdown(context),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+            decoration: BoxDecoration(
+              color: AppColors.iconContainerDynamic(context),
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 14.sp,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+                SizedBox(width: 5.w),
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontFamily: AppTextStyle.fontFamily,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimaryDynamic(context),
+                  ),
+                ),
+                SizedBox(width: 2.w),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 14.sp,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Bottom sheet shown when the user taps the balance pill.
+  /// Computes Portfolio Balance client-side as
+  ///   Available Cash (WalletProvider.balance)
+  /// + Open Positions value (PositionsProvider.totalMarketValueGhs).
+  /// `totalMarketValueGhs` is already a getter on PositionsProvider —
+  /// no backend work needed.
+  void _openBalanceBreakdown(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cardBackgroundDynamic(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (_) {
+        return Consumer2<WalletProvider, PositionsProvider>(
+          builder: (sheetCtx, wallet, positions, __) {
+            final cash = wallet.balance;
+            final invested = positions.totalMarketValueGhs;
+            final total = cash + invested;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 28.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderDynamic(sheetCtx),
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 18.h),
+                  Text(
+                    "Portfolio Balance",
+                    style: TextStyle(
+                      fontFamily: AppTextStyle.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondaryDynamic(sheetCtx),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '₵${total.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontFamily: AppTextStyle.fontFamily,
+                      fontSize: 28.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimaryDynamic(sheetCtx),
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  _breakdownRow(sheetCtx, "Available Cash", cash),
+                  SizedBox(height: 14.h),
+                  _breakdownRow(sheetCtx, "Open Positions", invested),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _breakdownRow(BuildContext context, String label, double value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 14.sp,
+            color: AppColors.textSecondaryDynamic(context),
+          ),
+        ),
+        Text(
+          '₵${value.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontFamily: AppTextStyle.fontFamily,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimaryDynamic(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// QA #5 — categories at first glance. Horizontal scrolling chip
+  /// rail rendered directly below the header. Source = CategoryProvider
+  /// (already loaded in _initializeData), selection state =
+  /// TradeProvider.selectedCategory (same one the old "All ⌄"
+  /// dropdown wrote to via FilterBottomSheet, so the swipe deck
+  /// filter behaviour is unchanged).
+  Widget _categoryChipRail(BuildContext context) {
+    return Consumer2<CategoryProvider, TradeProvider>(
+      builder: (_, cat, trade, __) {
+        // 'All' is the virtual leading chip that resets the filter.
+        // Some backends include 'All' in the category list themselves —
+        // dedupe so we don't render two "All" chips.
+        final raw = cat.categories.map((c) => c.name).toList();
+        final names = raw.contains('All')
+            ? raw
+            : <String>['All', ...raw];
+        return SizedBox(
+          height: 38.h,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: names.length,
+            separatorBuilder: (_, __) => SizedBox(width: 8.w),
+            itemBuilder: (_, i) {
+              final name = names[i];
+              final selected = trade.selectedCategory == name;
+              return GestureDetector(
+                onTap: () {
+                  trade.applyFilter(
+                    category: name,
+                    sort: trade.selectedSort,
+                    date: trade.selectedDate,
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.iconContainerDynamic(context),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontFamily: AppTextStyle.fontFamily,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: selected
+                          ? Colors.white
+                          : AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -259,33 +490,54 @@ class _HomeScreenState extends State<HomeScreen>
                           SizedBox(width: 5.w),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () => _openFilterBottomSheet(context),
-                        child: Row(
-                          children: [
-                            Text(
-                              context.watch<TradeProvider>().selectedCategory,
-                              style: AppTextStyle.body,
+                      // QA #5 — Available Cash pill replaces the old
+                      // "selectedCategory ⌄" dropdown. The category surface
+                      // moved into the horizontal chip rail below this
+                      // header, where it's far more discoverable. Tapping
+                      // the pill opens a Portfolio Balance breakdown.
+                      _balancePill(),
+                      // QA #7 — search shortcut + bell, grouped on the
+                      // right. Tapping the magnifying glass switches to
+                      // the Explore tab and auto-focuses its search field
+                      // (handled by MainScreen via onSearchTap).
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: widget.onSearchTap,
+                            child: Container(
+                              width: 40.w,
+                              height: 40.h,
+                              padding: EdgeInsets.all(8.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.iconContainerDynamic(context),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.search,
+                                size: 22.sp,
+                                color: AppColors.textPrimaryDynamic(context),
+                              ),
                             ),
-                            Icon(Icons.keyboard_arrow_down),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 40.w,
-                        height: 40.h,
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          // Figma #F4F4F5
-                          color: AppColors.iconContainerDynamic(context),
-                          shape: BoxShape.circle,
-                        ),
-                        child: SvgPicture.asset(
-                          "assets/svgs/Bell.svg",
-                          width: 24.w,
-                          height: 24.h,
-                          fit: BoxFit.contain,
-                        ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Container(
+                            width: 40.w,
+                            height: 40.h,
+                            padding: EdgeInsets.all(8.w),
+                            decoration: BoxDecoration(
+                              // Figma #F4F4F5
+                              color: AppColors.iconContainerDynamic(context),
+                              shape: BoxShape.circle,
+                            ),
+                            child: SvgPicture.asset(
+                              "assets/svgs/Bell.svg",
+                              width: 24.w,
+                              height: 24.h,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
                       ),
                       // Container(
                       //   width: 40.w,
@@ -310,6 +562,11 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                 ),
+                // QA #5 — categories visible at first glance.
+                // Horizontal scrolling chip rail, tap a chip to filter
+                // the swipe deck. Source of truth = TradeProvider
+                // (same filter the old "All ⌄" dropdown wrote to).
+                _categoryChipRail(context),
                 if (widget.showKycBanner)
                   GestureDetector(
                     onTap: widget.onBannerTap,
@@ -519,6 +776,48 @@ class _PollCardState extends State<PollCard>
     _swipeCtrl.forward(from: 0);
   }
 
+  /// Social-proof avatar stack rendered next to the trade count on the
+  /// swipe card. Min 1, max 4 (backend currently sends up to 3 — `take(4)`
+  /// is forward-compatible). White rim so avatars stay legible against
+  /// the dark image overlay. Mirrors the pattern used on the Explore tab.
+  Widget _traderAvatarStack(List<String> urls) {
+    if (urls.isEmpty) return const SizedBox.shrink();
+    final shown = urls.take(4).toList();
+    return SizedBox(
+      width: ((shown.length - 1) * 14 + 24).w,
+      height: 24.h,
+      child: Stack(
+        children: [
+          for (int i = 0; i < shown.length; i++)
+            Positioned(left: (i * 14).w, child: _traderAvatar(shown[i])),
+        ],
+      ),
+    );
+  }
+
+  Widget _traderAvatar(String url) {
+    return Container(
+      width: 24.w,
+      height: 24.w,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.person,
+            size: 14.sp,
+            color: Colors.grey.shade400,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Swipe and tap both open the same `TradePage` bottom sheet (one
   /// consistent UX) but they differ in how the cost is set:
   ///
@@ -716,11 +1015,17 @@ class _PollCardState extends State<PollCard>
                     children: [
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 12.r,
-                            backgroundColor: Colors.white,
-                          ),
-                          SizedBox(width: 4.w),
+                          // Real trader profile avatars stacked (up to 4)
+                          // replace the old empty white placeholder
+                          // CircleAvatar. trade.traderAvatars is populated
+                          // by /trade/list (backend caps at 3 today; the
+                          // `.take(4)` is forward-compatible). When the
+                          // market has zero traders yet, the stack hides
+                          // and only the count remains.
+                          if (trade.traderAvatars.isNotEmpty) ...[
+                            _traderAvatarStack(trade.traderAvatars),
+                            SizedBox(width: 6.w),
+                          ],
                           Text(
                             "${trade.totalTradesDisplay} trades",
                             style: TextStyle(

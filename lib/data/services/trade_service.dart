@@ -74,6 +74,7 @@ class TradeService {
     int page = 1,
     String? search,
     String? categoryUuid,
+    String? sort,
   }) async {
     final token = LocalStorage.getToken();
     final response = await DioClient.instance.get(
@@ -81,6 +82,7 @@ class TradeService {
         page: page,
         search: search,
         categoryUuid: categoryUuid,
+        sort: sort,
       ),
       options: Options(
         headers: {

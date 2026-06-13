@@ -195,11 +195,25 @@ class _DepositPageState extends State<DepositPage> {
                       // P0-A: button is "busy" while the initiate call
                       // is in flight (was: isSubmittingDeposit).
                       final busy = wallet.isInitiatingDeposit;
-                      return _figmaButton(
-                        'Confirm',
-                        enabled: _step2Valid && !busy,
-                        loading: busy,
-                        onTap: _submitDeposit,
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // QA #6 — transparency before confirming. Today
+                          // Betrade absorbs all gateway processing costs
+                          // so the wallet credit equals the deposit amount
+                          // 1:1; this card makes that explicit instead of
+                          // silently free. If fees are introduced later,
+                          // replace the hardcoded zero with backend-driven
+                          // values (see plan: Option B).
+                          _feeDisclosureCard(),
+                          SizedBox(height: 12.h),
+                          _figmaButton(
+                            'Confirm',
+                            enabled: _step2Valid && !busy,
+                            loading: busy,
+                            onTap: _submitDeposit,
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -605,6 +619,123 @@ class _DepositPageState extends State<DepositPage> {
                 ),
               ),
       ),
+    );
+  }
+
+  // ─── Fee disclosure (QA #6) ───────────────────────────────────────
+
+  /// Transparency card shown on step 2, directly above the Confirm
+  /// button. Itemises what the user will be charged vs what lands in
+  /// their wallet. Today the fee is hardcoded 0 — Betrade absorbs all
+  /// gateway processing costs, so the credit equals the deposit amount
+  /// 1:1. When fees are introduced (see plan: Option B), wire this to
+  /// `DepositInitiateResponse.feeGhs` + `youReceiveGhs` instead.
+  Widget _feeDisclosureCard() {
+    final parsed = Money.parse(amountController.text);
+    final hasAmount = parsed > 0;
+    final amountText =
+        hasAmount ? '₵${parsed.toStringAsFixed(2)}' : '—';
+    final receiveText = amountText; // 1:1 today
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.iconContainerDynamic(context),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _disclosureRow('Amount you deposit', amountText),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Fee',
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 13.sp,
+                  color: AppColors.textSecondaryDynamic(context),
+                ),
+              ),
+              Text(
+                '₵0.00',
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF22C55E), // green = "free"
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Container(
+            height: 1,
+            color: AppColors.borderDynamic(context),
+          ),
+          SizedBox(height: 10.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "You'll receive",
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+              ),
+              Text(
+                receiveText,
+                style: TextStyle(
+                  fontFamily: 'SFProRounded',
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimaryDynamic(context),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'No deposit fees — Betrade covers payment processing.',
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
+              fontSize: 11.sp,
+              color: AppColors.textSecondaryDynamic(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _disclosureRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 13.sp,
+            color: AppColors.textSecondaryDynamic(context),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'SFProRounded',
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimaryDynamic(context),
+          ),
+        ),
+      ],
     );
   }
 

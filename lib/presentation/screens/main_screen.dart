@@ -42,6 +42,23 @@ class _MainScreenState extends State<MainScreen> {
   int _docUploadStatus = 0;
   bool _welcomeSkipped = false;
 
+  // QA #7 — search discoverability. The Home header has a search icon
+  // that jumps to the Explore tab AND focuses its search field. The
+  // GlobalKey lets us reach into ExplorePage's State (which already
+  // owns the search FocusNode) without rebuilding it.
+  final GlobalKey _exploreKey = GlobalKey();
+
+  void _jumpToExploreSearch() {
+    setState(() => currentIndex = 1);
+    // Defer focus until after the IndexedStack swap settles, so the
+    // ExplorePage is actually on-screen when the keyboard opens.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // `_ExplorePageState` is private; dynamic dispatch keeps that
+      // private without forcing the type to be exposed for one method.
+      (_exploreKey.currentState as dynamic)?.focusSearch();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -336,8 +353,9 @@ class _MainScreenState extends State<MainScreen> {
           HomeScreen(
             showKycBanner: showKycBanner,
             onBannerTap: _showWelcomePopup,
+            onSearchTap: _jumpToExploreSearch,
           ),
-          ExplorePage(),
+          ExplorePage(key: _exploreKey),
           const RankingsPage(),
           PortfolioPage(),
           ProfilePage(),

@@ -96,13 +96,24 @@ class ExploreProvider extends ChangeNotifier {
       }
       _safeNotify();
 
+      // QA #4 — request popularity-ranked ordering. Backend serves it via
+      // `?sort=trending` (older backends ignore the param and keep the
+      // legacy newest-first ordering, so this is forward-compatible).
       final res = await TradeService.fetchExplore(
         page: targetPage,
         search: query,
         categoryUuid: selectedCategoryUuid,
+        sort: 'trending',
       );
 
       trades = reset ? res.items : [...trades, ...res.items];
+      // Defensive client-side sort: if the deployed backend hasn't
+      // picked up the `sort=trending` handler yet, the items come back
+      // newest-first. At current data volumes (page=20 typically covers
+      // every open market) sorting the already-loaded list by trade
+      // count still surfaces the correct top-N. Once backend deploys,
+      // this becomes a no-op (already-sorted input → stable sort).
+      trades.sort((a, b) => (b.totalTrades).compareTo(a.totalTrades));
       _page = res.currentPage;
       _lastPage = res.lastPage;
       error = "";

@@ -74,6 +74,16 @@ class _ExplorePageState extends State<ExplorePage> {
     });
   }
 
+  /// Public entry point — used by `_MainScreenState` when the Home
+  /// header's search icon is tapped (QA #7). The IndexedStack keeps
+  /// this page mounted, so we just request focus on the existing
+  /// FocusNode; that expands the keyboard and (via _onFocusChange)
+  /// surfaces the recent-searches history if the field is empty.
+  void focusSearch() {
+    if (_isDisposed || !mounted) return;
+    _searchFocusNode.requestFocus();
+  }
+
   Future<void> _loadSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     _searchHistory = prefs.getStringList('explore_search_history') ?? [];
