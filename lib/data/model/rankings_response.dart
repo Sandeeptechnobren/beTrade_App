@@ -62,6 +62,20 @@ class RankingsResponse {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category,
+      'unit': unit,
+      'podium': podium.map((e) => e.toJson()).toList(),
+      'leaderboard': leaderboard.map((e) => e.toJson()).toList(),
+      'total_users': totalUsers,
+      'page': page,
+      'per_page': perPage,
+      'has_more': hasMore,
+      'current_user_rank': currentUserRank,
+    };
+  }
+
   static int _int(dynamic v) =>
       v is int ? v : (v is num ? v.toInt() : 0);
 

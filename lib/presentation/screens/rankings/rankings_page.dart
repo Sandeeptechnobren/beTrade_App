@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
+import '../../../core/utils/avatar_cache.dart';
 import '../../../data/model/ranking_entry.dart';
 import '../../../data/provider/rankings_provider.dart';
 import '../../widget/Common_header_withlogo.dart';
@@ -56,6 +58,7 @@ class RankingsPage extends StatefulWidget {
 class _RankingsPageState extends State<RankingsPage> {
   int _selectedTab = 0;
   final PageController _pageController = PageController();
+
   // One scroll controller per tab so each tab's list scrolls
   // independently and the infinite-scroll listener can target the
   // correct category.
@@ -183,9 +186,8 @@ class _RankingsPageState extends State<RankingsPage> {
                   Container(
                     height: 4.h,
                     decoration: BoxDecoration(
-                      color: active
-                          ? const Color(0xFFAA45FF)
-                          : Colors.transparent,
+                      color:
+                          active ? const Color(0xFFAA45FF) : Colors.transparent,
                       borderRadius: BorderRadius.circular(9999.r),
                     ),
                   ),
@@ -361,6 +363,7 @@ class _EmptyView extends StatelessWidget {
 
 class _Podium extends StatelessWidget {
   const _Podium({required this.entries});
+
   final List<RankingEntry> entries; // backend has reordered to [#2, #1, #3]
 
   @override
@@ -381,9 +384,12 @@ class _Podium extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(child: _PodiumAvatar(r: entries[0], pos: _PodiumPos.second)),
-            Expanded(child: _PodiumAvatar(r: entries[1], pos: _PodiumPos.first)),
-            Expanded(child: _PodiumAvatar(r: entries[2], pos: _PodiumPos.third)),
+            Expanded(
+                child: _PodiumAvatar(r: entries[0], pos: _PodiumPos.second)),
+            Expanded(
+                child: _PodiumAvatar(r: entries[1], pos: _PodiumPos.first)),
+            Expanded(
+                child: _PodiumAvatar(r: entries[2], pos: _PodiumPos.third)),
           ],
         ),
       ),
@@ -395,6 +401,7 @@ enum _PodiumPos { first, second, third }
 
 class _PodiumAvatar extends StatelessWidget {
   const _PodiumAvatar({required this.r, required this.pos});
+
   final RankingEntry r;
   final _PodiumPos pos;
 
@@ -471,6 +478,7 @@ String _unitFromContext(BuildContext context, _PodiumPos pos) {
 
 class _LeaderboardList extends StatelessWidget {
   const _LeaderboardList({required this.entries, required this.unit});
+
   final List<RankingEntry> entries;
   final String unit;
 
@@ -490,9 +498,8 @@ class _LeaderboardList extends StatelessWidget {
     return Column(
       children: List.generate(entries.length, (i) {
         final r = entries[i];
-        final Color bg = r.isCurrentUser
-            ? rowYou
-            : (i.isEven ? rowEven : rowOdd);
+        final Color bg =
+            r.isCurrentUser ? rowYou : (i.isEven ? rowEven : rowOdd);
         return _RankRow(r: r, unit: unit, bg: bg);
       }),
     );
@@ -501,6 +508,7 @@ class _LeaderboardList extends StatelessWidget {
 
 class _RankRow extends StatelessWidget {
   const _RankRow({required this.r, required this.unit, required this.bg});
+
   final RankingEntry r;
   final String unit;
   final Color bg;
@@ -603,6 +611,7 @@ String _formatValue(double value, String unit) {
 /// NetworkImage with a graceful fallback if [url] is null or fails to load.
 class _AvatarImage extends StatelessWidget {
   const _AvatarImage({required this.url, required this.size});
+
   final String? url;
   final double size;
 
@@ -621,12 +630,24 @@ class _AvatarImage extends StatelessWidget {
         ),
       );
     }
-    return Image.network(
-      url!,
+    return CachedNetworkImage(
+      imageUrl: AvatarCache.bust(url)!,
       width: size,
       height: size,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      placeholder: (context, url) => Container(
+        width: size,
+        height: size,
+        color: AppColors.borderDynamic(context),
+        child: Center(
+          child: SizedBox(
+            width: size * 0.4,
+            height: size * 0.4,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      errorWidget: (_, __, ___) => Container(
         width: size,
         height: size,
         color: AppColors.borderDynamic(context),

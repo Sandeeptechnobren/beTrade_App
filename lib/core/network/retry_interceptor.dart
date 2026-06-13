@@ -5,14 +5,6 @@ import 'package:dio/dio.dart';
 import '../utils/app_logger.dart';
 import 'connectivity_service.dart';
 
-/// Adds resilience to transient network failures (CHALLENGES F9):
-///
-/// - If the device is offline, the error is replaced with a clear
-///   "no internet connection" message instead of a cryptic socket error.
-/// - For **idempotent** requests (GET/HEAD) it retries transient failures a
-///   few times with linear backoff. Mutating methods (POST/PUT/PATCH/DELETE)
-///   are **never** auto-retried — those flows carry idempotency keys and are
-///   retried explicitly by the user, so auto-retry could double-submit.
 class RetryInterceptor extends Interceptor {
   RetryInterceptor(this._dio, {this.maxRetries = 2});
 
@@ -33,9 +25,7 @@ class RetryInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (!_isTransient(err)) return handler.next(err);
-
-    // Offline → don't waste retries; surface a clear, user-readable message.
-    final online = await ConnectivityService.isOnline();
+    final online = await ConnectivityService.instance.checkNow();
     if (!online) {
       AppLogger.w('Network', 'Request while offline: ${err.requestOptions.path}');
       return handler.next(

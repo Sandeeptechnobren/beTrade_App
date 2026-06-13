@@ -108,6 +108,35 @@ class PositionModel {
     if (v == null) return null;
     return DateTime.tryParse(v.toString());
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'shares': shares,
+      'avg_cost_ghs': avgCostGhs,
+      'current_price': currentPrice,
+      'cost_basis_ghs': costBasisGhs,
+      'market_value_ghs': marketValueGhs,
+      'unrealised_pnl_ghs': unrealisedPnlGhs,
+      'realized_pnl_ghs': realizedPnlGhs,
+      'max_payout_ghs': maxPayoutGhs,
+      'payout_ghs': payoutGhs,
+      'settled_at': settledAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'outcome': {
+        'slug': outcomeSlug,
+        'label': outcomeLabel,
+        'is_winner': outcomeIsWinner,
+      },
+      'market': {
+        'uuid': marketUuid,
+        'description': marketDescription,
+        'image': marketImage,
+        'category_name': marketCategoryName,
+        'closing_date_time': marketClosingDateTime?.toIso8601String(),
+        'status': marketStatus,
+      },
+    };
+  }
 }
 
 /// Wrapper for `GET /api/positions/{market_uuid}` — both sides of one
@@ -135,5 +164,13 @@ class MarketPositionsModel {
               .toList()
           : [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'market_uuid': marketUuid,
+      'description': description,
+      'positions': sides.map((e) => e.toJson()).toList(),
+    };
   }
 }

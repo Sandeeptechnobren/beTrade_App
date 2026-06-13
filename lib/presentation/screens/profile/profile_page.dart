@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:betrade/presentation/screens/profile/achivement_Sheet.dart';
 import 'package:betrade/presentation/screens/profile/edit_profile.dart';
 import 'package:betrade/presentation/screens/profile/term_of_service.dart';
@@ -13,7 +14,7 @@ import '../../../data/provider/profile_provider.dart';
 import '../../../data/model/achievement_model.dart';
 import '../../../core/theme/app_text_style.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/provider/theme_provider.dart';
+import '../../../core/utils/avatar_cache.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../data/services/local_storage.dart';
 import '../../auth/auth_screen.dart';
@@ -178,7 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 38.r,
                       backgroundColor: AppColors.iconContainerDynamic(context),
                       backgroundImage: profile?.avatar.isNotEmpty == true
-                          ? NetworkImage(profile.avatar)
+                          ? CachedNetworkImageProvider(AvatarCache.bust(profile.avatar)!)
                           : null,
                       child: profile?.avatar.isEmpty ?? true
                           ? Icon(Icons.person,
@@ -385,7 +386,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildSettingsCard(BuildContext context) {
     final rows = <Widget>[
-      _buildDarkModeRow(context),
       _buildSettingsRowSvg(
         context,
         "assets/svgs/User.svg",
@@ -572,33 +572,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDarkModeRow(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    return Row(
-      children: [
-        _iconBoxSvg(context, "assets/svgs/Moon.svg"),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Text(
-            "Dark Mode",
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w400,
-              color: _textBody(context),
-              fontFamily: AppTextStyle.fontFamily,
-            ),
-          ),
-        ),
-        _FigmaSwitch(
-          value: themeProvider.isDark,
-          trackOff: AppColors.borderDynamic(context),
-          trackOn: AppColors.primary,
-          onChanged: (v) => themeProvider.toggleTheme(v),
-        ),
-      ],
-    );
-  }
-
   void showLogoutDialog() {
     showDialog(
       context: context,
@@ -624,52 +597,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         );
       },
-    );
-  }
-}
-
-class _FigmaSwitch extends StatelessWidget {
-  const _FigmaSwitch({
-    required this.value,
-    required this.onChanged,
-    required this.trackOff,
-    required this.trackOn,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final Color trackOff;
-  final Color trackOn;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        width: 57.w,
-        height: 32.h,
-        padding: EdgeInsets.all(4.w),
-        decoration: BoxDecoration(
-          color: value ? trackOn : trackOff,
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        child: Row(
-          mainAxisAlignment:
-              value ? MainAxisAlignment.end : MainAxisAlignment.start,
-          children: [
-            Container(
-              width: 24.w,
-              height: 24.h,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

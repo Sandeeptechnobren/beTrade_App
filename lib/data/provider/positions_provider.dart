@@ -1,13 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../model/position_model.dart';
 import '../services/positions_service.dart';
+import '../services/local_storage.dart';
 
 /// State holder for the Portfolio Open Positions list and the
-/// per-market position detail screen. Single instance lives in
-/// main.dart's MultiProvider; consumed via Consumer / context.watch in:
-///   - portfolio_page.dart       (Open Positions list)
-///   - position_detail_page.dart (both-sides breakdown)
 class PositionsProvider extends ChangeNotifier {
   // Open positions list
   List<PositionModel> openPositions = [];
@@ -26,6 +24,33 @@ class PositionsProvider extends ChangeNotifier {
 
   bool _isDisposed = false;
 
+  PositionsProvider() {
+    _loadCachedPositions();
+  }
+
+  void _loadCachedPositions() {
+    final cachedOpen = LocalStorage.getCachedData("open_positions");
+    if (cachedOpen != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cachedOpen);
+        openPositions = decoded.map((e) => PositionModel.fromJson(e)).toList();
+      } catch (e) {
+        debugPrint("Error decoding cached open positions: $e");
+      }
+    }
+
+    final cachedSettled = LocalStorage.getCachedData("settled_positions");
+    if (cachedSettled != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(cachedSettled);
+        settledPositions = decoded.map((e) => PositionModel.fromJson(e)).toList();
+      } catch (e) {
+        debugPrint("Error decoding cached settled positions: $e");
+      }
+    }
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
@@ -38,31 +63,38 @@ class PositionsProvider extends ChangeNotifier {
 
   /// GET /api/positions?status=open
   Future<void> fetchOpenPositions() async {
-    isLoadingOpen = true;
+    if (openPositions.isEmpty) {
+      isLoadingOpen = true;
+      _safeNotify();
+    }
     openError = null;
-    _safeNotify();
 
     final list = await PositionsService.getAll(status: 'open');
 
-    openPositions = list;
+    if (list.isNotEmpty || openPositions.isEmpty) {
+      openPositions = list;
+      LocalStorage.cacheData("open_positions", jsonEncode(openPositions.map((e) => e.toJson()).toList()));
+    }
+    
     isLoadingOpen = false;
     _safeNotify();
   }
 
   /// GET /api/positions?status=settled (P0-C, 2026-05-28)
-  ///
-  /// Powers the Portfolio "Closed Positions" tab. Backend orders
-  /// these by `settled_at DESC` and surfaces `payout_ghs` (null on
-  /// losers) plus `realized_pnl_ghs` so the UI can render P&L
-  /// alongside the original position.
   Future<void> fetchSettledPositions() async {
-    isLoadingSettled = true;
+    if (settledPositions.isEmpty) {
+      isLoadingSettled = true;
+      _safeNotify();
+    }
     settledError = null;
-    _safeNotify();
 
     final list = await PositionsService.getAll(status: 'settled');
 
-    settledPositions = list;
+    if (list.isNotEmpty || settledPositions.isEmpty) {
+      settledPositions = list;
+      LocalStorage.cacheData("settled_positions", jsonEncode(settledPositions.map((e) => e.toJson()).toList()));
+    }
+
     isLoadingSettled = false;
     _safeNotify();
   }

@@ -86,8 +86,7 @@ class _PortfolioPageState extends State<PortfolioPage>
               ),
             ),
             SliverOverlapAbsorber(
-              handle:
-                  NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: SliverPersistentHeader(
                 pinned: true,
                 delegate: _PinnedTabBarDelegate(
@@ -288,6 +287,7 @@ class _PortfolioPageState extends State<PortfolioPage>
       ),
     );
   }
+
   Widget _tabBar() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -311,7 +311,8 @@ class _PortfolioPageState extends State<PortfolioPage>
         labelPadding: EdgeInsets.symmetric(horizontal: 12.w),
         dividerColor: Theme.of(context).brightness == Brightness.dark
             ? const Color(0xFF383838) // app dark-divider token
-            : const Color(0xFFE9E9E9), // Figma: text/50
+            : const Color(0xFFE9E9E9),
+        // Figma: text/50
         dividerHeight: 1,
         indicator: _FigmaTabIndicator(
           color: Theme.of(context).brightness == Brightness.dark
@@ -381,6 +382,7 @@ class _PortfolioPageState extends State<PortfolioPage>
       },
     );
   }
+
   Widget _positionCard(PositionModel p) {
     final isProfit = p.unrealisedPnlGhs >= 0;
     final profitColor = isProfit ? _profitGreen : _profitRed;
@@ -521,6 +523,7 @@ class _PortfolioPageState extends State<PortfolioPage>
       ],
     );
   }
+
   Widget _emptyStatePlaceholder({required String title, String? subtitle}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -616,6 +619,7 @@ class _PortfolioPageState extends State<PortfolioPage>
       ),
     );
   }
+
   Widget _closedPositions() {
     return Consumer<PositionsProvider>(
       builder: (context, provider, _) {
@@ -658,8 +662,8 @@ class _PortfolioPageState extends State<PortfolioPage>
     final Color statusColor;
     if (!isSettled) {
       statusLabel = 'Sold';
-      statusColor =
-          AppColors.textSecondaryDynamic(context); // neutral — neither win nor loss
+      statusColor = AppColors.textSecondaryDynamic(
+          context); // neutral — neither win nor loss
     } else if (p.outcomeIsWinner == true) {
       statusLabel = 'Won';
       statusColor = _profitGreen;

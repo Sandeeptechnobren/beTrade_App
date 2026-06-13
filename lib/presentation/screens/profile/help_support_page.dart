@@ -57,6 +57,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
 
       final data = response.data as Map<String, dynamic>;
       debugPrint('API Response: $data');
+      debugPrint("TOKEN => $token");
 
       // Backend returns `status: true` (not `success`) — see the
       // API Response debug log. Keep both keys defensive so a future

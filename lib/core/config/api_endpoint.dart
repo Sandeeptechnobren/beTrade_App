@@ -33,16 +33,15 @@ class ApiEndpoints {
   /// `sort` is optional. Pass `'trending'` to order by trade volume
   /// (popularity-ranked); omit / pass `'newest'` for the default
   /// newest-first ordering. Backend ignores unknown values gracefully.
-  static String tradeExplore({
-    int page = 1,
-    String? search,
-    String? categoryUuid,
-    String? sort,
-  }) {
+
+  static String tradeExplore(
+      {int page = 1, String? search, String? categoryUuid}) {
     final qp = <String, String>{'page': page.toString()};
     final s = search?.trim() ?? '';
     if (s.isNotEmpty) qp['search'] = s;
-    if (categoryUuid != null && categoryUuid.isNotEmpty && categoryUuid != 'all') {
+    if (categoryUuid != null &&
+        categoryUuid.isNotEmpty &&
+        categoryUuid != 'all') {
       qp['category_uuid'] = categoryUuid;
     }
     if (sort != null && sort.isNotEmpty) {
@@ -57,8 +56,7 @@ class ApiEndpoints {
   static String tradeQuote(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/quote';
 
-  static String tradeBuy(String uuid) =>
-      '${EnvConfig.baseUrl}/trade/$uuid/buy';
+  static String tradeBuy(String uuid) => '${EnvConfig.baseUrl}/trade/$uuid/buy';
 
   // P0-D — sell side. quote-sell is read-only; sell mutates.
   static String tradeQuoteSell(String uuid) =>
@@ -73,7 +71,8 @@ class ApiEndpoints {
   static String tradeChart(String uuid) =>
       '${EnvConfig.baseUrl}/trade/$uuid/chart';
 
-  static String get achievementLevels => '${EnvConfig.baseUrl}/achievement-levels';
+  static String get achievementLevels =>
+      '${EnvConfig.baseUrl}/achievement-levels';
 
   static String get positions => '${EnvConfig.baseUrl}/positions';
 
@@ -93,10 +92,6 @@ class ApiEndpoints {
 
   static String get walletDeposit => '${EnvConfig.baseUrl}/wallet/deposit';
 
-  /// P0-A — gateway-backed deposit initiate. Accepts a method-discriminated
-  /// payload (card token / mobile_money provider+msisdn / bank_account
-  /// triple) and returns a psp_transaction id + the channel-specific blob
-  /// (checkout_url for card, stk_push for MoMo, virtual_account for bank).
   static String get walletDepositInitiate =>
       '${EnvConfig.baseUrl}/wallet/deposit/initiate';
 
@@ -111,17 +106,11 @@ class ApiEndpoints {
   static String get countries => '${EnvConfig.baseUrl}/countries';
   static String get saveFcmToken => '${EnvConfig.baseUrl}/fcm/save-token';
 
-  // Social auth (Apple, future: Google). Backend verifies the identity
-  // token, creates-or-fetches the user, returns the same JWT envelope as
-  // /verify-otp/login.
   // TODO(backend): confirm path — could be /social-login or /sign-in/apple.
   static String get socialLogin => '${EnvConfig.baseUrl}/auth/apple';
 
-  // Continue-with-Google. Backend verifies the Google id_token, creates-or-
-  // fetches the user, and returns a JWT envelope plus a `needs_phone` flag.
   static String get loginWithGoogle => '${EnvConfig.baseUrl}/login-with-google';
 
-  // Phone attach + OTP verify for Google users who have no phone on file yet.
   static String get attachPhone => '${EnvConfig.baseUrl}/profile/attach-phone';
 
   static String get verifyAttachPhone =>
@@ -136,11 +125,9 @@ class ApiEndpoints {
   static String get updateUserDefaultSettingsList =>
       '${EnvConfig.baseUrl}/userDefaultSettings/update';
 
-  static String  tradeDetail(String tradeId) =>
+  static String tradeDetail(String tradeId) =>
       '${EnvConfig.baseUrl}/trade/tradedetail/$tradeId';
 
-  /// GET `/api/rankings?category=…&page=…&per_page=…`. Category is one
-  /// of: 'overall' | 'profit' | 'win_rate' | 'hot_streak'.
   static String rankings({
     required String category,
     int page = 1,

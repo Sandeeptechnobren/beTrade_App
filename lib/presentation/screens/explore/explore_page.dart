@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:betrade/core/theme/app_colors.dart';
 import 'package:betrade/presentation/widget/Common_header_withlogo.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/model/trade_model.dart';
 import '../../../data/provider/explorer_provider.dart';
+import '../../../data/provider/connectivity_provider.dart';
 import '../../widget/common_bottom_sheet.dart';
 import '../trade/trade_page.dart';
 
@@ -182,7 +184,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // ── Search input + history dropdown ──────────────────────────────
   Widget _searchArea(ExploreProvider provider) {
     return Column(
       children: [
@@ -214,9 +215,6 @@ class _ExplorePageState extends State<ExplorePage> {
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondaryDynamic(context),
               ),
-              // The Container already provides the grey fill + rounded
-              // shape; kill every InputDecoration border so the global
-              // inputDecorationTheme's outline doesn't leak in here.
               filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -276,8 +274,8 @@ class _ExplorePageState extends State<ExplorePage> {
                 TextButton(
                   onPressed: _clearSearchHistory,
                   child: Text("Clear all",
-                      style: TextStyle(
-                          fontSize: 12.sp, color: AppColors.btnRed)),
+                      style:
+                          TextStyle(fontSize: 12.sp, color: AppColors.btnRed)),
                 ),
               ],
             ),
@@ -298,8 +296,7 @@ class _ExplorePageState extends State<ExplorePage> {
                         child: Text(query,
                             style: TextStyle(
                                 fontSize: 14.sp,
-                                color:
-                                    AppColors.textPrimaryDynamic(context))),
+                                color: AppColors.textPrimaryDynamic(context))),
                       ),
                       IconButton(
                         icon: Icon(Icons.close,
@@ -326,6 +323,8 @@ class _ExplorePageState extends State<ExplorePage> {
       );
     }
 
+    final isOffline = context.watch<ConnectivityProvider>().isOffline;
+
     return RefreshIndicator(
       color: AppColors.primary,
       backgroundColor: AppColors.cardBackgroundDynamic(context),
@@ -334,13 +333,15 @@ class _ExplorePageState extends State<ExplorePage> {
           await context.read<ExploreProvider>().fetchExploreTrades();
         }
       },
-      child: (provider.error.isNotEmpty && provider.trades.isEmpty)
-          ? _stateScroll(_errorState(provider.error))
-          : provider.trades.isEmpty
-              ? _stateScroll(_emptyState(provider))
-              : provider.isSearchMode
-                  ? _searchResults(provider)
-                  : _trendingNewList(provider),
+      child: (provider.trades.isEmpty && isOffline)
+          ? _stateScroll(_offlineState())
+          : (provider.error.isNotEmpty && provider.trades.isEmpty)
+              ? _stateScroll(_errorState())
+              : provider.trades.isEmpty
+                  ? _stateScroll(_emptyState(provider))
+                  : provider.isSearchMode
+                      ? _searchResults(provider)
+                      : _trendingNewList(provider),
     );
   }
 
@@ -389,7 +390,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // Shown under a section header when it has no markets (kept empty, not faked).
   Widget _emptySection(String message) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -417,7 +417,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  /// Wrap a centered state widget in a scrollable so pull-to-refresh works.
   Widget _stateScroll(Widget child) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -442,7 +441,6 @@ class _ExplorePageState extends State<ExplorePage> {
     return SizedBox(height: 8.h);
   }
 
-  // ── Trade card with Yes/No probability bar + real social proof ───
   Widget _buildCard(TradeModel item) {
     final category =
         item.categoryName.isNotEmpty ? item.categoryName : "Market";
@@ -536,8 +534,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  /// Real social proof — recent trader avatars + actual trade count.
-  /// Hidden entirely when a market has no activity yet (no fake numbers).
   Widget _socialProof(TradeModel item, TextStyle labelStyle) {
     if (item.totalTrades <= 0) return const SizedBox.shrink();
     return Row(
@@ -577,15 +573,26 @@ class _ExplorePageState extends State<ExplorePage> {
             color: AppColors.cardBackgroundDynamic(context), width: 2),
       ),
       child: ClipOval(
-        child: Image.network(
-          url,
+        child: CachedNetworkImage(
+          imageUrl: url,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(Icons.person,
+          placeholder: (context, url) => Container(
+            color: AppColors.grey200Dynamic(context),
+            child: Center(
+              child: SizedBox(
+                width: 12.w,
+                height: 12.w,
+                child: const CircularProgressIndicator(strokeWidth: 1),
+              ),
+            ),
+          ),
+          errorWidget: (_, __, ___) => Icon(Icons.person,
               size: 12.sp, color: AppColors.textSecondaryDynamic(context)),
         ),
       ),
     );
   }
+
   Widget _skeletonCard() {
     Widget block(double w, double h) => Container(
           width: w,
@@ -679,22 +686,48 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _errorState(String message) {
+  Widget _offlineState() => _statePlaceholder(
+        icon: Icons.cloud_off,
+        title: "You're offline",
+        subtitle: "Connect to the internet to load markets.",
+      );
+
+  Widget _errorState() => _statePlaceholder(
+        icon: Icons.error_outline_rounded,
+        title: "Couldn't load markets",
+        subtitle: "Something went wrong. Please try again.",
+      );
+
+  Widget _statePlaceholder({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 32.w),
       child: Column(
         children: [
-          Icon(Icons.cloud_off,
+          Icon(icon,
               size: 72.sp, color: AppColors.textSecondaryDynamic(context)),
           SizedBox(height: 16.h),
           Text(
-            message,
+            title,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'SFProRounded',
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w500,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimaryDynamic(context),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'SFProRounded',
+              fontSize: 14.sp,
+              color: AppColors.textSecondaryDynamic(context),
             ),
           ),
           SizedBox(height: 20.h),
@@ -730,27 +763,24 @@ class _ExplorePageState extends State<ExplorePage> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(8.r),
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         height: h,
         width: w,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            height: h,
-            width: w,
-            color: AppColors.grey200Dynamic(context),
-            child: Center(
-              child: SizedBox(
-                width: 18.w,
-                height: 18.w,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
+        placeholder: (context, url) => Container(
+          height: h,
+          width: w,
+          color: AppColors.grey200Dynamic(context),
+          child: Center(
+            child: SizedBox(
+              width: 18.w,
+              height: 18.w,
+              child: const CircularProgressIndicator(strokeWidth: 2),
             ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => Container(
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
           height: h,
           width: w,
           decoration: BoxDecoration(

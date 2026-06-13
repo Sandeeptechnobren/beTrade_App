@@ -87,6 +87,26 @@ class ProfileModel {
           : int.tryParse('${stats['total_trades'] ?? 0}') ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'first_name': firstName,
+      'last_name': lastName,
+      'avatar': avatar,
+      'phone': phone,
+      'gender': gender,
+      'country': country,
+      'currency': currency,
+      'language': language,
+      'email': email,
+      'stats': {
+        'win_rate': winRate,
+        'total_earned_ghs': totalEarnedGhs,
+        'total_trades': totalTrades,
+      },
+    };
+  }
+
   static String _fixAvatar(String url) {
     if (url.contains("https://") &&
         url.indexOf("https://") != url.lastIndexOf("https://")) {
