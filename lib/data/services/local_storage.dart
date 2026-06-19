@@ -13,6 +13,15 @@ class LocalStorage {
   static const String _tokenKey = "token";
   static const String _lastSyncKey = "last_sync_ts";
 
+  // ── countries cache ──────────────────────────────────────────────────
+  // Why cache `/api/countries`: the endpoint is slow server-side (~800 ms
+  // cold) but returns essentially-static data. Disk reads are sub-ms and
+  // stop the LoginScreen from spinning over the country picker on every cold
+  // open. 24 h TTL; we still refresh in the background on every cold start.
+  static const String _countriesJsonKey = "countries_cache_json";
+  static const String _countriesFetchedAtKey = "countries_cache_fetched_at";
+  static const Duration countriesCacheTtl = Duration(hours: 24);
+
   static late SharedPreferences _prefs;
 
   // Android/iOS defaults are Keystore/Keychain-backed; the plugin encrypts at
@@ -114,5 +123,34 @@ class LocalStorage {
       }
     }
     await _prefs.remove(_lastSyncKey);
+  }
+
+  // ── Countries cache helpers ─────────────────────────────────────────
+  /// Persist the freshly-fetched countries JSON blob + the wall-clock time
+  /// at which it landed. Stores the raw JSON string so callers control shape.
+  static Future<void> cacheCountries(String json) async {
+    await _prefs.setString(_countriesJsonKey, json);
+    await _prefs.setInt(
+      _countriesFetchedAtKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Return the cached countries JSON if present and within TTL, else null.
+  /// Returning null when stale (not just missing) lets callers distinguish
+  /// "cold first launch" from "stale". Pass [ignoreTtl] to read stale data
+  /// (e.g. to show it instantly while a background refresh runs).
+  static String? readCachedCountries({bool ignoreTtl = false}) {
+    final json = _prefs.getString(_countriesJsonKey);
+    if (json == null || json.isEmpty) return null;
+    if (ignoreTtl) return json;
+
+    final fetchedAtMs = _prefs.getInt(_countriesFetchedAtKey) ?? 0;
+    if (fetchedAtMs == 0) return null;
+
+    final age = DateTime.now().millisecondsSinceEpoch - fetchedAtMs;
+    if (age > countriesCacheTtl.inMilliseconds) return null;
+
+    return json;
   }
 }

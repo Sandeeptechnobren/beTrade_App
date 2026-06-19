@@ -333,8 +333,10 @@ class _OTPScreenState extends State<OTPScreen> {
         ),
         decoration: InputDecoration(
           hintText: "0",
+          // QA #14 — was Colors.grey (#9E9E9E), too dark vs input bg.
+          // Bumped to shade400 (#BDBDBD) in light mode for softer hint.
           hintStyle: TextStyle(
-            color: isDarkMode ? Colors.grey.shade600 : Colors.grey,
+            color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
             fontWeight: FontWeight.w400,
           ),
           counterText: "",

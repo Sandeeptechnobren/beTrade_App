@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../../core/config/api_endpoint.dart';
 import '../../core/network/dio_client.dart';
 import '../model/graph_model.dart';
@@ -154,7 +155,17 @@ class AuthService {
     }
   }
 
-  Future<bool> completeSignup({
+  /// POST /api/complete-profile (multipart).
+  ///
+  /// Backend now mints a Sanctum token on success — we persist it the
+  /// same way verifyLoginOtp does (disk first, then Dio header) so the
+  /// new user lands on MainScreen already authenticated. No redundant
+  /// trip back to /api/login afterwards.
+  ///
+  /// Returns a typed envelope rather than a bare bool so callers can
+  /// surface the backend message on failure ("Phone number already
+  /// registered", "OTP expired", etc.) instead of a generic snackbar.
+  Future<Map<String, dynamic>> completeSignup({
     required String phone,
     required String gender,
     required String firstName,
@@ -184,17 +195,75 @@ class AuthService {
         ApiEndpoints.completeProfile,
         data: formData,
       );
-      print("SIGNUP STATUS: ${response.statusCode}");
-      print("SIGNUP RESPONSE: ${response.data}");
-      return response.statusCode == 200;
-    } catch (e) {
-      if (e is DioException) {
-        print("Signup Error: ${e.message}");
-        print("Signup Error Response: ${e.response?.data}");
-      } else {
-        print("Signup Error: $e");
+
+      final data = response.data;
+      if (response.statusCode == 200 && data is Map) {
+        final isSuccess = data['status'] == true || data['success'] == true;
+        if (isSuccess) {
+          // Persist the Sanctum token disk-first, header-second — same
+          // ordering used in verifyLoginOtp. Survives an app kill between
+          // the two assignments because disk wins.
+          final token = data['token'] ?? data['access_token'];
+          if (token != null) {
+            await LocalStorage.setToken(token.toString());
+            DioClient.setToken(token.toString());
+          }
+
+          // Register the FCM token best-effort. Failures here don't break
+          // the signup flow — push notifications just won't reach the
+          // user until the next app open.
+          try {
+            final fcmToken = await FirebaseMessaging.instance.getToken();
+            if (fcmToken != null) {
+              await saveFcmToken(fcmToken);
+            }
+          } catch (e) {
+            debugPrint("FCM token registration after signup failed: $e");
+          }
+
+          // Mirror verifyLoginOtp's doc_upload_status persistence so the
+          // KYC reminder banner on MainScreen survives an app restart.
+          final user = data['user'];
+          final rawStatus = user is Map ? user['doc_upload_status'] : null;
+          int docUploadStatus = 0;
+          if (rawStatus is int) {
+            docUploadStatus = rawStatus;
+          } else if (rawStatus is String) {
+            docUploadStatus = int.tryParse(rawStatus) ?? 0;
+          } else if (rawStatus is bool) {
+            docUploadStatus = rawStatus ? 1 : 0;
+          }
+          await LocalStorage.setDocUploadStatus(docUploadStatus);
+
+          return {
+            "success": true,
+            "message": data['message'] ?? "Signup successful",
+            "data": user,
+            "doc_upload_status": docUploadStatus,
+          };
+        }
+        // 200 with status:false — backend rejected for a business reason
+        // (e.g. email already taken). Surface the backend's message.
+        return {
+          "success": false,
+          "message": data['message'] ?? "Signup failed",
+        };
       }
-      return false;
+
+      return {
+        "success": false,
+        "message": "Unexpected server response",
+      };
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      final msg = (resp is Map ? resp['message'] : null) ??
+          e.message ??
+          "Server error";
+      debugPrint("Signup error: $msg");
+      return {"success": false, "message": msg.toString()};
+    } catch (e) {
+      debugPrint("Signup error: $e");
+      return {"success": false, "message": "Unexpected error during signup"};
     }
   }
 

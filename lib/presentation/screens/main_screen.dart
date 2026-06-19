@@ -377,9 +377,16 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
-    if (mounted && _docUploadStatus == 0) {
+    // After the welcome popup closes — either via "Skip for now" OR via
+    // the user opening the VerificationFlow bottom sheet and finishing /
+    // dismissing it — re-read doc_upload_status from disk. If the user
+    // just completed KYC the banner should auto-hide; if they skipped
+    // the popup the banner should appear (it now only gates on
+    // doc_upload_status, not on the welcome-skipped flag).
+    final refreshedStatus = LocalStorage.getDocUploadStatus() ?? 0;
+    if (mounted && refreshedStatus != _docUploadStatus) {
       setState(() {
-        _welcomeSkipped = true;
+        _docUploadStatus = refreshedStatus;
       });
     }
   }
@@ -393,7 +400,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showKycBanner = _welcomeSkipped && _docUploadStatus == 0;
+    // Banner shows for ANY user whose KYC isn't complete — fresh signup
+    // who skipped, returning user with pending KYC, etc. Previously
+    // gated on `_welcomeSkipped && _docUploadStatus == 0`, which meant
+    // returning users never saw the banner because the welcome popup
+    // only runs when `showWelcomePopup: true` (fresh signup path).
+    final showKycBanner = _docUploadStatus == 0;
 
     return Scaffold(
       body: IndexedStack(
