@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_colors.dart';
+
 //
 // class Button extends StatelessWidget {
 //   final String title;
@@ -97,23 +98,23 @@ class Button extends StatelessWidget {
           child: Center(
             child: isLoading
                 ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : Text(
-              title,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: isPrimary
-                    ? Colors.white
-                    : AppColors.textPrimaryDynamic(context),
-              ),
-            ),
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isPrimary
+                          ? Colors.white
+                          : AppColors.textPrimaryDynamic(context),
+                    ),
+                  ),
           ),
         ),
       ),

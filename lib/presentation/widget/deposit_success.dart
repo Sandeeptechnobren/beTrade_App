@@ -5,19 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../screens/portfolio/deposit/saved_payment_methods.dart';
 import 'common_bottom_sheet.dart';
 
-/// Figma success-dialog token for the brand primary pill (deposit +
-/// withdrawal share the look). Surfaces/text are theme-aware via
-/// AppColors `*Dynamic`; this brand violet stays fixed in both modes.
 const Color _primaryBg = Color(0xFF8E10FC);
-
-/// Deposit success → asks "Save Payment Method" (primary) or "Done".
-///
-/// Tapping **Save Payment Method** closes this dialog and opens the
-/// `SavedPaymentMethodsSheet` (radio list + Add New + Confirm). Confirm
-/// on that sheet drops the user back onto the portfolio.
-///
-/// Tapping **Done** just closes the dialog — the user is already on the
-/// portfolio because `_submitDeposit` pops the deposit sheet first.
 void showSuccessDialog(BuildContext context) {
   showDialog<void>(
     context: context,
@@ -31,12 +19,6 @@ void showSuccessDialog(BuildContext context) {
             'payment method for faster transactions next time.',
         primaryLabel: 'Save Payment Method',
         onPrimary: () {
-          // The original `context` from the caller (the deposit-page
-          // State) is already detached by the time the user taps Save —
-          // the deposit sheet was popped before showSuccessDialog ran.
-          // Grab the dialog's root navigator instead; that one is
-          // guaranteed alive while this dialog is on screen, and
-          // survives the upcoming Navigator.pop(dialogCtx).
           final navContext =
               Navigator.of(dialogCtx, rootNavigator: true).context;
           Navigator.pop(dialogCtx);
@@ -55,8 +37,6 @@ void showSuccessDialog(BuildContext context) {
     },
   );
 }
-
-/// Withdrawal success — single "Okay" button (no save-method follow-up).
 void withdrawalSuccessDialog(BuildContext context) {
   showDialog<void>(
     context: context,
@@ -70,19 +50,11 @@ void withdrawalSuccessDialog(BuildContext context) {
             'moments for the funds to appear in your account.',
         primaryLabel: 'Okay',
         onPrimary: () => Navigator.pop(dialogCtx),
-        // No secondary — withdrawal flow has only one CTA.
       );
     },
   );
 }
 
-/// Centered white-card success dialog matching Figma's
-/// `Withdrawal Successful` / `Deposit Successful` frames.
-///   - 32 radius, 20 padding, gap 20 between text block & buttons
-///   - Title 20/600/#09090B, body 16/400/#A1A1AA centered
-///   - Primary: 60-tall pill #8E10FC, text 15.6/700 white
-///   - Secondary (optional): same pill but white bg + 1px #E4E4E7 border,
-///     text 15.6/700 #18181B
 class _FigmaSuccessDialog extends StatelessWidget {
   const _FigmaSuccessDialog({
     required this.title,

@@ -7,11 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   (Keychain on iOS, Keystore-backed encrypted prefs on Android) via
 ///   [FlutterSecureStorage]. It is mirrored into an in-memory cache so the
 ///   rest of the app can keep reading it **synchronously** via [getToken].
-/// - Non-sensitive flags (theme, onboarding, KYC banner status) stay in plain
+/// - Non-sensitive flags (onboarding, KYC banner status) stay in plain
 ///   [SharedPreferences].
 class LocalStorage {
-  static const String themeKey = "theme_mode";
   static const String _tokenKey = "token";
+  static const String _lastSyncKey = "last_sync_ts";
 
   // ── countries cache ──────────────────────────────────────────────────
   // Why cache `/api/countries`: the endpoint is slow server-side (~800 ms
@@ -73,15 +73,6 @@ class LocalStorage {
     await _prefs.remove("doc_upload_status");
   }
 
-  // ---- Theme (non-sensitive) ----
-  static Future<void> saveThemeMode(String mode) async {
-    await _prefs.setString(themeKey, mode);
-  }
-
-  static String? getThemeMode() {
-    return _prefs.getString(themeKey);
-  }
-
   // ---- Onboarding (non-sensitive) ----
   static Future setOnboardingDone() async {
     await _prefs.setBool("onboardingDone", true);
@@ -103,6 +94,35 @@ class LocalStorage {
 
   static Future clearDocUploadStatus() async {
     await _prefs.remove("doc_upload_status");
+  }
+
+  // ---- Cache (Generic JSON storage) ----
+  static Future<void> cacheData(String key, String jsonData) async {
+    await _prefs.setString("cache_$key", jsonData);
+    // A successful cache write == a successful fetch == a sync. Record the most
+    // recent one so the offline UI can tell the user how stale the data is.
+    await _prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  static String? getCachedData(String key) {
+    return _prefs.getString("cache_$key");
+  }
+
+  /// When any cached data was last refreshed from the server, or null if the
+  /// app has never synced (e.g. first launch while offline).
+  static DateTime? getLastSync() {
+    final ms = _prefs.getInt(_lastSyncKey);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  static Future<void> clearCache() async {
+    final keys = _prefs.getKeys();
+    for (String key in keys) {
+      if (key.startsWith("cache_")) {
+        await _prefs.remove(key);
+      }
+    }
+    await _prefs.remove(_lastSyncKey);
   }
 
   // ── Countries cache helpers ─────────────────────────────────────────

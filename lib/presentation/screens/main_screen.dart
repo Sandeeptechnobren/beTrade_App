@@ -1,5 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:betrade/data/provider/connectivity_provider.dart';
+import 'package:betrade/data/provider/trade_provider.dart';
+import 'package:betrade/data/provider/category_provider.dart';
+import 'package:betrade/data/provider/positions_provider.dart';
+import 'package:betrade/data/provider/explorer_provider.dart';
 import 'package:betrade/presentation/screens/explore/explore_page.dart';
 import 'package:betrade/presentation/screens/homeScreen/HomeScreen.dart';
 import 'package:betrade/presentation/screens/portfolio/portfolio_page.dart';
@@ -11,6 +16,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/provider/profile_provider.dart';
+import '../../data/provider/rankings_provider.dart';
 import '../../data/services/local_storage.dart';
 import '../../data/services/auth_service.dart';
 import '../auth/auth_screen.dart';
@@ -40,6 +46,9 @@ class _MainScreenState extends State<MainScreen> {
   bool _isDialogShowing = false;
 
   int _docUploadStatus = 0;
+  bool _welcomeSkipped = false;
+  ConnectivityProvider? _connectivityProvider;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -51,8 +60,65 @@ class _MainScreenState extends State<MainScreen> {
     _startTokenChecker();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _connectivityProvider = context.read<ConnectivityProvider>();
+      _connectivityProvider?.addListener(_onConnectivityChanged);
       await _handleUserNameAndPopup();
     });
+  }
+
+  void _onConnectivityChanged() {
+    if (!mounted) return;
+    
+    // Trigger when coming back online
+    if (_connectivityProvider != null && !_connectivityProvider!.isOffline) {
+      if (!_isRefreshing) {
+        _refreshAllData();
+      }
+    }
+  }
+
+  Future<void> _refreshAllData() async {
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    
+    debugPrint("Global: Internet restored! Refreshing all providers in 1.5s...");
+    
+    // Wait a bit for the OS network stack to fully initialize sockets
+    await Future.delayed(const Duration(milliseconds: 1500));
+    
+    if (!mounted) {
+      _isRefreshing = false;
+      return;
+    }
+
+    try {
+      // Clear image cache to force CachedNetworkImage to retry network
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // Refresh Home/Explorer data
+      await Future.wait([
+        context.read<CategoryProvider>().fetchCategories(),
+        context.read<TradeProvider>().fetchTrades(isRefresh: true),
+        context.read<ExploreProvider>().fetchExploreTrades(),
+        
+        // Refresh Rankings (current active tab)
+        context.read<RankingsProvider>().refreshCurrent(),
+        
+        // Refresh Portfolio
+        context.read<PositionsProvider>().fetchOpenPositions(),
+        context.read<PositionsProvider>().fetchSettledPositions(),
+        
+        // Refresh Profile
+        context.read<ProfileProvider>().fetchProfile(),
+      ]);
+      
+      debugPrint("Global: All providers refreshed successfully.");
+    } catch (e) {
+      debugPrint("Global Refresh Error: $e");
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   void _startTokenChecker() {
@@ -328,6 +394,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     _tokenTimer?.cancel();
+    _connectivityProvider?.removeListener(_onConnectivityChanged);
     super.dispose();
   }
 
@@ -360,6 +427,11 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             currentIndex = index;
           });
+          if (index == 2) {
+            context.read<RankingsProvider>().refreshCurrent();
+          } else if (index == 4) {
+            context.read<ProfileProvider>().fetchProfile();
+          }
         },
       ),
     );

@@ -83,6 +83,25 @@ class ProfileModel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'first_name': firstName,
+      'last_name': lastName,
+      'avatar': avatar,
+      'phone': phone,
+      'gender': gender,
+      'country': country,
+      'currency': currency,
+      'language': language,
+      'email': email,
+      'stats': {
+        'win_rate': winRate,
+        'total_earned_ghs': totalEarnedGhs,
+        'total_trades': totalTrades,
+      },
+    };
+  }
+
   /// Older backends (and a buggy revision of complete-profile) sometimes
   /// returned URLs with a doubled `https://` prefix. Strip back to the
   /// last occurrence so `Image.network` doesn't choke.

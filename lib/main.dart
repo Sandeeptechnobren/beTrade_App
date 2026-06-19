@@ -22,7 +22,8 @@ import 'data/provider/country_provider.dart';
 import 'data/provider/profile_provider.dart';
 import 'data/provider/signin_provider.dart';
 import 'data/provider/signup_provider.dart';
-import 'data/provider/theme_provider.dart';
+import 'data/provider/connectivity_provider.dart';
+import 'presentation/widget/offline_banner.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_logger.dart';
 import 'core/utils/app_notify.dart';
@@ -30,19 +31,17 @@ import 'data/services/local_storage.dart';
 import 'data/services/notification_services.dart';
 import 'firebase_options.dart';
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 
 @pragma('vm:entry-point')
 Future<void> _firebaseBackgroundHandler(
-    RemoteMessage message,
-    ) async {
+  RemoteMessage message,
+) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint(
-    "🔥 BACKGROUND MESSAGE RECEIVED",
+    "BACKGROUND MESSAGE RECEIVED",
   );
   debugPrint(
     "MESSAGE ID: ${message.messageId}",
@@ -62,19 +61,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await runZonedGuarded(
-        () async {
+    () async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-
       debugPrint(
-        "FIREBASE INITIALIZED SUCCESSFULLY ✅",
+        "FIREBASE INITIALIZED SUCCESSFULLY ",
       );
-
-      // Crash reporting (CHALLENGES F10). Collection is OFF in debug so local
-      // runs don't pollute the dashboard. Flutter framework errors and
-      // uncaught async errors (via the zone below) are routed to Crashlytics;
-      // AppLogger.e forwards handled service errors too.
       await FirebaseCrashlytics.instance
           .setCrashlyticsCollectionEnabled(!kDebugMode);
       FlutterError.onError = (details) {
@@ -85,13 +78,11 @@ Future<void> main() async {
         FirebaseCrashlytics.instance
             .recordError(error, stack, reason: reason, fatal: fatal);
       });
-
       FirebaseMessaging.onBackgroundMessage(
         _firebaseBackgroundHandler,
       );
-
       debugPrint(
-        "BACKGROUND HANDLER REGISTERED ✅",
+        "BACKGROUND HANDLER REGISTERED ",
       );
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
@@ -101,12 +92,12 @@ Future<void> main() async {
       );
 
       debugPrint(
-        "FOREGROUND PRESENTATION OPTIONS SET ✅",
+        "FOREGROUND PRESENTATION OPTIONS SET ",
       );
       try {
         await LocalStorage.init();
         debugPrint(
-          "LOCAL STORAGE INITIALIZED ✅",
+          "LOCAL STORAGE INITIALIZED ",
         );
       } catch (e) {
         debugPrint(
@@ -118,7 +109,7 @@ Future<void> main() async {
           fileName: ".env",
         );
         debugPrint(
-          ".env LOADED SUCCESSFULLY ✅",
+          ".env LOADED SUCCESSFULLY ",
         );
       } catch (e) {
         debugPrint(
@@ -130,22 +121,21 @@ Future<void> main() async {
         DeviceOrientation.portraitDown,
       ]);
       debugPrint(
-        "PORTRAIT MODE LOCKED ✅",
+        "PORTRAIT MODE LOCKED ",
       );
       runApp(
         const MyApp(),
       );
-
 
       Future.microtask(() {
         NotificationService.init();
       });
 
       debugPrint(
-        "NOTIFICATION SERVICE STARTED ✅",
+        "NOTIFICATION SERVICE STARTED ",
       );
     },
-        (error, stack) {
+    (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       if (kDebugMode) {
         debugPrint("GLOBAL ASYNC ERROR: $error");
@@ -190,9 +180,6 @@ class MyApp extends StatelessWidget {
           create: (_) => ExploreProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-        ),
-        ChangeNotifierProvider(
           create: (_) => DefaultAmountProvider(),
         ),
         ChangeNotifierProvider(
@@ -204,31 +191,26 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => RankingsProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityProvider(),
+        ),
       ],
       child: ScreenUtilInit(
         designSize: const Size(393, 852),
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (context, child) {
-          return Consumer<ThemeProvider>(
-            builder: (
-                context,
-                themeProvider,
-                child,
-                ) {
-              return MaterialApp(
-                navigatorKey: navigatorKey,
-                // Global key so AppNotify.{success,error,warning,info,
-                // loading,fromCode} work from anywhere (providers,
-                // services, post-pop callbacks) without a BuildContext.
-                scaffoldMessengerKey: AppNotify.messengerKey,
-                title: "BeTrade",
-                debugShowCheckedModeBanner: false,
-                themeMode: themeProvider.themeMode,
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                home: const SplashScreen(),
-              );
+          return MaterialApp(
+            navigatorKey: navigatorKey,
+            scaffoldMessengerKey: AppNotify.messengerKey,
+            title: "BeTrade",
+            debugShowCheckedModeBanner: false,
+            themeMode: ThemeMode.system,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            home: const SplashScreen(),
+            builder: (context, child) {
+              return OfflineBanner(child: child!);
             },
           );
         },

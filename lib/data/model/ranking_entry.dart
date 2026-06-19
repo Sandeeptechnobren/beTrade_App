@@ -52,6 +52,19 @@ class RankingEntry {
   static double _double(dynamic v) =>
       v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
 
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'name': name,
+      'avatar': avatarUrl,
+      'thumbnail': thumbnailUrl,
+      'value': value,
+      'rank': rank,
+      'movement': movement,
+      'is_current_user': isCurrentUser,
+    };
+  }
+
   /// The backend's `/api/profile` returns avatar as a full
   /// `https://…/storage/…` URL (built via Laravel `asset()`); but
   /// `/api/rankings` currently returns the raw `avatars/original/123.png`

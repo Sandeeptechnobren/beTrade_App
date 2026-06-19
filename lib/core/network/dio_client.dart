@@ -3,15 +3,6 @@ import 'package:dio/dio.dart';
 import '../config/env_config.dart';
 import 'retry_interceptor.dart';
 
-/// Single shared Dio client.
-///
-/// - Holds the bearer token on its default `Authorization` header.
-/// - Retries transient network failures for idempotent requests and gives a
-///   clear offline message via [RetryInterceptor].
-/// - Reads the base URL through [EnvConfig] (validated at read time) rather
-///   than touching `dotenv` directly.
-///
-/// Use [instance] for JSON calls and [multipartInstance] for file uploads.
 class DioClient {
   static final Dio _dio = _build();
 

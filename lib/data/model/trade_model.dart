@@ -20,6 +20,14 @@ class OutcomePrice {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'slug': slug,
+      'label': label,
+      'current_price': currentPrice,
+    };
+  }
+
   /// Probability as a whole-number percent (0.7006 -> 70).
   int get percent => (currentPrice * 100).round();
 }
@@ -101,5 +109,21 @@ class TradeModel {
           .where((s) => s.isNotEmpty)
           .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'uuid': uuid,
+      'category_name': categoryName,
+      'description': description,
+      'min_trade_amount': minTradeAmount,
+      'image': image,
+      'end_date': endDate,
+      'outcomes': outcomes.map((e) => e.toJson()).toList(),
+      'total_trades': totalTrades,
+      'total_trades_display': totalTradesDisplay,
+      'traders': traderAvatars.map((e) => {'avatar': e}).toList(),
+    };
   }
 }

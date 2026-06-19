@@ -42,6 +42,22 @@ class AchievementModel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'name': name,
+      'description': description,
+      'icon': icon,
+      'earned': earned,
+      'unlocked_at': unlockedAt,
+      'progress': {
+        'current': progressCurrent,
+        'target': progressTarget,
+        'pct': progressPct,
+      },
+    };
+  }
+
   /// "3/10" style label for the progress under a locked badge.
   String get progressLabel {
     final cur = progressCurrent == progressCurrent.roundToDouble()

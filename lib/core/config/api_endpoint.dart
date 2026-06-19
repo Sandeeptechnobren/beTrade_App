@@ -26,9 +26,6 @@ class ApiEndpoints {
 
   static String tradeList(int page) =>
       '${EnvConfig.baseUrl}/trade/list?page=${Uri.encodeComponent(page.toString())}';
-
-  /// Canonical Explore listing — base list + search + category filter +
-  /// pagination, all on one endpoint. All params URL-encoded.
   static String tradeExplore({int page = 1, String? search, String? categoryUuid}) {
     final qp = <String, String>{'page': page.toString()};
     final s = search?.trim() ?? '';
@@ -81,10 +78,6 @@ class ApiEndpoints {
 
   static String get walletDeposit => '${EnvConfig.baseUrl}/wallet/deposit';
 
-  /// P0-A — gateway-backed deposit initiate. Accepts a method-discriminated
-  /// payload (card token / mobile_money provider+msisdn / bank_account
-  /// triple) and returns a psp_transaction id + the channel-specific blob
-  /// (checkout_url for card, stk_push for MoMo, virtual_account for bank).
   static String get walletDepositInitiate =>
       '${EnvConfig.baseUrl}/wallet/deposit/initiate';
 
@@ -99,17 +92,11 @@ class ApiEndpoints {
   static String get countries => '${EnvConfig.baseUrl}/countries';
   static String get saveFcmToken => '${EnvConfig.baseUrl}/fcm/save-token';
 
-  // Social auth (Apple, future: Google). Backend verifies the identity
-  // token, creates-or-fetches the user, returns the same JWT envelope as
-  // /verify-otp/login.
   // TODO(backend): confirm path — could be /social-login or /sign-in/apple.
   static String get socialLogin => '${EnvConfig.baseUrl}/auth/apple';
 
-  // Continue-with-Google. Backend verifies the Google id_token, creates-or-
-  // fetches the user, and returns a JWT envelope plus a `needs_phone` flag.
   static String get loginWithGoogle => '${EnvConfig.baseUrl}/login-with-google';
 
-  // Phone attach + OTP verify for Google users who have no phone on file yet.
   static String get attachPhone => '${EnvConfig.baseUrl}/profile/attach-phone';
 
   static String get verifyAttachPhone =>
@@ -127,8 +114,6 @@ class ApiEndpoints {
   static String  tradeDetail(String tradeId) =>
       '${EnvConfig.baseUrl}/trade/tradedetail/$tradeId';
 
-  /// GET `/api/rankings?category=…&page=…&per_page=…`. Category is one
-  /// of: 'overall' | 'profit' | 'win_rate' | 'hot_streak'.
   static String rankings({
     required String category,
     int page = 1,
