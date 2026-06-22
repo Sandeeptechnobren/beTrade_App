@@ -33,23 +33,33 @@ class ApiEndpoints {
   /// `sort` is optional. Pass `'trending'` to order by trade volume
   /// (popularity-ranked); omit / pass `'newest'` for the default
   /// newest-first ordering. Backend ignores unknown values gracefully.
-
-  static String tradeExplore(
-      {int page = 1, String? search, String? categoryUuid}) {
+  static String tradeExplore({
+    int page = 1,
+    String? search,
+    String? categoryUuid,
+    String? sort, // ✅ ADD THIS
+  }) {
     final qp = <String, String>{'page': page.toString()};
+
     final s = search?.trim() ?? '';
-    if (s.isNotEmpty) qp['search'] = s;
+    if (s.isNotEmpty) {
+      qp['search'] = s;
+    }
+
     if (categoryUuid != null &&
         categoryUuid.isNotEmpty &&
         categoryUuid != 'all') {
       qp['category_uuid'] = categoryUuid;
     }
+
     if (sort != null && sort.isNotEmpty) {
       qp['sort'] = sort;
     }
+
     final qs = qp.entries
         .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
         .join('&');
+
     return '${EnvConfig.baseUrl}/trade/list?$qs';
   }
 

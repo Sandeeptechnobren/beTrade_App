@@ -1,6 +1,6 @@
 name: betrade
 description: "BeTrade Project"
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+10
 
 environment:
@@ -18,7 +18,7 @@ dependencies:
   flutter_dotenv: ^6.0.0
   fl_chart: ^1.2.0
   permission_handler: ^12.0.1
-  camera: ^0.12.0+1
+  camera: 0.11.0+2
   dio: ^5.4.0
   image_picker: ^1.0.7
   path_provider: ^2.1.5
@@ -39,8 +39,6 @@ dependencies:
   firebase_crashlytics: ^4.3.10
   google_sign_in: ^7.2.0
   share_plus: ^11.0.0
-
-
 
 dev_dependencies:
   flutter_test:
