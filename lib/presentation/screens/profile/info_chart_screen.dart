@@ -96,7 +96,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14.w),
                       ),
-                      onPressed: () {},
+                      onPressed: () => _showNoMarketSnack(context),
                       child: Text(
                         "Buy Yes",
                         style: TextStyle(color: Colors.white),
@@ -111,7 +111,7 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: () {},
+                      onPressed: () => _showNoMarketSnack(context),
                       child: Text(
                         "Buy No",
                         style: TextStyle(color: Colors.white),
@@ -122,6 +122,27 @@ class _InfoChartScreenState extends State<InfoChartScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Buy Yes / Buy No used to be empty stubs on this screen (QA #12).
+  /// InfoChartScreen has no market context — it's the standalone 3rd
+  /// nav tab — so there's nothing to "buy". Direct the user to the
+  /// Explore tab where they can pick a market first; the buy modal
+  /// lives on the trade detail page reached from there.
+  void _showNoMarketSnack(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        content: const Text(
+          "Pick a market from the Explore tab to place a trade.",
         ),
       ),
     );
