@@ -101,13 +101,28 @@ class ProfileService {
     }
   }
 
+  /// Updates the signed-in user profile.
+  ///
+  /// IMPORTANT - this is sent as POST with a `_method: PUT` field (Laravel
+  /// method spoofing), NOT as a real PUT. The route really is
+  /// `PUT /edit-profile`, but PHP only parses `multipart/form-data` bodies for
+  /// POST requests - it never populates `$_POST` / `$_FILES` for a PUT. A
+  /// genuine PUT therefore reached Laravel with an empty request bag: every
+  /// `sometimes` rule passed on zero fields, `$data` was empty,
+  /// `hasFile(avatar)` was false, and `$user->update([])` was a silent no-op
+  /// that still returned 200 "Profile updated successfully". That is why
+  /// editing a field and changing the avatar both appeared to work but never
+  /// persisted. Do not change this back to `.put()`.
+  ///
+  /// `phone` is deliberately NOT sent: it is excluded from the backend
+  /// allowlist (security fix P1-3) because the phone number is the login
+  /// identity. Phone changes go through the OTP-verified attach-phone flow.
   static Future<bool> updateProfile({
     required String firstName,
     required String lastName,
-    required String phone,
-    // required String email,
-    // required String gender,
-    // required String country,
+    String? country,
+    String? currency,
+    String? language,
     File? image,
   }) async {
     try {
@@ -122,21 +137,29 @@ class ProfileService {
       }
 
       final fields = <String, dynamic>{
+        // Laravel method spoofing - see the doc comment above.
+        '_method': 'PUT',
         'first_name': firstName,
         'last_name': lastName,
-        'phone': phone,
-        // 'email': email,
-        // 'gender': gender,
-        // 'country': country,
       };
+
+      // Only send the optional fields when we actually have a value. Every
+      // backend rule is `sometimes`, so omitting a key leaves that column
+      // untouched rather than blanking it.
+      if (country != null && country.isNotEmpty) fields['country'] = country;
+      if (currency != null && currency.isNotEmpty) {
+        fields['currency'] = currency;
+      }
+      if (language != null && language.isNotEmpty) {
+        fields['language'] = language;
+      }
 
       debugPrint(" Update Data:");
       debugPrint("   first_name: $firstName");
       debugPrint("   last_name: $lastName");
-      debugPrint("   phone: $phone");
-      // print("   email: $email");
-      // print("   gender: $gender");
-      // print("   country: $country");
+      debugPrint("   country: ${country ?? '(unchanged)'}");
+      debugPrint("   currency: ${currency ?? '(unchanged)'}");
+      debugPrint("   language: ${language ?? '(unchanged)'}");
 
       if (image != null) {
         debugPrint("📌 Image: ${image.path}");
@@ -147,7 +170,7 @@ class ProfileService {
 
       final formData = FormData.fromMap(fields);
 
-      final response = await DioClient.multipartInstance.put(
+      final response = await DioClient.multipartInstance.post(
         ApiEndpoints.editProfile,
         data: formData,
         options: Options(

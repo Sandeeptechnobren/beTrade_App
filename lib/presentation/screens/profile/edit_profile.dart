@@ -26,7 +26,6 @@ class _EditProfileState extends State<EditProfile> {
 
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
-  final phoneController = TextEditingController();
 
   List<CountryModel> countries = [];
   CountryModel? selectedCountry;
@@ -40,6 +39,7 @@ class _EditProfileState extends State<EditProfile> {
   String _originalLastName = '';
   String _originalCountryName = '';
   String? _originalCurrency;
+  String? _originalLanguageName;
   int? _originalLanguageId;
   bool _hasChanges = false;
 
@@ -51,11 +51,11 @@ class _EditProfileState extends State<EditProfile> {
     if (profile != null) {
       firstNameController.text = profile.firstName;
       lastNameController.text = profile.lastName;
-      phoneController.text = profile.phone ?? '';
       _originalFirstName = profile.firstName;
       _originalLastName = profile.lastName;
       _originalCountryName = profile.country ?? '';
       _originalCurrency = profile.currency;
+      _originalLanguageName = profile.language;
     }
     firstNameController.addListener(_recomputeHasChanges);
     lastNameController.addListener(_recomputeHasChanges);
@@ -66,7 +66,6 @@ class _EditProfileState extends State<EditProfile> {
   void dispose() {
     firstNameController.dispose();
     lastNameController.dispose();
-    phoneController.dispose();
     super.dispose();
   }
 
@@ -118,7 +117,15 @@ class _EditProfileState extends State<EditProfile> {
               .map((e) => DropdownItem(id: e['id'], name: e['name']))
               .toList();
           if (languages.isNotEmpty) {
-            language = languages.first;
+            // Prefer the user's saved language; fall back to the first entry.
+            // Without this the dropdown always showed languages.first, so once
+            // we started actually sending `language` a save triggered by any
+            // other field would have silently overwritten the real value.
+            final saved = (_originalLanguageName ?? '').toLowerCase();
+            final matches = languages
+                .where((l) => l.name.toLowerCase() == saved)
+                .toList();
+            language = matches.isNotEmpty ? matches.first : languages.first;
             _originalLanguageId = language?.id;
           }
         }
@@ -340,7 +347,9 @@ class _EditProfileState extends State<EditProfile> {
               final success = await provider.updateProfile(
                 firstName: firstNameController.text,
                 lastName: lastNameController.text,
-                phone: phoneController.text,
+                country: selectedCountry?.name,
+                currency: selectedCurrency,
+                language: language?.name,
               );
               if (!mounted) return;
               if (success) {

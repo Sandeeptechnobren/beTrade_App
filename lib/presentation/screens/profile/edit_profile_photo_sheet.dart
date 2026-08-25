@@ -65,10 +65,11 @@ class _EditProfilePhotoSheetState extends State<EditProfilePhotoSheet> {
     final provider = context.read<ProfileProvider>();
     final p = provider.profile;
 
+    // Name fields are echoed back unchanged so the multipart body always
+    // carries them; only the avatar differs on this path.
     final ok = await provider.updateProfile(
       firstName: p?.firstName ?? '',
       lastName: p?.lastName ?? '',
-      phone: p?.phone ?? '',
       image: file,
     );
 

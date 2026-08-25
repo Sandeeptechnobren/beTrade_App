@@ -462,7 +462,6 @@ class _VerificationFlowState extends State<VerificationFlow> {
       await ProfileService.updateProfile(
         firstName: profile.firstName,
         lastName: profile.lastName,
-        phone: profile.phone ?? '',
         image: selfieImage,
       );
     } catch (e) {

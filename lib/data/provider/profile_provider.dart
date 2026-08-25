@@ -137,10 +137,9 @@ class ProfileProvider extends ChangeNotifier {
   Future<bool> updateProfile({
     required String firstName,
     required String lastName,
-    required String phone,
-    // required String email,
-    // required String gender,
-    // required String country,
+    String? country,
+    String? currency,
+    String? language,
     File? image,
   }) async {
     debugPrint("\n========== 🔵 UPDATE PROFILE CALLED ==========");
@@ -151,10 +150,9 @@ class ProfileProvider extends ChangeNotifier {
     bool success = await ProfileService.updateProfile(
       firstName: firstName,
       lastName: lastName,
-      phone: phone,
-      // email: email,
-      // gender: gender,
-      // country: country,
+      country: country,
+      currency: currency,
+      language: language,
       image: image,
     );
 

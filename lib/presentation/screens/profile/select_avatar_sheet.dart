@@ -78,7 +78,6 @@ class _SelectAvatarSheetState extends State<SelectAvatarSheet> {
       final ok = await provider.updateProfile(
         firstName: p?.firstName ?? '',
         lastName: p?.lastName ?? '',
-        phone: p?.phone ?? '',
         image: file,
       );
 
