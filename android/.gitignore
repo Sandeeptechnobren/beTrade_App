@@ -10,5 +10,9 @@ GeneratedPluginRegistrant.java
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore
 key.properties
+key.properties.*
 **/*.keystore
 **/*.jks
+
+# JVM heap dumps from OOM'd Gradle/Kotlin daemons (can be >1GB)
+*.hprof
