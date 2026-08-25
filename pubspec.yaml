@@ -1,7 +1,7 @@
 name: betrade
 description: "BeTrade Project"
 publish_to: "none"
-version: 1.0.0+10
+version: 1.0.0+11
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -25,7 +25,7 @@ dependencies:
   image: ^4.8.0
   http_parser: ^4.1.2
   flutter_image_compress: ^2.4.0
-  lucide_icons: ^0.257.0
+  lucide_icons: ^0.257.0 # overridden below — see dependency_overrides
   firebase_core: ^3.6.0
   firebase_messaging: ^15.0.0
   flutter_local_notifications: ^17.0.0
@@ -39,6 +39,15 @@ dependencies:
   firebase_crashlytics: ^4.3.10
   google_sign_in: ^7.2.0
   share_plus: ^11.0.0
+
+# lucide_icons 0.257.0 (abandoned upstream) subclasses IconData, which became
+# a `final` class in newer Flutter — the pub version no longer compiles. The
+# vendored copy in third_party/ declares every icon as a plain IconData with
+# the same font, so all existing `LucideIcons.x` call sites work unchanged on
+# both the pinned 3.35 SDK and newer ones. See CHANGELOG 2026-08-25.
+dependency_overrides:
+  lucide_icons:
+    path: third_party/lucide_icons
 
 dev_dependencies:
   flutter_test:
