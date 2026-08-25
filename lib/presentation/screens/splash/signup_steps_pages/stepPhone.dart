@@ -75,7 +75,7 @@ class _StepPhoneState extends State<StepPhone> {
       final cleanValue = value.replaceAll(" ", "");
       final fullPhone = "$code$cleanValue";
       widget.onChanged(fullPhone);
-      signupProvider.setPhone(fullPhone);
+      // signupProvider.setPhone(fullPhone);
 
       String? error;
       if (cleanValue.isEmpty) {

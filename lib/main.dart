@@ -7,6 +7,7 @@ import 'package:betrade/data/provider/rankings_provider.dart';
 import 'package:betrade/data/provider/trade_detail_provider.dart';
 import 'package:betrade/data/provider/trade_provider.dart';
 import 'package:betrade/data/provider/wallet_provider.dart';
+import 'package:betrade/presentation/screens/splash/signup_steps_pages/step_name.dart';
 import 'package:betrade/presentation/screens/splash/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -209,6 +210,17 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             home: const SplashScreen(),
+            //   home: Scaffold(
+            //     body: SafeArea(
+            //       child: Padding(
+            //         padding: const EdgeInsets.all(16),
+            //         child: StepName(
+            //           onChanged: (String firstName, String lastName, String email) {},
+            //           onValidationChanged: (bool isValid) {},
+            //         ),
+            //       ),
+            //     ),
+            //   ),
             builder: (context, child) {
               return OfflineBanner(child: child!);
             },

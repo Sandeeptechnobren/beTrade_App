@@ -205,20 +205,49 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       switch (step) {
+        // case 1: // Phone step
+        //   {
+        //     // final sent = await provider.sendOtp();
+        //     final result = await provider.sendOtp();
+        //     if (_isDisposed || !mounted) return;
+        //
+        //     if (result["success"]) {
+        //       next();
+        //     } else {
+        //       _showError(result["message"]);
+        //       if (mounted) setState(() => _isProcessing = false);
+        //     }
+        //   }
         case 1: // Phone step
           {
-            // final sent = await provider.sendOtp();
-            final result = await provider.sendOtp();
-            if (_isDisposed || !mounted) return;
+            // Phone validation already passed the isCurrentStepValid gate above.
+            // Move to OTP screen right away — don't make the user wait on the
+            // network for this.
+            next();
+            if (mounted) setState(() => _isProcessing = false);
 
-            if (result["success"]) {
-              next();
-            } else {
-              _showError(result["message"]);
-              if (mounted) setState(() => _isProcessing = false);
-            }
+            // Fire-and-forget: sendOtp keeps running while the user is already
+            // looking at the OTP screen. If it fails, surface it there instead
+            // of blocking Continue.
+            provider.sendOtp().then((result) {
+              if (_isDisposed || !mounted) return;
+              if (result["success"] != true) {
+                setState(() {
+                  _otpError = (result["message"] as String?)?.isNotEmpty == true
+                      ? result["message"]
+                      : "Couldn't send OTP. Tap Resend to try again.";
+                });
+              }
+            }).catchError((e) {
+              debugPrint("❌ sendOtp background error: $e");
+              if (_isDisposed || !mounted) return;
+              setState(() {
+                _otpError = "Couldn't send OTP. Tap Resend to try again.";
+              });
+            });
           }
           break;
+          // break;
 
         case 2: // OTP step - Validate OTP here
           {
